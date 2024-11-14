@@ -1,7 +1,6 @@
 from django.contrib import admin
-from inventory.models import Category, InventoryLog, Ingredient
+from inventory.models import Category, Ingredient
 
 # Register your models here.
 admin.site.register(Category)
 admin.site.register(Ingredient)
-admin.site.register(InventoryLog)

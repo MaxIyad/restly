@@ -14,28 +14,11 @@ class Category(models.Model):
 
 # Ingredient model
 class Ingredient(models.Model):
-    
-
-    if use_imperial_units():
-        UNIT_TYPES = [
-            ('oz', 'ounce'),
-            ('fl_oz', 'fluid ounce'),
-            ('pcs', 'piece'),
-            ('in', 'inch'),
-        ]
-    else:
-        UNIT_TYPES = [
-            ('g', 'gram'),
-            ('ml', 'milliliter'),
-            ('pce', 'piece'),
-            ('cm', 'centimeter'),
-        ]
-
 
     name = models.CharField(max_length=255, unique=True)
     quantity = models.FloatField()  # Quantity in stock
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    unit_type = models.CharField(max_length=10, choices=UNIT_TYPES)
+    unit_type = models.CharField(max_length=10)
     unit_multiplier = models.FloatField()  # Multiplier for unit type
     unit_cost = models.FloatField()  # Cost per unit
     threshold = models.FloatField()  # Minimum threshold for inventory
@@ -44,9 +27,23 @@ class Ingredient(models.Model):
     history = HistoricalRecords()
 
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize UNIT_TYPES based on the settings at runtime
+        self.UNIT_TYPES = [
+            ('oz', 'ounce'),
+            ('fl_oz', 'fluid ounce'),
+            ('pcs', 'piece'),
+            ('in', 'inch'),
+        ] if use_imperial_units() else [
+            ('g', 'gram'),
+            ('ml', 'milliliter'),
+            ('pce', 'piece'),
+            ('cm', 'centimeter'),
+        ]
+
     def save(self, *args, **kwargs):
-        # Calculate the total cost for current quantity
-        self.total_cost = self.quantity * self.unit_cost
+        self.total_cost = Decimal(self.quantity) * self.unit_cost
         super().save(*args, **kwargs)
 
     def __str__(self):
