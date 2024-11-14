@@ -1,69 +1,40 @@
-<h1>Inventory List</h1>
+<h1>Inventory List by Category</h1>
 
-<table>
-    <thead>
-        <tr>
-            <th>Ingredient</th>
-            <th>Quantity</th>
-            <th>Category</th>
-            <th>Unit</th>
-            <th>Unit Cost</th>
-            <th>Total Cost</th>
-            <th>Threshold</th>
-            <th>Estimated Usage</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for ingredient in ingredients %}
-        <tr>
-            <td>{{ ingredient.name }}</td>
-            <td>{{ ingredient.quantity }} {{ ingredient.unit_type }}</td>
-            <td>{{ ingredient.category.name }}</td>
-            <td>{{ ingredient.unit_multiplier }} {{ ingredient.unit_type }}</td>
-            <td>${{ ingredient.unit_cost }}</td>
-            <td>${{ ingredient.total_cost }}</td>
-            <td>{{ ingredient.threshold }}</td>
-            <td>{{ ingredient.estimated_usage|default:"-" }}</td>
-            <td>
-                {% if ingredient.is_below_threshold %}
-                    <span style="color: red;">Below Threshold</span>
-                {% else %}
-                    <span style="color: green;">Sufficient</span>
-                {% endif %}
-            </td>
-        </tr>
-        <!-- Display the change logs for each ingredient -->
-        <tr>
-            <td colspan="9">
-                <h4>Change History for {{ ingredient.name }}</h4>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Quantity Change</th>
-                            <th>Source</th>
-                            <th>Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for log in inventory_logs %}
-                            {% if log.ingredient.id == ingredient.id %}
-                            <tr>
-                                <td>{{ log.quantity_change }}</td>
-                                <td>{{ log.get_source_display }}</td>
-                                <td>{{ log.timestamp }}</td>
-                            </tr>
-                            {% endif %}
-                        {% empty %}
-                        <tr>
-                            <td colspan="3">No history available.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% for category in categories %}
+    <h2>{{ category.name|title }}:</h2> <!-- Display category name -->
 
+    <table>
+        <thead>
+            <tr>
+                <th>Ingredient</th>
+                <th>Quantity</th>
+                <th>Unit</th>
+                <th>Unit Cost</th>
+                <th>Total Cost</th>
+                <th>Threshold</th>
+                <th>Estimated Usage</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ingredient in category.ingredient_set.all %}
+            <tr>
+                <td>{{ ingredient.name }}</td>
+                <td>{{ ingredient.converted_quantity }}</td>   
+                <td>{{ ingredient.unit_multiplier }} {{ ingredient.unit_type }}</td>
+                <td>${{ ingredient.unit_cost }}</td>
+                <td>${{ ingredient.total_cost }}</td>
+                <td>{{ ingredient.threshold }}</td>
+                <td>{{ ingredient.estimated_usage|default:"-" }}</td>
+                <td>
+                    {% if ingredient.is_below_threshold %}
+                        <span style="color: red;">Below Threshold</span>
+                    {% else %}
+                        <span style="color: green;">Sufficient</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endfor %}

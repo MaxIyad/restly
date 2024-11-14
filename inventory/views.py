@@ -1,10 +1,11 @@
 from django.shortcuts import render
-from .models import Ingredient
+from .models import Ingredient, Category
 
 def ingredient_list(request):
-    ingredients = Ingredient.objects.all()
+    # Get all categories and associated ingredients
+    categories = Category.objects.prefetch_related('ingredient_set').all()
 
     context = {
-        'ingredients': ingredients,
+        'categories': categories,
     }
     return render(request, 'inventory/ingredient_list.html', context)
