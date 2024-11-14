@@ -28,7 +28,7 @@ class Ingredient(models.Model):
     ]
 
 
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
     quantity = models.FloatField()  # Quantity in stock
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     unit_type = models.CharField(max_length=10, choices=UNIT_TYPES)
@@ -88,10 +88,10 @@ class Ingredient(models.Model):
         # Only convert if quantity meets or exceeds the conversion factor
         if base_qty < conversion_factor:
             # Return quantity in original unit
-            return f"{base_qty} {self.unit_type}"
+            return f"{base_qty}{self.unit_type}"
 
         # Convert quantity to higher unit if the threshold is met
         converted_qty = base_qty / conversion_factor
-        return f"{converted_qty} {higher_unit}"
+        return f"{converted_qty}{higher_unit}"
     
 
