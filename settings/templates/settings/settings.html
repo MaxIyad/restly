@@ -7,6 +7,9 @@
 
     <button type="submit" class="btn btn-primary">Save Settings</button>
 </form>
-
-<p>Current currency type: {{ currency_type }}</p>
+{% if settings %}
+    <p>Current currency type: {{ settings.get_currency_type_display }}</p>
+{% else %}
+ <p>:P</p>
+{% endif %}
 

@@ -1,4 +1,6 @@
 from django.db import models
+from django.core.exceptions import AppRegistryNotReady
+
 
 class Settings(models.Model):
     use_imperial_units = models.BooleanField(default=False)
