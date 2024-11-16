@@ -1,7 +1,12 @@
+{% extends 'base.html' %}
+
 {% load humanize %} <!-- Load the humanize library for intcomma filter -->
 
-<h1>Inventory List by Category</h1>
+{% block title %}
+Inventory
+{% endblock %}
 
+{% block content %}
 {% for category in categories %}
     <h2>{{ category.name|title }}:</h2> <!-- Display category name -->
 
@@ -40,3 +45,9 @@
         </tbody>
     </table>
 {% endfor %}
+<div class="d-flex justify-content-start my-3">
+    <a href="{% url 'row_add' %}" class="btn btn-primary me-2">Add Row</a>
+    <a href="{% url 'category_add' %}" class="btn btn-secondary">Add Category</a>
+</div>
+
+{% endblock %}

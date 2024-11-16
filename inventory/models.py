@@ -1,7 +1,5 @@
 from django.db import models
 
-from settings.utils import use_imperial_units
-
 from simple_history.models import HistoricalRecords
 
 from decimal import Decimal

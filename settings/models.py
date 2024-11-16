@@ -1,7 +1,6 @@
 from django.db import models
 
 class Settings(models.Model):
-    use_imperial_units = models.BooleanField(default=False)
     currency_type = models.CharField(
         max_length=3,
         choices=[
