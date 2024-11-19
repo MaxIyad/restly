@@ -16,7 +16,11 @@
 {% endif %}
 
 {% for category in categories %}
+
     <h2>{{ category.name|title }}:</h2> <!-- Display category name -->
+    <div class="mb-3">
+        <a href="{% url 'export_inventory' 'csv' %}" class="btn btn-primary">Export CSV</a>       
+    </div>
 
     <table class="table table-striped table-bordered table-hover">
         <thead>

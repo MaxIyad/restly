@@ -5,21 +5,50 @@
 {% block content %}
 <h1>Inventory History</h1>
 
-{% for change_reason, records in grouped_changes.items %}
-<div class="card mb-3">
-    <div class="card-header">
-        <h5>{{ change_reason|default:"Unknown Change" }}</h5>
+<!-- Date Filter Form -->
+<form method="get" class="mb-4">
+    <div class="row">
+        <div class="col-md-4">
+            <label for="start_date" class="form-label">Start Date</label>
+            <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date }}" min="1997-01-01" max="2030-12-31">
+        </div>
+        <div class="col-md-4">
+            <label for="end_date" class="form-label">End Date</label>
+            <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date }}" min="1997-01-01" max="2030-12-31">
+        </div>
+        <div class="col-md-4 align-self-end">
+            <button type="submit" class="btn btn-primary">Filter</button>
+        </div>
     </div>
-    <ul class="list-group list-group-flush">
-        {% for record in records %}
-        <li class="list-group-item">
-            <strong>{{ record.name.title }}</strong>
-            (Category: {{ record.category.name.title }}) -
-            <em>{{ record.history_date|date:"SHORT_DATETIME_FORMAT" }}</em> -
-            Quantity: {{ record.quantity }} ({{ record.history_type|yesno:"Added,Changed,Deleted" }})
-        </li>
-        {% endfor %}
-    </ul>
-</div>
-{% endfor %}
+</form>
+
+<!-- Display Grouped Changes -->
+{% if not start_date and not end_date %}
+<p class="text-muted">Please select a date range to view inventory history.</p>
+{% elif grouped_changes %}
+    {% for change_reason, records in grouped_changes.items %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5>{{ change_reason|default:"Unknown Change" }}</h5>
+            <div>
+                <a href="{% url 'export_history' 'csv' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-primary btn-sm">Export CSV</a>
+            </div>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for record in records %}
+            <li class="list-group-item">
+                <strong>{{ record.name.title }}</strong>
+                (Category: {{ record.category.name.title }}) -
+                <em>{{ record.history_date|date:"SHORT_DATETIME_FORMAT" }}</em> -
+                Quantity: {{ record.quantity }} ({{ record.history_type|yesno:"Added,Changed,Deleted" }})
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+{% else %}
+    {% if start_date or end_date %}
+        <p class="text-danger">No records found for the selected date range.</p>
+    {% endif %}
+{% endif %}
 {% endblock %}

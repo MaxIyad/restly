@@ -72,8 +72,9 @@
 </div>
 
 <script>
-    // Deletion modal functionality
     let deleteId = null;
+
+    // Open delete modal for ingredient
     document.querySelectorAll('.delete-button').forEach(button => {
         button.addEventListener('click', function () {
             deleteId = this.dataset.id;
@@ -82,34 +83,35 @@
         });
     });
 
-    // Confirm deletion
+    // Confirm deletion of ingredient
     document.getElementById('confirm-delete').addEventListener('click', function () {
-        const formData = new FormData();
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-        formData.append('delete_id', deleteId);
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('delete_id', deleteId);
 
-        fetch("{% url 'order_inventory' %}", {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Remove the deleted row from the DOM
-                document.querySelector(`[data-id="${deleteId}"]`).remove();
-                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-                deleteModal.hide();
-                alert(data.message);
-            } else {
-                alert(data.error || 'Failed to delete ingredient.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the ingredient.');
-        });
+    fetch("{% url 'order_inventory' %}", {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the deleted row from the DOM
+            document.querySelector(`[data-id="${deleteId}"]`).remove();
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+            deleteModal.hide();
+            alert(data.message);
+        } else {
+            alert(data.error || 'Failed to delete ingredient.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while deleting the ingredient.');
     });
+});
 </script>
+
 <div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
