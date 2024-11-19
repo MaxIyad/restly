@@ -6,6 +6,7 @@ from .forms import IngredientForm, CategoryForm
 from django import forms
 from django.forms import modelform_factory
 from django.contrib import messages 
+from django.http import JsonResponse
 
 def ingredient_list(request):
     # Get all categories and associated ingredients
@@ -86,3 +87,28 @@ def take_inventory(request):
         'ingredient_forms': ingredient_forms,  # Pass the forms to the template
     }
     return render(request, 'inventory/take_inventory.html', context)
+
+
+
+def drag_inventory(request):
+    if request.method == 'POST':
+        # Handle row deletion
+        if 'delete_id' in request.POST:
+            ingredient_id = request.POST['delete_id']
+            ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+            ingredient.delete()
+            return JsonResponse({'success': True, 'message': 'Row deleted successfully.'})
+
+        # Handle reordering
+        if 'order' in request.POST:
+            new_order = request.POST.getlist('order[]')  # Expecting a list of IDs
+            for index, ingredient_id in enumerate(new_order):
+                ingredient = Ingredient.objects.get(id=ingredient_id)
+                ingredient.order = index
+                ingredient.save()
+            return JsonResponse({'success': True, 'message': 'Order updated successfully.'})
+
+    # For GET requests, render the drag-and-drop page
+    ingredients = Ingredient.objects.all()
+    context = {'ingredients': ingredients}
+    return render(request, 'inventory/drag_inventory.html', context)

@@ -36,6 +36,10 @@ class Ingredient(models.Model):
     estimated_usage = models.FloatField(null=True, blank=True)  # Optional, estimated usage per day
     total_cost = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
     history = HistoricalRecords()
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']  # Default ordering by the `order` field
 
 
     def save(self, *args, **kwargs):
