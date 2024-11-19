@@ -2,7 +2,7 @@ from django.db import models
 
 from simple_history.models import HistoricalRecords
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 # Category model for ingredient filtering
 class Category(models.Model):
@@ -89,11 +89,8 @@ class Ingredient(models.Model):
 
         # Only convert if quantity meets or exceeds the conversion factor
         if base_qty < conversion_factor:
-            # Return quantity in original unit
-            return f"{base_qty}{self.unit_type}"
+            return f"{base_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)}{self.unit_type}"
 
-        # Convert quantity to higher unit if the threshold is met
         converted_qty = base_qty / conversion_factor
-        return f"{converted_qty}{higher_unit}"
-    
+        return f"{converted_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)}{higher_unit}"
 

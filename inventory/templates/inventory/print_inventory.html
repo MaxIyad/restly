@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Print Sheet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            margin: 0;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 4px;
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        h2 {
+            margin: 16px 0 8px;
+            font-size: 14px;
+        }
+        .placeholder {
+            display: inline-block;
+            width: 150px; /* Adjusted for visibility in portrait */
+            border-bottom: 1px solid black;
+        }
+        /* Ensure placeholders and table fit even in portrait print orientation */
+        @media print {
+            .placeholder {
+                display: inline-block;
+                width: 100%; /* Maximize width in print view */
+                border-bottom: 1px solid black;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% load humanize %}
+    {% for category in categories %}
+    <h2>{{ category.name }}</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>New Quantity</th>
+                <th>Unit</th>
+                <th>Current Quantity</th>
+                <th>Unit Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ingredient in category.ingredient_set.all %}
+            <tr>
+                <td>{{ ingredient.name }}</td>
+                <td><span class="placeholder"></span></td> <!-- Underline placeholder -->
+                <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
+                <td>{{ ingredient.converted_quantity }}</td>
+                <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:2|intcomma }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endfor %}
+</body>
+</html>

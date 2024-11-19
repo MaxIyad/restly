@@ -7,11 +7,14 @@ from django import forms
 from django.forms import modelform_factory
 from django.contrib import messages 
 from django.http import JsonResponse
+from django.db import models
+
 
 def ingredient_list(request):
-    # Get all categories and associated ingredients
-    categories = Category.objects.prefetch_related('ingredient_set').all()
-    # Retrieve the settings instance, or use a default if it doesn't exist
+    # Get all categories and associated ingredients ordered by their `order` field
+    categories = Category.objects.prefetch_related(
+        models.Prefetch('ingredient_set', queryset=Ingredient.objects.order_by('order'))
+    )
     settings_instance = Settings.objects.first()
 
     context = {
@@ -89,26 +92,37 @@ def take_inventory(request):
     return render(request, 'inventory/take_inventory.html', context)
 
 
-
-def drag_inventory(request):
+def order_inventory(request):
     if request.method == 'POST':
-        # Handle row deletion
-        if 'delete_id' in request.POST:
-            ingredient_id = request.POST['delete_id']
-            ingredient = get_object_or_404(Ingredient, id=ingredient_id)
-            ingredient.delete()
-            return JsonResponse({'success': True, 'message': 'Row deleted successfully.'})
+        # Process user input for order
+        for key, value in request.POST.items():
+            if key.startswith('order-'):  # Expecting keys like 'order-<ingredient_id>'
+                try:
+                    ingredient_id = int(key.split('-')[1])
+                    order_value = int(value)
+                    ingredient = Ingredient.objects.get(id=ingredient_id)
+                    ingredient.order = order_value  # Update the order field
+                    ingredient.save()
+                except (ValueError, Ingredient.DoesNotExist):
+                    continue
 
-        # Handle reordering
-        if 'order' in request.POST:
-            new_order = request.POST.getlist('order[]')  # Expecting a list of IDs
-            for index, ingredient_id in enumerate(new_order):
-                ingredient = Ingredient.objects.get(id=ingredient_id)
-                ingredient.order = index
-                ingredient.save()
-            return JsonResponse({'success': True, 'message': 'Order updated successfully.'})
+        messages.success(request, "Order updated successfully!")
+        return redirect('order_inventory')
 
-    # For GET requests, render the drag-and-drop page
-    ingredients = Ingredient.objects.all()
-    context = {'ingredients': ingredients}
-    return render(request, 'inventory/drag_inventory.html', context)
+    # For GET requests, group ingredients by category
+    categories = Category.objects.prefetch_related(
+        models.Prefetch('ingredient_set', queryset=Ingredient.objects.order_by('order'))
+    )
+    context = {'categories': categories}
+    return render(request, 'inventory/order_inventory.html', context)
+
+
+def print_inventory(request):
+    # Fetch all categories and their respective ingredients
+    categories = Category.objects.prefetch_related(
+        models.Prefetch('ingredient_set', queryset=Ingredient.objects.order_by('order'))
+    )
+    
+    # Pass categories to the template
+    context = {'categories': categories}
+    return render(request, 'inventory/print_inventory.html', context)

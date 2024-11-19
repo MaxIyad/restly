@@ -15,8 +15,7 @@
                 <th>Name</th>
                 <th>New Quantity</th>
                 <th>Unit</th>
-                <th>Current Quantity</th>
- 
+                <th>Current Quantity</th> 
                 <th>Unit Cost</th>
                 <th>Total</th>
             </tr>
@@ -32,8 +31,8 @@
                 </td>
                 <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
                 <td>{{ ingredient.converted_quantity }}</td>
-                <td>{{ ingredient.unit_cost }}</td>
-                <td>{{ ingredient.total_cost|floatformat:2 }}</td>
+                <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:2|intcomma }}</td>
+                <td>{{ settings.get_currency_type_display }}{{ ingredient.total_cost|floatformat:2|intcomma }}</td>
             </tr>
             {% endfor %}
         </tbody>
