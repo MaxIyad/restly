@@ -68,8 +68,9 @@ def take_inventory(request):
                 # Only save the ingredient if 'quantity' is not empty
                 if form.cleaned_data['quantity'] is not None:
                     form.save()
+                    updated_count += 1
         if updated_count > 0:
-            messages.success(request, f"Inventory updated successfully! {updated_count} ingredient(s) updated.")
+            messages.success(request, f"Inventory updated successfully! {updated_count} ingredient{'s' if updated_count > 1 else ''} updated.")
         else:
             messages.info(request, "No changes were made to the inventory.")
 
@@ -78,7 +79,7 @@ def take_inventory(request):
     # Populate forms for GET requests
     for ingredient in Ingredient.objects.all():
         InventoryForm.base_fields['quantity'].required = False  # Ensure field is optional for GET requests
-        ingredient_forms[ingredient.id] = InventoryForm(instance=ingredient, prefix=f"ingredient-{ingredient.id}")
+        ingredient_forms[ingredient.id] = InventoryForm(instance=None, prefix=f"ingredient-{ingredient.id}")
 
     context = {
         'categories': categories,
