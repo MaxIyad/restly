@@ -13,6 +13,7 @@ from django.db import transaction
 from simple_history.utils import update_change_reason
 
 
+
 def ingredient_list(request):
     # Get all categories and associated ingredients ordered by their `order` field
     categories = Category.objects.prefetch_related(
