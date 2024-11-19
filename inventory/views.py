@@ -23,7 +23,7 @@ def row_add(request):
         form = IngredientForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('ingredient_list')
+            return redirect('inventory')
     else:
         form = IngredientForm()
 
