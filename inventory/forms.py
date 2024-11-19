@@ -4,7 +4,7 @@ from .models import Ingredient, Category
 class IngredientForm(forms.ModelForm):
     class Meta:
         model = Ingredient
-        fields = ['name', 'quantity', 'category', 'unit_type', 'unit_multiplier', 'unit_cost']
+        fields = ['name', 'quantity', 'category', 'unit_type', 'unit_multiplier', 'unit_cost', 'threshold']
         widgets = {
             'category': forms.Select(),
             'unit_type': forms.Select(),
@@ -16,7 +16,7 @@ class IngredientForm(forms.ModelForm):
             'unit_type': 'Unit Type',
             'unit_multiplier': 'Unit Multiplier',
             'unit_cost': 'Unit Cost',
-            'threshold': 'Threshold',
+            'threshold': 'Threshold (Quantity)',
         }
 
     def clean(self):

@@ -4,14 +4,12 @@
 {% load humanize %}
 {% block content %}
 
-{% if messages %}
+{% if message %}
 <div class="alert-container">
-    {% for message in messages %}
     <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-    {% endfor %}
 </div>
 {% endif %}
 
@@ -43,7 +41,7 @@
                 <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
                 <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:2|intcomma }}</td>
                 <td>{{ settings.get_currency_type_display }}{{ ingredient.total_cost|floatformat:2|intcomma }}</td>
-                <td>{{ ingredient.threshold }}</td>
+                <td>{{ ingredient.converted_threshold }}</td>
                 <td>{{ ingredient.estimated_usage|default:"-" }}</td>
                 <td>
                     {% if ingredient.is_below_threshold %}

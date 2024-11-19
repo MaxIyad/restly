@@ -13,6 +13,8 @@ from django.db import transaction
 from simple_history.utils import update_change_reason
 from django.utils.dateparse import parse_date
 from datetime import datetime, time
+from django.contrib.messages import get_messages
+
 
 import pandas as pd
 from django.http import HttpResponse
@@ -26,9 +28,26 @@ def ingredient_list(request):
     )
     settings_instance = Settings.objects.first()
 
+    # Retrieve messages
+    storage = get_messages(request)
+    messages_list = list(storage)
+
+    # Separate success and error messages
+    success_messages = [message for message in messages_list if 'success' in message.tags]
+    error_messages = [message for message in messages_list if 'error' in message.tags]
+
+    # Determine the single message to display
+    if success_messages:
+        display_message = success_messages[0]  # Show the first success message if it exists
+    elif error_messages:
+        display_message = error_messages[0]  # Otherwise, show the first error message
+    else:
+        display_message = None  # If no success or error messages, show nothing
+
     context = {
         'categories': categories,
         'settings': settings_instance,
+        'message': display_message,  # Pass the single message to the template
     }
     return render(request, 'inventory/ingredient_list.html', context)
 
