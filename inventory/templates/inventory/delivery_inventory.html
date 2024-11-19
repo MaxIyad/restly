@@ -3,7 +3,7 @@
 {% load custom_filters %}
 
 {% block content %}
-<h1>Take Inventory</h1>
+<h1>Delivery Inventory</h1>
 
 <form method="post">
     {% csrf_token %}
@@ -13,7 +13,7 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>New Quantity</th>
+                <th>Additional Quantity</th>
                 <th>Unit</th>
                 <th>Current Quantity</th> 
                 <th>Unit Cost</th>
@@ -23,8 +23,8 @@
         <tbody>
             {% for ingredient in category.ingredient_set.all %}
             <tr>
-                <td>{{ ingredient.name|title }}</td>
-                <td>                   
+                <td>{{ ingredient.name }}</td>
+                <td>
                     {% with ingredient_forms|get_form:ingredient.id as form %}
                         {{ form.quantity }}
                     {% endwith %}

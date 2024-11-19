@@ -4,7 +4,7 @@ from .models import Ingredient, Category
 class IngredientForm(forms.ModelForm):
     class Meta:
         model = Ingredient
-        fields = ['name', 'quantity', 'category', 'unit_type', 'unit_multiplier', 'unit_cost', 'threshold']
+        fields = ['name', 'quantity', 'category', 'unit_type', 'unit_multiplier', 'unit_cost']
         widgets = {
             'category': forms.Select(),
             'unit_type': forms.Select(),
@@ -26,7 +26,7 @@ class IngredientForm(forms.ModelForm):
 
         if name and category:
             # Check if an ingredient with the same name exists in the category
-            if Ingredient.objects.filter(name=name, category=category).exists():
+            if Ingredient.objects.filter(name__iexact=name, category=category).exists():
                 raise forms.ValidationError(f"An ingredient named '{name}' already exists in the '{category}' category.")
 
         return cleaned_data
@@ -39,3 +39,9 @@ class CategoryForm(forms.ModelForm):
         labels = {
             'name': 'Category Name',
         }
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].lower()
+        if Category.objects.filter(name=name).exists():
+            raise forms.ValidationError(f"A category with the name '{name.title()}' already exists.")
+        return name

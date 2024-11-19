@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory History{% endblock %}
+
+{% block content %}
+<h1>Inventory History</h1>
+
+{% for change_reason, records in grouped_changes.items %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h5>{{ change_reason|default:"Unknown Change" }}</h5>
+    </div>
+    <ul class="list-group list-group-flush">
+        {% for record in records %}
+        <li class="list-group-item">
+            <strong>{{ record.name.title }}</strong>
+            (Category: {{ record.category.name.title }}) -
+            <em>{{ record.history_date|date:"SHORT_DATETIME_FORMAT" }}</em> -
+            Quantity: {{ record.quantity }} ({{ record.history_type|yesno:"Added,Changed,Deleted" }})
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endfor %}
+{% endblock %}

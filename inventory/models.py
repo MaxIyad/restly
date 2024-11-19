@@ -7,6 +7,10 @@ from decimal import Decimal, ROUND_HALF_UP
 # Category model for ingredient filtering
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True, default="global")
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['order'] 
 
     def __str__(self):
         return self.name
@@ -32,11 +36,12 @@ class Ingredient(models.Model):
     unit_type = models.CharField(max_length=10, choices=UNIT_TYPES)
     unit_multiplier = models.FloatField()  # Multiplier for unit type
     unit_cost = models.FloatField()  # Cost per unit
-    threshold = models.FloatField()  # Minimum threshold for inventory
+    threshold = models.FloatField(default=0)  # Minimum threshold for inventory
     estimated_usage = models.FloatField(null=True, blank=True)  # Optional, estimated usage per day
     total_cost = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
     history = HistoricalRecords()
-    order = models.PositiveIntegerField(default=0)
+    order = models.PositiveIntegerField(default=1)
+    change_source = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:
         ordering = ['order']  # Default ordering by the `order` field
@@ -45,11 +50,12 @@ class Ingredient(models.Model):
 
     def save(self, *args, **kwargs):
         # Calculate the total cost for current quantity
+        self.name = self.name.lower()
         self.total_cost = self.quantity * self.unit_cost
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name
+        return self.name.title()
 
     def is_below_threshold(self):
         return self.quantity < self.threshold

@@ -9,6 +9,8 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db import models
 from django.forms import modelformset_factory
+from django.db import transaction
+from simple_history.utils import update_change_reason
 
 
 def ingredient_list(request):
@@ -34,7 +36,7 @@ def row_add(request):
         Ingredient,
         form=IngredientForm,
         extra=1,  # Allow for one empty form initially
-        can_delete=True  # Allow rows to be removed
+        can_delete=False  # Allow rows to be removed
     )
 
     if request.method == 'POST':
@@ -68,6 +70,8 @@ def category_add(request):
 
     return render(request, 'inventory/category_add.html', {'form': form})
 
+
+
 def take_inventory(request):
     categories = Category.objects.prefetch_related('ingredient_set').all()
 
@@ -94,7 +98,9 @@ def take_inventory(request):
             if form.is_valid():
                 # Only save the ingredient if 'quantity' is not empty
                 if form.cleaned_data['quantity'] is not None:
-                    form.save()
+                         
+                    form.save()   
+                    update_change_reason(ingredient, "Inventory")                 
                     updated_count += 1
         if updated_count > 0:
             messages.success(request, f"Inventory updated successfully! {updated_count} ingredient{'s' if updated_count > 1 else ''} updated.")
@@ -115,38 +121,52 @@ def take_inventory(request):
     return render(request, 'inventory/take_inventory.html', context)
 
 
-def order_inventory(request):
-    if request.method == 'POST':
-        # Handle deletion
-        if 'delete_id' in request.POST:
-            delete_id = request.POST.get('delete_id')
-            try:
-                ingredient = Ingredient.objects.get(id=delete_id)
-                ingredient.delete()
-                return JsonResponse({'success': True, 'message': f"Ingredient '{ingredient.name}' deleted successfully."})
-            except Ingredient.DoesNotExist:
-                return JsonResponse({'success': False, 'error': 'Ingredi    ent not found.'})
 
-        # Handle order updates
+
+def order_inventory(request):
+    CategoryFormSet = modelformset_factory(
+        Category,
+        form=CategoryForm,
+        extra=0,
+        can_delete=False,
+    )
+
+    if 'delete_category_id' in request.POST:
+        delete_category_id = request.POST.get('delete_category_id')
+        try:
+            category = Category.objects.get(id=delete_category_id)
+            category.delete()
+            messages.success(request, f"Category '{category.name.title()}' deleted successfully!")
+        except Category.DoesNotExist:
+            messages.error(request, "The category you are trying to delete does not exist.")
+        return redirect('order_inventory')
+    
+    if request.method == 'POST':
+        # Handle category re-ordering
         for key, value in request.POST.items():
-            if key.startswith('order-'):  # Expecting keys like 'order-<ingredient_id>'
+            if key.startswith('category-order-'):  # Expecting keys like 'category-order-<category_id>'
                 try:
-                    ingredient_id = int(key.split('-')[1])
+                    category_id = int(key.split('-')[-1])
                     order_value = int(value)
-                    ingredient = Ingredient.objects.get(id=ingredient_id)
-                    ingredient.order = order_value  # Update the order field
-                    ingredient.save()
-                except (ValueError, Ingredient.DoesNotExist):
+                    category = Category.objects.get(id=category_id)
+                    category.order = order_value
+                    category.save()
+                except (ValueError, Category.DoesNotExist):
                     continue
 
-        messages.success(request, "Order updated successfully!")
-        return redirect('inventory')
+        messages.success(request, "Category order updated successfully!")
+        return redirect('order_inventory')
 
-    # For GET requests, group ingredients by category
+    # For GET requests, fetch categories and ingredients
     categories = Category.objects.prefetch_related(
         models.Prefetch('ingredient_set', queryset=Ingredient.objects.order_by('order'))
     )
-    context = {'categories': categories}
+    category_form = CategoryForm()
+
+    context = {
+        'categories': categories,
+        'category_form': category_form,
+    }
     return render(request, 'inventory/order_inventory.html', context)
 
 
@@ -161,3 +181,81 @@ def print_inventory(request):
     # Pass categories to the template
     context = {'categories': categories}
     return render(request, 'inventory/print_inventory.html', context)
+
+
+def delivery_inventory(request):
+    categories = Category.objects.prefetch_related('ingredient_set').all()
+
+    # Create a form factory for updating the 'quantity' field
+    InventoryForm = modelform_factory(
+        Ingredient,
+        fields=['quantity'],
+        widgets={'quantity': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control'})},
+        field_classes={'quantity': forms.FloatField},
+    )
+
+    # Dictionary to store forms for each ingredient
+    ingredient_forms = {}
+
+    if request.method == 'POST':
+        updated_count = 0
+        for ingredient in Ingredient.objects.all():
+            # Make the field optional by overriding the 'required' attribute
+            InventoryForm.base_fields['quantity'].required = False
+
+            form = InventoryForm(request.POST, instance=ingredient, prefix=f"ingredient-{ingredient.id}")
+            ingredient_forms[ingredient.id] = form  # Save the form in the dictionary
+
+            if form.is_valid():
+                with transaction.atomic():
+                    ingredient.refresh_from_db()
+                    if form.cleaned_data['quantity'] is not None:
+                        additional_quantity = form.cleaned_data['quantity']
+                        ingredient.quantity = ingredient.quantity + additional_quantity
+                        ingredient.save()
+                        update_change_reason(ingredient, "Delivery") 
+                        updated_count += 1
+
+        if updated_count > 0:
+            messages.success(request, f"Inventory updated successfully! {updated_count} ingredient{'s' if updated_count > 1 else ''} updated.")
+        else:
+            messages.info(request, "No changes were made to the inventory.")
+
+        return redirect('inventory')
+
+    # Populate forms for GET requests
+    for ingredient in Ingredient.objects.all():
+        InventoryForm.base_fields['quantity'].required = False  # Ensure field is optional for GET requests
+        ingredient_forms[ingredient.id] = InventoryForm(instance=None, prefix=f"ingredient-{ingredient.id}")
+
+    context = {
+        'categories': categories,
+        'ingredient_forms': ingredient_forms,  # Pass the forms to the template
+    }
+    return render(request, 'inventory/delivery_inventory.html', context)
+
+
+
+
+
+
+def inventory_history(request):
+    # Fetch the historical records grouped by change_id (bulk edits or solo)
+    historical_records = (
+        Ingredient.history
+        .filter(history_change_reason__isnull=False)  # Only include tracked changes
+        .order_by('-history_date')  # Order by most recent changes
+    )
+    
+    # Group records by change_id
+    grouped_changes = {}
+    for record in historical_records:
+        group_key = record.history_change_reason
+        if group_key not in grouped_changes:
+            grouped_changes[group_key] = []
+        grouped_changes[group_key].append(record)
+
+    context = {
+        'grouped_changes': grouped_changes,
+    }
+    return render(request, 'inventory/inventory_history.html', context)

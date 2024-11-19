@@ -8,4 +8,6 @@ urlpatterns = [
     path('take-inventory/', views.take_inventory, name='take_inventory'),
     path('order/', views.order_inventory, name='order_inventory'),
     path('print/', views.print_inventory, name='print_inventory'),
+    path('delivery/', views.delivery_inventory, name='delivery_inventory'),
+    path('history/', views.inventory_history, name='inventory_history'),
 ]
