@@ -40,6 +40,7 @@ class Ingredient(models.Model):
 
     class Meta:
         ordering = ['order']  # Default ordering by the `order` field
+        unique_together = ('name', 'category') 
 
 
     def save(self, *args, **kwargs):

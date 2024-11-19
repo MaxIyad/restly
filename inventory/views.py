@@ -7,7 +7,8 @@ from django import forms
 from django.forms import modelform_factory
 from django.contrib import messages 
 from django.http import JsonResponse
-from django.db import models
+from django.db import IntegrityError, models
+from django.forms import modelformset_factory
 
 
 def ingredient_list(request):
@@ -23,16 +24,39 @@ def ingredient_list(request):
     }
     return render(request, 'inventory/ingredient_list.html', context)
 
-def row_add(request):
-    if request.method == 'POST':
-        form = IngredientForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('inventory')
-    else:
-        form = IngredientForm()
 
-    return render(request, 'inventory/row_add.html', {'form': form})
+
+
+
+def row_add(request):
+    IngredientFormSet = modelformset_factory(
+        Ingredient,
+        form=IngredientForm,
+        extra=1,
+        can_delete=True
+    )
+
+    if request.method == 'POST':
+        formset = IngredientFormSet(request.POST, queryset=Ingredient.objects.none())
+        if formset.is_valid():
+            try:
+                formset.save()
+                messages.success(request, "Ingredients added successfully!")
+                return redirect('inventory')
+            except IntegrityError:
+                messages.error(request, "Duplicate ingredients detected in the same category.")
+        else:
+            messages.error(request, "There was an error saving the ingredients. Please correct the errors below.")
+    else:
+        formset = IngredientFormSet(queryset=Ingredient.objects.none())
+
+    return render(request, 'inventory/row_add.html', {'formset': formset})
+
+
+
+
+
+
 
 def category_add(request):
     if request.method == 'POST':

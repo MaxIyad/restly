@@ -1,15 +1,51 @@
 {% extends 'base.html' %}
 
 {% block title %}
-Add Ingredient
+Add Ingredients
 {% endblock %}
 
 {% block content %}
-<form method="post">
+<h1>Add Ingredients</h1>
+
+<form id="ingredient-form" method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Add Ingredient</button>
+    {{ formset.management_form }} <!-- Include the management form -->
+    <div id="rows-container">
+        <!-- Render all forms in the formset -->
+        {% for form in formset %}
+        <div class="ingredient-row">
+            {{ form.as_p }}
+        </div>
+        {% endfor %}
+    </div>
+    <button type="button" id="add-row" class="btn btn-secondary">Add Row</button>
+    <button type="submit" class="btn btn-primary">Save All Rows</button>
 </form>
 
 <a href="{% url 'inventory' %}">Back to Inventory List</a>
+
+<script>
+    // Get the initial form HTML to duplicate for new rows
+    const initialRowHtml = `
+        <div class="ingredient-row">
+            {{ formset.empty_form.as_p|escapejs }}
+        </div>
+    `;
+
+    // Add event listener to the "Add Row" button
+    document.getElementById('add-row').addEventListener('click', () => {
+        const container = document.getElementById('rows-container');
+        const totalForms = document.getElementById('id_form-TOTAL_FORMS'); // Total forms input
+        const newRow = document.createElement('div');
+        newRow.className = 'ingredient-row';
+
+        // Update the new row HTML with the correct index
+        const currentIndex = parseInt(totalForms.value, 10);
+        newRow.innerHTML = initialRowHtml.replace(/__prefix__/g, currentIndex);
+        container.appendChild(newRow);
+
+        // Increment the TOTAL_FORMS value
+        totalForms.value = currentIndex + 1;
+    });
+</script>
 {% endblock %}
