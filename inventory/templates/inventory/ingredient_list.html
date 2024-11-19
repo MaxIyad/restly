@@ -3,6 +3,7 @@
 
 {% load humanize %}
 {% block content %}
+
 {% for category in categories %}
     <h2>{{ category.name|title }}:</h2> <!-- Display category name -->
 
@@ -44,6 +45,7 @@
 <div class="d-flex justify-content-start my-3">
     <a href="{% url 'row_add' %}" class="btn btn-primary me-2">Add Row</a>
     <a href="{% url 'category_add' %}" class="btn btn-secondary">Add Category</a>
+    <a href="{% url 'take_inventory' %}" class="btn btn-secondary">Take Inventory</a>
 </div>
 {% endblock %}
 

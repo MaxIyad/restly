@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Ingredient, Category
+from django.http import HttpResponseBadRequest
 from settings.models import Settings 
 from .forms import IngredientForm, CategoryForm
 from django import forms
-
-from django.forms import modelformset_factory
+from django.forms import modelform_factory
+from django.contrib import messages 
 
 def ingredient_list(request):
     # Get all categories and associated ingredients
@@ -40,75 +41,47 @@ def category_add(request):
 
     return render(request, 'inventory/category_add.html', {'form': form})
 
-
 def take_inventory(request):
-    # Create a formset for the Ingredient model with the quantity field editable
-    IngredientFormSet = modelformset_factory(
-        Ingredient,
-        fields=('quantity',),
-        extra=0,
-        widgets={
-            'quantity': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter new quantity'
-            })
-        }
-    )
-
-    # Handle POST request
-    if request.method == 'POST':
-        formset = IngredientFormSet(request.POST, queryset=Ingredient.objects.all())
-        if formset.is_valid():
-            # Save the updated quantities to the database
-            for form in formset:
-                ingredient = form.instance  # Get the associated Ingredient instance
-                if form.cleaned_data['quantity'] is not None:
-                    ingredient.quantity = form.cleaned_data['quantity']
-                    ingredient.save()  # Explicitly save the instance
-            return redirect('inventory')  # Redirect to inventory list after saving
-
-    else:
-        formset = IngredientFormSet(queryset=Ingredient.objects.all())
-
-    # Group forms by category for display
-    categories = {}
-    for form in formset:
-        category = form.instance.category
-        if category not in categories:
-            categories[category] = []
-        categories[category].append(form)
-
-    context = {
-        'categories': categories,  # Grouped forms by category
-        'formset': formset,        # The entire formset
-    }
-    return render(request, 'inventory/take_inventory.html', context)
-
-'''
-def take_inventory(request):
-    # Prefetch related ingredients for efficiency
     categories = Category.objects.prefetch_related('ingredient_set').all()
 
-    # Dynamically create a formset for all ingredients
-    IngredientFormSet = modelformset_factory(
+    # Create a form factory for updating the 'quantity' field
+    InventoryForm = modelform_factory(
         Ingredient,
-        fields=('id', 'quantity'),
-        extra=0,  # No extra forms
-        labels={'quantity': 'New Quantity'},
-        widgets={'quantity': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter new quantity'})}
+        fields=['quantity'],
+        widgets={'quantity': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': 'Optional'})},
+        field_classes={'quantity': forms.FloatField},
     )
 
-    if request.method == 'POST':
-        formset = IngredientFormSet(request.POST)
-        if formset.is_valid():
-            formset.save()  # Save the updated quantities
-            return redirect('take_inventory')  # Redirect to clear the form
+    # Dictionary to store forms for each ingredient
+    ingredient_forms = {}
 
-    else:
-        formset = IngredientFormSet(queryset=Ingredient.objects.all())
+    if request.method == 'POST':
+        updated_count = 0
+        for ingredient in Ingredient.objects.all():
+            # Make the field optional by overriding the 'required' attribute
+            InventoryForm.base_fields['quantity'].required = False
+
+            form = InventoryForm(request.POST, instance=ingredient, prefix=f"ingredient-{ingredient.id}")
+            ingredient_forms[ingredient.id] = form  # Save the form in the dictionary
+
+            if form.is_valid():
+                # Only save the ingredient if 'quantity' is not empty
+                if form.cleaned_data['quantity'] is not None:
+                    form.save()
+        if updated_count > 0:
+            messages.success(request, f"Inventory updated successfully! {updated_count} ingredient(s) updated.")
+        else:
+            messages.info(request, "No changes were made to the inventory.")
+
+        return redirect('inventory')
+
+    # Populate forms for GET requests
+    for ingredient in Ingredient.objects.all():
+        InventoryForm.base_fields['quantity'].required = False  # Ensure field is optional for GET requests
+        ingredient_forms[ingredient.id] = InventoryForm(instance=ingredient, prefix=f"ingredient-{ingredient.id}")
 
     context = {
         'categories': categories,
-        'formset': formset,
+        'ingredient_forms': ingredient_forms,  # Pass the forms to the template
     }
-    return render(request, 'inventory/take_inventory.html', context)'''
+    return render(request, 'inventory/take_inventory.html', context)

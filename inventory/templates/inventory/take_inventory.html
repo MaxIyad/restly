@@ -1,39 +1,45 @@
 {% extends 'base.html' %}
-
-{% block title %}
-Take Inventory
-{% endblock %}
+{% load humanize %}
+{% load custom_filters %}
 
 {% block content %}
-<h2>Take Inventory</h2>
+<h1>Take Inventory</h1>
 
-<form method="POST">
+<form method="post">
     {% csrf_token %}
-    {% for category, forms in categories.items %}
-        <h3>{{ category.name|title }}</h3>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Ingredient</th>
-                    <th>New Quantity</th>
-                    <th>Current Quantity</th>
-                    <th>Unit</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for form in forms %}
-                    <tr>
-                        <td>{{ form.instance.name }}</td>
-                        <td>{{ form.quantity }}</td>
-                        <td>{{ form.instance.quantity }}</td>
-                        <td>{{ form.instance.unit_type }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    {% for category in categories %}
+    <h2>Category: {{ category.name }}</h2>
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>New Quantity</th>
+                <th>Unit</th>
+                <th>Current Quantity</th>
+ 
+                <th>Unit Cost</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ingredient in category.ingredient_set.all %}
+            <tr>
+                <td>{{ ingredient.name }}</td>
+                <td>                   
+                    {% with ingredient_forms|get_form:ingredient.id as form %}
+                        {{ form.quantity }}
+                    {% endwith %}
+                </td>
+                <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
+                <td>{{ ingredient.converted_quantity }}</td>
+                <td>{{ ingredient.unit_cost }}</td>
+                <td>{{ ingredient.total_cost|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {% endfor %}
-    <button type="submit" class="btn btn-success">Save Inventory</button>
+    
+    <button type="submit" class="btn btn-primary">Save Changes</button>
 </form>
-
-<a href="{% url 'inventory' %}" class="btn btn-secondary mt-3">Back to Inventory</a>
 {% endblock %}
