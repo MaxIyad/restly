@@ -14,35 +14,28 @@
         table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
         }
         th, td {
-            border: 1px solid black;
-            padding: 4px;
+            border: 1px dotted black;
+            padding: 2px ;
             text-align: left;
+            word-wrap: break-word;
         }
         th {
-            background-color: #f0f0f0;
+            background-color: #fff;
         }
         h2 {
-            margin: 16px 0 8px;
+            margin: 2px 0 2px;
             font-size: 14px;
         }
-        .placeholder {
-            display: inline-block;
-            width: 150px; /* Adjusted for visibility in portrait */
-            border-bottom: 1px solid black;
-        }
-        /* Ensure placeholders and table fit even in portrait print orientation */
-        @media print {
-            .placeholder {
-                display: inline-block;
-                width: 100%; /* Maximize width in print view */
-                border-bottom: 1px solid black;
-            }
-        }
+              
+        
     </style>
 </head>
 <body>
+    <p>NOTE: Quantity is a multiple of unit. Example: Unit: 500g, Quantity: 3 = Current Quantity: 1.5kg</p>
+
     {% load humanize %}
     {% for category in categories %}
     <h2>{{ category.name }}</h2>
@@ -60,7 +53,7 @@
             {% for ingredient in category.ingredient_set.all %}
             <tr>
                 <td>{{ ingredient.name }}</td>
-                <td><span class="placeholder"></span></td> <!-- Underline placeholder -->
+                <td></td> <!-- Underline placeholder? -->
                 <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
                 <td>{{ ingredient.converted_quantity }}</td>
                 <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:2|intcomma }}</td>

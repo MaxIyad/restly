@@ -18,7 +18,7 @@
         </thead>
         <tbody>
             {% for ingredient in category.ingredient_set.all %}
-            <tr>
+            <tr data-id="{{ ingredient.id }}">
                 <td>
                     <input type="number" name="order-{{ ingredient.id }}" value="{{ ingredient.order }}" class="form-control" />
                 </td>
@@ -79,11 +79,19 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                document.querySelector(`[data-id="${deleteId}"]`).closest('tr').remove();
+                // Remove the deleted row from the DOM
+                document.querySelector(`[data-id="${deleteId}"]`).remove();
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                deleteModal.hide();
                 alert(data.message);
+            } else {
+                alert(data.error || 'Failed to delete ingredient.');
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the ingredient.');
+        });
     });
 </script>
 {% endblock %}

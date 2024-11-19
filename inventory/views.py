@@ -7,7 +7,7 @@ from django import forms
 from django.forms import modelform_factory
 from django.contrib import messages 
 from django.http import JsonResponse
-from django.db import IntegrityError, models
+from django.db import models
 from django.forms import modelformset_factory
 
 
@@ -29,29 +29,28 @@ def ingredient_list(request):
 
 
 def row_add(request):
+    # Use a formset to handle multiple rows
     IngredientFormSet = modelformset_factory(
         Ingredient,
         form=IngredientForm,
-        extra=1,
-        can_delete=True
+        extra=1,  # Allow for one empty form initially
+        can_delete=True  # Allow rows to be removed
     )
 
     if request.method == 'POST':
         formset = IngredientFormSet(request.POST, queryset=Ingredient.objects.none())
         if formset.is_valid():
-            try:
-                formset.save()
-                messages.success(request, "Ingredients added successfully!")
-                return redirect('inventory')
-            except IntegrityError:
-                messages.error(request, "Duplicate ingredients detected in the same category.")
+            # Save all rows to the database
+            formset.save()
+            messages.success(request, "Ingredients added successfully!")
+            return redirect('inventory')
         else:
-            messages.error(request, "There was an error saving the ingredients. Please correct the errors below.")
+            messages.error(request, "There was an error saving the ingredients. Please try again.")
     else:
+        # Initialize with no rows
         formset = IngredientFormSet(queryset=Ingredient.objects.none())
 
     return render(request, 'inventory/row_add.html', {'formset': formset})
-
 
 
 
@@ -76,7 +75,7 @@ def take_inventory(request):
     InventoryForm = modelform_factory(
         Ingredient,
         fields=['quantity'],
-        widgets={'quantity': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': 'Optional'})},
+        widgets={'quantity': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control'})},
         field_classes={'quantity': forms.FloatField},
     )
 
@@ -118,7 +117,17 @@ def take_inventory(request):
 
 def order_inventory(request):
     if request.method == 'POST':
-        # Process user input for order
+        # Handle deletion
+        if 'delete_id' in request.POST:
+            delete_id = request.POST.get('delete_id')
+            try:
+                ingredient = Ingredient.objects.get(id=delete_id)
+                ingredient.delete()
+                return JsonResponse({'success': True, 'message': f"Ingredient '{ingredient.name}' deleted successfully."})
+            except Ingredient.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Ingredi    ent not found.'})
+
+        # Handle order updates
         for key, value in request.POST.items():
             if key.startswith('order-'):  # Expecting keys like 'order-<ingredient_id>'
                 try:
@@ -131,7 +140,7 @@ def order_inventory(request):
                     continue
 
         messages.success(request, "Order updated successfully!")
-        return redirect('order_inventory')
+        return redirect('inventory')
 
     # For GET requests, group ingredients by category
     categories = Category.objects.prefetch_related(
@@ -139,6 +148,8 @@ def order_inventory(request):
     )
     context = {'categories': categories}
     return render(request, 'inventory/order_inventory.html', context)
+
+
 
 
 def print_inventory(request):
