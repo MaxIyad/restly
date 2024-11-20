@@ -1,67 +1,73 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>Order Inventory</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="text-primary">Order Inventory</h1>
+    <a href="{% url 'inventory' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left-circle"></i> Back to Inventory
+    </a>
+</div>
 
 <form method="post" action="{% url 'order_inventory' %}">
     {% csrf_token %}
     {% for category in categories %}
-<div class="d-flex align-items-center justify-content-between">
-    <h2>
-        Category: {{ category.name }}
-        <input type="number" name="category-order-{{ category.id }}" value="{{ category.order }}" class="form-control d-inline-block w-auto" />
-    </h2>
-    <button type="button" class="btn btn-danger btn-sm delete-category-button" data-category-id="{{ category.id }}">Delete Category</button>
-</div>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Order</th>
-            <th>Name</th>
-            <th>Quantity</th>
-            <th>Unit</th>
-            <th>Unit Multiplier</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for ingredient in category.ingredient_set.all %}
-        <tr data-id="{{ ingredient.id }}">
-            <td>
-                <input type="number" name="order-{{ ingredient.id }}" value="{{ ingredient.order }}" class="form-control" />
-
-            </td>
-            <td>
-                <input type="text" name="name-{{ ingredient.id }}" value="{{ ingredient.name|title }}" class="form-control" />
-            </td>
-            <td>
-                <input type="number" name="quantity-{{ ingredient.id }}" value="{{ ingredient.quantity }}" step="0.01" class="form-control" />
-
-            </td>
-            <td>
-                <select name="unit_type-{{ ingredient.id }}" class="form-control">
-                    {% for unit, label in ingredient.UNIT_TYPES %}
-                    <option value="{{ unit }}" {% if unit == ingredient.unit_type %}selected{% endif %}>
-                        {{ label }}
-                    </option>
-                    {% endfor %}
-                </select>
-                
-                
-            </td>
-            <td>
-                <input type="number" name="unit_multiplier-{{ ingredient.id }}" value="{{ ingredient.unit_multiplier }}" step="0.01" class="form-control" />
-            </td>
-            <td>
-                <button type="button" class="delete-button btn btn-danger btn-sm" data-id="{{ ingredient.id }}">Delete</button>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-
-{% endfor %}
-    <button type="submit" class="btn btn-primary">Save Order</button>
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="mb-0 text-primary">Category: {{ category.name }}</h2>
+            <div>
+                <input type="number" name="category-order-{{ category.id }}" value="{{ category.order }}" class="form-control d-inline-block w-auto me-3">
+                <button type="button" class="btn btn-danger btn-sm delete-category-button" data-category-id="{{ category.id }}">
+                    <i class="bi bi-trash"></i> Delete Category
+                </button>
+            </div>
+        </div>
+        <table class="table table-striped align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Order</th>
+                    <th>Name</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>Unit Multiplier</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ingredient in category.ingredient_set.all %}
+                <tr data-id="{{ ingredient.id }}">
+                    <td>
+                        <input type="number" name="order-{{ ingredient.id }}" value="{{ ingredient.order }}" class="form-control" />
+                    </td>
+                    <td>
+                        <input type="text" name="name-{{ ingredient.id }}" value="{{ ingredient.name|title }}" class="form-control" />
+                    </td>
+                    <td>
+                        <input type="number" name="quantity-{{ ingredient.id }}" value="{{ ingredient.quantity }}" step="0.01" class="form-control" />
+                    </td>
+                    <td>
+                        <select name="unit_type-{{ ingredient.id }}" class="form-select">
+                            {% for unit, label in ingredient.UNIT_TYPES %}
+                            <option value="{{ unit }}" {% if unit == ingredient.unit_type %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="unit_multiplier-{{ ingredient.id }}" value="{{ ingredient.unit_multiplier }}" step="0.01" class="form-control" />
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm delete-button" data-id="{{ ingredient.id }}">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">
+        <i class="bi bi-save"></i> Save Order
+    </button>
 </form>
 
 <!-- Add Category Form -->
@@ -70,12 +76,13 @@
     <form method="post" action="{% url 'order_inventory' %}">
         {% csrf_token %}
         {{ category_form.as_p }}
-        <button type="submit" name="add_category" value="true" class="btn btn-success">Add Category</button>
+        <button type="submit" name="add_category" value="true" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Add Category
+        </button>
     </form>
 </div>
 
-
-<!-- Confirmation modal -->
+<!-- Confirmation Modal for Ingredient Deletion -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -94,48 +101,7 @@
     </div>
 </div>
 
-<script>
-    let deleteId = null;
-
-    // Open delete modal for ingredient
-    document.querySelectorAll('.delete-button').forEach(button => {
-        button.addEventListener('click', function () {
-            deleteId = this.dataset.id;
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
-        });
-    });
-
-    // Confirm deletion of ingredient
-    document.getElementById('confirm-delete').addEventListener('click', function () {
-    const formData = new FormData();
-    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-    formData.append('delete_id', deleteId);
-
-    fetch("{% url 'order_inventory' %}", {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Remove the deleted row from the DOM
-            document.querySelector(`[data-id="${deleteId}"]`).remove();
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-            deleteModal.hide();
-            alert(data.message);
-        } else {
-            alert(data.error || 'Failed to delete ingredient.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while deleting the ingredient.');
-    });
-});
-</script>
-
-<!-- Delete Category Modal -->
+<!-- Confirmation Modal for Category Deletion -->
 <div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -158,18 +124,51 @@
     </div>
 </div>
 
-
-<!-- JavaScript to handle Delete Category Modal -->
 <script>
+    let deleteId = null;
+
+    document.querySelectorAll('.delete-button').forEach(button => {
+        button.addEventListener('click', function () {
+            deleteId = this.dataset.id;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        });
+    });
+
+    document.getElementById('confirm-delete').addEventListener('click', function () {
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        formData.append('delete_id', deleteId);
+
+        fetch("{% url 'order_inventory' %}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelector(`[data-id="${deleteId}"]`).remove();
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                deleteModal.hide();
+                alert(data.message);
+            } else {
+                alert(data.error || 'Failed to delete ingredient.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the ingredient.');
+        });
+    });
+
     document.querySelectorAll('.delete-category-button').forEach(button => {
         button.addEventListener('click', function () {
             const categoryId = this.dataset.categoryId;
-            document.getElementById('delete-category-id').value = categoryId; // Set category ID dynamically
+            document.getElementById('delete-category-id').value = categoryId;
             const deleteCategoryModal = new bootstrap.Modal(document.getElementById('deleteCategoryModal'));
             deleteCategoryModal.show();
         });
     });
 </script>
-
 
 {% endblock %}

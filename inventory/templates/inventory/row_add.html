@@ -1,87 +1,95 @@
-    {% extends 'base.html' %}
+{% extends 'base.html' %}
 
-    {% block title %}
-    Add Ingredients
-    {% endblock %}
+{% block title %}
+Add Ingredients
+{% endblock %}
 
-    {% block content %}
-    <h1 class="mb-4">Add Ingredients</h1>
+{% block content %}
+<h1 class="mb-4 text-primary">Add Ingredients</h1>
 
-    <!-- Display global form errors -->
-    {% if formset.non_form_errors %}
-    <div class="alert alert-danger">
-        {{ formset.non_form_errors }}
+<!-- Display global form errors -->
+{% if formset.non_form_errors %}
+<div class="alert alert-danger">
+    {{ formset.non_form_errors }}
+</div>
+{% endif %}
+
+<form id="ingredient-form" method="post">
+    {% csrf_token %}
+    {{ formset.management_form }} <!-- Include the management form -->
+    <div id="rows-container">
+        <!-- Render all forms in the formset -->
+        {% for form in formset %}
+        <div class="ingredient-row card mb-3 shadow-sm p-3">
+            <div class="card-body">
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+                {{ form.as_p }}
+            </div>
+            <div class="card-footer text-end">
+                <button type="button" class="btn btn-danger btn-sm remove-row">Delete Row</button>
+            </div>
+        </div>
+        {% endfor %}
     </div>
-    {% endif %}
+    <div class="d-flex justify-content-between mt-4">
+        <button type="button" id="add-row" class="btn btn-secondary">
+            <i class="bi bi-plus-circle"></i> Add Row
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save"></i> Save All Rows
+        </button>
+    </div>
+</form>
 
-    <form id="ingredient-form" method="post">
-        {% csrf_token %}
-        {{ formset.management_form }} <!-- Include the management form -->
-        <div id="rows-container">
-            <!-- Render all forms in the formset -->
-            {% for form in formset %}
-            <div class="ingredient-row border rounded p-3 mb-3 shadow-sm d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    {% if form.errors %}
-                    <div class="alert alert-danger">
-                        {{ form.non_field_errors }}
-                    </div>
-                    {% endif %}
-                    {{ form.as_p }}
-                </div>
+<a href="{% url 'inventory' %}" class="btn btn-link mt-4">Back to Inventory List</a>
+
+<script>
+    // Get the initial form HTML to duplicate for new rows
+    const initialRowHtml = `
+        <div class="ingredient-row card mb-3 shadow-sm p-3">
+            <div class="card-body">
+                {{ formset.empty_form.as_p|escapejs }}
+            </div>
+            <div class="card-footer text-end">
                 <button type="button" class="btn btn-danger btn-sm remove-row">Delete Row</button>
             </div>
-            {% endfor %}
         </div>
-        <div class="d-flex justify-content-between">
-            <button type="button" id="add-row" class="btn btn-secondary">Add Row</button>
-            <button type="submit" class="btn btn-primary">Save All Rows</button>
-        </div>
-    </form>
+    `;
 
-    <a href="{% url 'inventory' %}" class="btn btn-link mt-4">Back to Inventory List</a>
+    // Add event listener to the "Add Row" button
+    document.getElementById('add-row').addEventListener('click', () => {
+        const container = document.getElementById('rows-container');
+        const totalForms = document.getElementById('id_form-TOTAL_FORMS'); // Total forms input
+        const newRow = document.createElement('div');
+        newRow.className = 'ingredient-row card mb-3 shadow-sm p-3';
 
-    <script>
-        // Get the initial form HTML to duplicate for new rows
-        const initialRowHtml = `
-            <div class="ingredient-row border rounded p-3 mb-3 shadow-sm d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    {{ formset.empty_form.as_p|escapejs }}
-                </div>
-                <button type="button" class="btn btn-danger btn-sm remove-row">Delete Row</button>
-            </div>
-        `;
+        // Update the new row HTML with the correct index
+        const currentIndex = parseInt(totalForms.value, 10);
+        newRow.innerHTML = initialRowHtml.replace(/__prefix__/g, currentIndex);
+        container.appendChild(newRow);
 
-        // Add event listener to the "Add Row" button
-        document.getElementById('add-row').addEventListener('click', () => {
-            const container = document.getElementById('rows-container');
-            const totalForms = document.getElementById('id_form-TOTAL_FORMS'); // Total forms input
-            const newRow = document.createElement('div');
-            newRow.className = 'ingredient-row border rounded p-3 mb-3 shadow-sm d-flex justify-content-between align-items-start';
+        // Increment the TOTAL_FORMS value
+        totalForms.value = currentIndex + 1;
 
-            // Update the new row HTML with the correct index
-            const currentIndex = parseInt(totalForms.value, 10);
-            newRow.innerHTML = initialRowHtml.replace(/__prefix__/g, currentIndex);
-            container.appendChild(newRow);
-
-            // Increment the TOTAL_FORMS value
-            totalForms.value = currentIndex + 1;
-
-            // Attach event listener to the "Delete Row" button
-            newRow.querySelector('.remove-row').addEventListener('click', function () {
-                newRow.remove();
-                totalForms.value = parseInt(totalForms.value, 10) - 1;
-            });
+        // Attach event listener to the "Delete Row" button
+        newRow.querySelector('.remove-row').addEventListener('click', function () {
+            newRow.remove();
+            totalForms.value = parseInt(totalForms.value, 10) - 1;
         });
+    });
 
-        // Add event listeners to existing "Delete Row" buttons
-        document.querySelectorAll('.remove-row').forEach(button => {
-            button.addEventListener('click', function () {
-                const row = button.closest('.ingredient-row');
-                row.remove();
-                const totalForms = document.getElementById('id_form-TOTAL_FORMS');
-                totalForms.value = parseInt(totalForms.value, 10) - 1;
-            });
+    // Add event listeners to existing "Delete Row" buttons
+    document.querySelectorAll('.remove-row').forEach(button => {
+        button.addEventListener('click', function () {
+            const row = button.closest('.ingredient-row');
+            row.remove();
+            const totalForms = document.getElementById('id_form-TOTAL_FORMS');
+            totalForms.value = parseInt(totalForms.value, 10) - 1;
         });
-    </script>
-    {% endblock %}
+    });
+</script>
+{% endblock %}

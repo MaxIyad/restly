@@ -5,36 +5,62 @@
 {% endblock %}
 
 {% block content %}
-    <h1>{{ ingredient.name|title }} Details</h1>
-    <p><strong>Quantity:</strong> {{ ingredient.quantity }}</p>
-    <p><strong>Category:</strong> {{ ingredient.category.name }}</p>
-    <p><strong>Unit Type:</strong> {{ ingredient.unit_type }}</p>
-    <p><strong>Unit Multiplier:</strong> {{ ingredient.unit_multiplier }}</p>
-    <p><strong>Total Cost:</strong> ${{ ingredient.total_cost }}</p>
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'inventory' %}">Inventory</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ ingredient.name|title }}</li>
+            </ol>
+        </nav>
+        <a href="{% url 'inventory' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left-circle"></i> Back to Inventory
+        </a>
+    </div>
 
-    <h2>History</h2>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Change Type</th>
-                <th>Order</th>
-                <th>Quantity</th>
-                <th>Unit</th>
-                <th>User</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in history %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h1 class="mb-0">{{ ingredient.name|title }} Details</h1>
+        </div>
+        <div class="card-body">
+            <p><strong>Quantity:</strong> {{ ingredient.quantity }}</p>
+            <p><strong>Category:</strong> {{ ingredient.category.name }}</p>
+            <p><strong>Unit Type:</strong> {{ ingredient.unit_type }}</p>
+            <p><strong>Unit Multiplier:</strong> {{ ingredient.unit_multiplier }}</p>
+            <p><strong>Total Cost:</strong> ${{ ingredient.total_cost|floatformat:2 }}</p>
+        </div>
+    </div>
+
+    <h2 class="text-primary mb-3">History</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-light">
                 <tr>
-                    <td>{{ record.date|date:"Y-m-d H:i:s" }}</td>
-                    <td>{{ record.change_type }}</td>
-                    <td>{{ record.order }}</td>
-                    <td>{{ record.quantity }}</td>
-                    <td>{{ record.unit_type }} (Multiplier: {{ record.unit_multiplier }})</td>
-                    <td>{{ record.user }}</td>
+                    <th>Date</th>
+                    <th>Change Type</th>
+                    <th>Order</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>User</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for record in history %}
+                    <tr>
+                        <td>{{ record.date|date:"Y-m-d H:i:s" }}</td>
+                        <td>{{ record.change_type }}</td>
+                        <td>{{ record.order }}</td>
+                        <td>{{ record.quantity }}</td>
+                        <td>{{ record.unit_type }} (Multiplier: {{ record.unit_multiplier }})</td>
+                        <td>{{ record.user }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No history records found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

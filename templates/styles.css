@@ -1,0 +1,123 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f8f9fa;
+}
+.navbar-brand {
+    font-weight: bold;
+}
+.table th, .table td {
+    vertical-align: middle;
+}
+.badge {
+    font-size: 0.9rem;
+    padding: 0.5em;
+}
+
+
+.table {
+    margin-bottom: 0;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+.card-header h2 {
+    font-size: 1.25rem;
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ingredient-row {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+.card-footer {
+    background-color: #f8f9fa;
+}
+
+
+
+.breadcrumb + .btn-secondary {
+    margin-left: auto; /* Push the button to the right */
+}
+
+
+#sidebar {
+    width: 250px;
+    min-height: 100vh;
+}
+
+#sidebar .navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+#sidebar a {
+    color: #333;
+    font-weight: 500;
+}
+
+#sidebar a:hover {
+    text-decoration: none;
+    color: #0056b3;
+}
+
+.flex-grow-1 {
+    margin-left: 250px; /* Aligns content to the right of the sidebar */
+}
+#sidebar {
+    width: 250px;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+#sidebar .navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+#sidebar a {
+    color: #333;
+    font-weight: 500;
+}
+
+#sidebar a:hover,
+#sidebar a.active {
+    color: #0056b3;
+    background-color: #e9ecef;
+    border-radius: 4px;
+}
+
+#sidebar .btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+#sidebar .btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.d-lg-none {
+    display: none;
+}
+
+@media (max-width: 991px) {
+    #sidebar {
+        display: none;
+    }
+
+    .d-lg-none {
+        display: block;
+    }
+}
+
+
+
