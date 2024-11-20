@@ -13,14 +13,20 @@
     {% for category in categories %}
     <div class="card mb-4 shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="mb-0 text-primary">Category: {{ category.name }}</h2>
+            <div class="d-flex align-items-center">
+                <input type="text" name="category-name-{{ category.id }}" value="{{ category.name }}" 
+                       class="form-control me-3 w-auto" placeholder="Category Name">
+            </div>
             <div>
-                <input type="number" name="category-order-{{ category.id }}" value="{{ category.order }}" class="form-control d-inline-block w-auto me-3">
-                <button type="button" class="btn btn-danger btn-sm delete-category-button" data-category-id="{{ category.id }}">
+                <input type="number" name="category-order-{{ category.id }}" value="{{ category.order }}" 
+                       class="form-control d-inline-block w-auto me-3">
+                <button type="button" class="btn btn-danger btn-sm delete-category-button" 
+                        data-category-id="{{ category.id }}">
                     <i class="bi bi-trash"></i> Delete Category
                 </button>
             </div>
         </div>
+        
         <table class="table table-striped align-middle mb-0">
             <thead class="table-light">
                 <tr>
@@ -29,7 +35,7 @@
                     <th>Quantity</th>
                     <th>Unit</th>
                     <th>Unit Multiplier</th>
-                    <th>Actions</th>
+                    <th>Category</th>
                 </tr>
             </thead>
             <tbody>
@@ -55,11 +61,21 @@
                         <input type="number" name="unit_multiplier-{{ ingredient.id }}" value="{{ ingredient.unit_multiplier }}" step="0.01" class="form-control" />
                     </td>
                     <td>
+                        <select name="ingredient-category-{{ ingredient.id }}" class="form-select">
+                            {% for category_option in categories %}
+                            <option value="{{ category_option.id }}" {% if category_option.id == ingredient.category.id %}selected{% endif %}>
+                                {{ category_option.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
                         <button type="button" class="btn btn-danger btn-sm delete-button" data-id="{{ ingredient.id }}">
                             <i class="bi bi-trash"></i> Delete
                         </button>
                     </td>
                 </tr>
+                
                 {% endfor %}
             </tbody>
         </table>

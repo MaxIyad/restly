@@ -195,8 +195,27 @@ def order_inventory(request):
         # Process updates for ingredients and categories
         for key, value in request.POST.items():            
             try:
+                if key.startswith('ingredient-category-'):
+                    ingredient_id = int(key.split('-')[-1])
+                    new_category_id = int(value)
+                    ingredient = Ingredient.objects.get(id=ingredient_id)
+                    new_category = Category.objects.get(id=new_category_id)
+                    if ingredient.category.id != new_category.id:  # Only update if the category has changed
+                        ingredient.category = new_category
+                        ingredient.save()
+                elif key.startswith('category-name-'):
+                    category_id = int(key.split('-')[-1])
+                    category = Category.objects.get(id=category_id)
+                    category.name = value.strip()
+                    category.full_clean()  # Validate before saving
+                    category.save()
+                elif key.startswith('category-order-'):
+                    category_id = int(key.split('-')[-1])
+                    category = Category.objects.get(id=category_id)
+                    category.order = int(value)
+                    category.save()
                 # Update ingredient order
-                if key.startswith('order-'):
+                elif key.startswith('order-'):
                     ingredient_id = int(key.split('-')[-1])
                     ingredient = Ingredient.objects.get(id=ingredient_id)
                     ingredient.order = int(value)
