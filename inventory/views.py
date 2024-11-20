@@ -423,19 +423,25 @@ def export_inventory(request, file_format):
     return export_data(df, file_format, "Inventory")
 
 def export_history(request, file_format):
-    """Export history data."""
+    """Export filtered inventory history."""
     # Get filter parameters from request
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+    change_type = request.GET.get('change_type')  # New parameter to filter by change type
 
-    # Fetch the historical records
+    # Fetch historical records with filtering
     historical_records = Ingredient.history.filter(history_change_reason__isnull=False)
 
-    # Apply date filters if provided
     if start_date:
-        historical_records = historical_records.filter(history_date__gte=start_date)
+        start_datetime = datetime.combine(datetime.strptime(start_date, "%Y-%m-%d").date(), time.min)
+        historical_records = historical_records.filter(history_date__gte=start_datetime)
     if end_date:
-        historical_records = historical_records.filter(history_date__lte=end_date)
+        end_datetime = datetime.combine(datetime.strptime(end_date, "%Y-%m-%d").date(), time.max)
+        historical_records = historical_records.filter(history_date__lte=end_datetime)
+
+    # Filter by change type if provided
+    if change_type:
+        historical_records = historical_records.filter(history_change_reason=change_type)
 
     # Prepare data for export
     data = []
@@ -443,20 +449,20 @@ def export_history(request, file_format):
         try:
             category_name = record.category.name.title() if record.category else "N/A"
         except Category.DoesNotExist:
-            category_name = "Deleted Category"  # Fallback for deleted categories
+            category_name = "Deleted Category"
 
         data.append({
             "Name": record.name.title(),
             "Category": category_name,
             "Change Type": record.history_type,
             "Quantity": record.quantity,
-            "Date": record.history_date,
+            "Date": record.history_date.strftime("%Y-%m-%d %H:%M:%S"),
             "Reason": record.history_change_reason,
         })
 
-    # Convert to DataFrame and export
+    # Convert data to DataFrame and export
     df = pd.DataFrame(data)
-    return export_data(df, file_format, "Filtered_Inventory_History")
+    return export_data(df, file_format, f"Filtered_{change_type}_History")
 
 
 
