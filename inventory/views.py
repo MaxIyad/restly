@@ -14,6 +14,8 @@ from simple_history.utils import update_change_reason
 from django.utils.dateparse import parse_date
 from datetime import datetime, time
 from django.contrib.messages import get_messages
+from django.core.exceptions import ValidationError
+
 
 
 import pandas as pd
@@ -145,78 +147,95 @@ def take_inventory(request):
     }
     return render(request, 'inventory/take_inventory.html', context)
 
-
-
-
 def order_inventory(request):
-    CategoryFormSet = modelformset_factory(
-        Category,
-        form=CategoryForm,
-        extra=0,
-        can_delete=False,
-    )
-
-    # Handle ingredient deletion
-    if 'delete_id' in request.POST:
-        delete_id = request.POST.get('delete_id')
-        try:
-            ingredient = Ingredient.objects.get(id=delete_id)
-            ingredient.delete()
-            return JsonResponse({"success": True, "message": f"Ingredient '{ingredient.name.title()}' deleted successfully!"})
-        except Ingredient.DoesNotExist:
-            return JsonResponse({"success": False, "error": "The ingredient you are trying to delete does not exist."})
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)})
-
-    # Handle category deletion
-    if 'delete_category_id' in request.POST:
-        delete_category_id = request.POST.get('delete_category_id')
-        try:
-            category = Category.objects.get(id=delete_category_id)
-            category.delete()
-            messages.success(request, f"Category '{category.name.title()}' deleted successfully!")
-        except Category.DoesNotExist:
-            messages.error(request, "The category you are trying to delete does not exist.")
-        return redirect('order_inventory')
-
     if request.method == 'POST':
-        # Handle ingredient reordering
-        for key, value in request.POST.items():
-            if key.startswith('order-'):  # Expecting keys like 'order-<ingredient_id>'
-                try:
-                    ingredient_id = int(key.split('-')[-1])
-                    order_value = int(value)
-                    ingredient = Ingredient.objects.get(id=ingredient_id)
-                    ingredient.order = order_value
-                    ingredient.save()
-                except (ValueError, Ingredient.DoesNotExist):
-                    continue
+        error_messages = []  # Collect error messages for invalid updates
+        valid_updates = []  # Collect objects for bulk saving after validation
 
-        # Handle category reordering
-        for key, value in request.POST.items():
-            if key.startswith('category-order-'):  # Expecting keys like 'category-order-<category_id>'
-                try:
-                    category_id = int(key.split('-')[-1])
-                    order_value = int(value)
-                    category = Category.objects.get(id=category_id)
-                    category.order = order_value
-                    category.save()
-                except (ValueError, Category.DoesNotExist):
-                    continue
+        # Handle ingredient deletion
+        if 'delete_id' in request.POST:
+            try:
+                ingredient_id = int(request.POST.get('delete_id'))
+                ingredient = Ingredient.objects.get(id=ingredient_id)
+                ingredient.delete()
+                return JsonResponse({"success": True, "message": "Ingredient deleted successfully!"})
+            except Ingredient.DoesNotExist:
+                return JsonResponse({"success": False, "error": "Ingredient does not exist."})
+            except Exception as e:
+                return JsonResponse({"success": False, "error": str(e)})
 
-        # Handle adding a new category
-        category_form = CategoryForm(request.POST)
-        if category_form.is_valid():
-            category_form.save()
-            messages.success(request, "New category added successfully!")
-            return redirect('order_inventory')
+        # Handle category deletion
+        if 'add_category' in request.POST:
+            category_form = CategoryForm(request.POST)
+            if category_form.is_valid():
+                category_form.save()
+                messages.success(request, "Category added successfully!")
+            else:
+                messages.error(request, "Error adding category. Please correct the errors below.")
         else:
-            messages.error(request, "Error adding the new category. Please fix the issues and try again.")
+            category_form = CategoryForm()
 
-        messages.success(request, "Orders updated successfully!")
+        # Process updates for ingredients and categories
+        for key, value in request.POST.items():            
+            try:
+                # Update ingredient order
+                if key.startswith('order-'):
+                    ingredient_id = int(key.split('-')[-1])
+                    ingredient = Ingredient.objects.get(id=ingredient_id)
+                    ingredient.order = int(value)
+                    ingredient.save()  # Ensure save is called immediately after updating the field
+
+                # Update ingredient name
+                elif key.startswith('name-'):
+                    ingredient_id = int(key.split('-')[-1])
+                    ingredient = Ingredient.objects.get(id=ingredient_id)
+                    ingredient.name = value.strip()
+                    ingredient.full_clean()  # Validate before saving
+                    ingredient.save()
+
+                # Update ingredient quantity
+                elif key.startswith('quantity-'):
+                    ingredient_id = int(key.split('-')[-1])
+                    ingredient = Ingredient.objects.get(id=ingredient_id)
+                    ingredient.quantity = float(value)
+                    ingredient.save()
+
+                # Update ingredient unit type
+                elif key.startswith('unit_type-'):
+                    ingredient_id = int(key.split('-')[-1])
+                    ingredient = Ingredient.objects.get(id=ingredient_id)
+                    ingredient.unit_type = value.strip()
+                    ingredient.save()
+
+                # Update ingredient unit multiplier
+                elif key.startswith('unit_multiplier-'):
+                    ingredient_id = int(key.split('-')[-1])
+                    ingredient = Ingredient.objects.get(id=ingredient_id)
+                    ingredient.unit_multiplier = float(value)
+                    ingredient.save()
+
+            except (ValueError, Ingredient.DoesNotExist) as e:
+                error_messages.append(f"Error processing {key}: {e}")
+            except ValidationError as e:
+                error_messages.append(f"Validation error for {key}: {e.message_dict}")
+
+        # Save all valid updates for ingredients
+        for obj in valid_updates:
+            try:
+                obj.save()  # Explicit save for each object
+            except Exception as e:
+                error_messages.append(f"Error saving object {obj.id}: {e}")
+
+        # Display messages
+        if error_messages:
+            for error in error_messages:
+                messages.error(request, error)
+        else:
+            messages.success(request, "Updates saved successfully!")
+
         return redirect('order_inventory')
 
-    # For GET requests, fetch categories and ingredients
+    # Handle GET requests
     categories = Category.objects.prefetch_related(
         models.Prefetch('ingredient_set', queryset=Ingredient.objects.order_by('order'))
     )
@@ -227,6 +246,8 @@ def order_inventory(request):
         'category_form': category_form,
     }
     return render(request, 'inventory/order_inventory.html', context)
+
+
 
 
 

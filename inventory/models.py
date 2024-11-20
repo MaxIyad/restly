@@ -3,6 +3,8 @@ from django.db import models
 from simple_history.models import HistoricalRecords
 
 from decimal import Decimal, ROUND_HALF_UP
+from django.core.exceptions import ValidationError
+
 
 # Category model for ingredient filtering
 class Category(models.Model):
@@ -11,6 +13,8 @@ class Category(models.Model):
 
     class Meta:
         ordering = ['order'] 
+
+
 
     def __str__(self):
         return self.name
@@ -51,6 +55,11 @@ class Ingredient(models.Model):
         self.total_cost = self.quantity * self.unit_cost
         super().save(*args, **kwargs)
 
+    def clean(self):
+    # Check for duplicate names in the same category
+        if Ingredient.objects.filter(name__iexact=self.name, category=self.category).exclude(id=self.id).exists():
+            raise ValidationError(f"The name '{self.name}' is already in use in the category '{self.category.name}'.")
+
     def __str__(self):
         return self.name.title()
 
@@ -63,6 +72,7 @@ class Ingredient(models.Model):
     def converted_threshold(self):
         """Converts threshold to a higher unit if it meets or exceeds the threshold for conversion."""
         return self._convert_unit(self.threshold)
+        
 
     @property
     def is_below_threshold(self):
