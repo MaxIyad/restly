@@ -38,9 +38,10 @@
                     {% for ingredient in category.ingredient_set.all %}
                     <tr>
                         <td>
-                            <a href="{% url 'ingredient_details' ingredient.name %}" class="text-decoration-none text-primary">
-                                {{ ingredient.name|title }}
+                            <a href="{% url 'ingredient_details' category.name ingredient.name %}">
+                                {{ ingredient.name }}
                             </a>
+                            
                         </td>
                         <td>
                             {% with ingredient_forms|get_form:ingredient.id as form %}

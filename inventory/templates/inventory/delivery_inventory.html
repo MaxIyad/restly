@@ -32,7 +32,12 @@
                 <tbody>
                     {% for ingredient in category.ingredient_set.all %}
                     <tr>
-                        <td>{{ ingredient.name|title }}</td>
+                        <td>
+                            <a href="{% url 'ingredient_details' category.name ingredient.name %}">
+                                {{ ingredient.name }}
+                            </a>
+                            
+                        </td>
                         <td>
                             {% with ingredient_forms|get_form:ingredient.id as form %}
                                 {{ form.quantity }}

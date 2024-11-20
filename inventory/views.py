@@ -465,9 +465,12 @@ def export_history(request, file_format):
     return export_data(df, file_format, f"Filtered_{change_type}_History")
 
 
-
-def ingredient_details(request, ingredient_name):
-    ingredient = get_object_or_404(Ingredient, name__iexact=ingredient_name)
+def ingredient_details(request, category_name, ingredient_name):
+    ingredient = get_object_or_404(
+        Ingredient,
+        category__name__iexact=category_name,  # Match category name
+        name__iexact=ingredient_name          # Match ingredient name
+    )
     history = ingredient.history.all().order_by('-history_date')
 
     # Pre-process history for the template

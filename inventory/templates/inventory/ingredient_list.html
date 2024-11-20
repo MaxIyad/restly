@@ -34,7 +34,10 @@
             {% for ingredient in category.ingredient_set.all %}
             <tr>
                 <td>
-                    <a href="{% url 'ingredient_details' ingredient.name %}" class="text-decoration-none">{{ ingredient.name|title }}</a>
+                    <a href="{% url 'ingredient_details' category.name ingredient.name %}">
+                        {{ ingredient.name }}
+                    </a>
+                    
                 </td>
                 <td>{{ ingredient.converted_quantity }}</td>
                 <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
