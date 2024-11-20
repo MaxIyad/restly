@@ -147,7 +147,7 @@
                 Are you sure you want to delete this category? All ingredients within this category will also be deleted.
             </div>
             <div class="modal-footer">
-                <form method="post" id="delete-category-form">
+                <form method="post" id="delete-category-form" action="{% url 'order_inventory' %}">
                     {% csrf_token %}
                     <input type="hidden" name="delete_category_id" id="delete-category-id">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -157,6 +157,7 @@
         </div>
     </div>
 </div>
+
 
 <!-- JavaScript to handle Delete Category Modal -->
 <script>

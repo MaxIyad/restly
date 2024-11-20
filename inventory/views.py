@@ -148,7 +148,10 @@ def take_inventory(request):
     return render(request, 'inventory/take_inventory.html', context)
 
 def order_inventory(request):
-    if request.method == 'POST':
+    
+
+    if request.method == 'POST':      
+
         error_messages = []  # Collect error messages for invalid updates
         valid_updates = []  # Collect objects for bulk saving after validation
 
@@ -163,6 +166,20 @@ def order_inventory(request):
                 return JsonResponse({"success": False, "error": "Ingredient does not exist."})
             except Exception as e:
                 return JsonResponse({"success": False, "error": str(e)})
+        
+        if 'delete_category_id' in request.POST:
+            try:
+                category_id = int(request.POST.get('delete_category_id'))
+                category = Category.objects.get(id=category_id)
+                category.delete()
+                messages.success(request, f"Category '{category.name}' and its ingredients were deleted successfully!")
+                return redirect('order_inventory')
+            except Category.DoesNotExist:
+                messages.error(request, "The category you are trying to delete does not exist.")
+                return redirect('order_inventory')
+            except Exception as e:
+                messages.error(request, f"An unexpected error occurred: {e}")
+                return redirect('order_inventory')
 
         # Handle category deletion
         if 'add_category' in request.POST:
@@ -231,7 +248,7 @@ def order_inventory(request):
             for error in error_messages:
                 messages.error(request, error)
         else:
-            messages.success(request, "Updates saved successfully!")
+            messages.success(request, "Updates saved successfully!")       
 
         return redirect('order_inventory')
 
