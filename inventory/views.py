@@ -180,6 +180,18 @@ def order_inventory(request):
         return redirect('order_inventory')
 
     if request.method == 'POST':
+        # Handle ingredient reordering
+        for key, value in request.POST.items():
+            if key.startswith('order-'):  # Expecting keys like 'order-<ingredient_id>'
+                try:
+                    ingredient_id = int(key.split('-')[-1])
+                    order_value = int(value)
+                    ingredient = Ingredient.objects.get(id=ingredient_id)
+                    ingredient.order = order_value
+                    ingredient.save()
+                except (ValueError, Ingredient.DoesNotExist):
+                    continue
+
         # Handle category reordering
         for key, value in request.POST.items():
             if key.startswith('category-order-'):  # Expecting keys like 'category-order-<category_id>'
@@ -201,6 +213,9 @@ def order_inventory(request):
         else:
             messages.error(request, "Error adding the new category. Please fix the issues and try again.")
 
+        messages.success(request, "Orders updated successfully!")
+        return redirect('order_inventory')
+
     # For GET requests, fetch categories and ingredients
     categories = Category.objects.prefetch_related(
         models.Prefetch('ingredient_set', queryset=Ingredient.objects.order_by('order'))
@@ -212,6 +227,10 @@ def order_inventory(request):
         'category_form': category_form,
     }
     return render(request, 'inventory/order_inventory.html', context)
+
+
+
+
 
 
 def print_inventory(request):
