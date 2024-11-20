@@ -438,3 +438,42 @@ def export_history(request, file_format):
     # Convert to DataFrame and export
     df = pd.DataFrame(data)
     return export_data(df, file_format, "Filtered_Inventory_History")
+
+
+
+def ingredient_details(request, ingredient_name):
+    ingredient = get_object_or_404(Ingredient, name__iexact=ingredient_name)
+    history = ingredient.history.all().order_by('-history_date')
+
+    # Pre-process history for the template
+    processed_history = []
+    for record in history:
+        change_type = "Changed"
+        if record.history_type == '+':
+            change_type = "Added"
+        elif record.history_type == '-':
+            change_type = "Removed"
+        elif record.history_change_reason == "Inventory":
+            change_type = "Quantity: Inventory"
+        elif record.history_change_reason == "Delivery":
+            change_type = "Quantity: Delivery"
+        elif record.history_change_reason == "Order":
+            change_type = "Order"
+        elif record.history_change_reason in ["Unit Multiplier", "Unit Type"]:
+            change_type = "Unit"
+
+        processed_history.append({
+            "date": record.history_date,
+            "change_type": change_type,
+            "order": record.order,
+            "quantity": record.quantity,
+            "unit_type": record.unit_type,
+            "unit_multiplier": record.unit_multiplier,
+            "user": "admin",  # Placeholder for user
+        })
+
+    context = {
+        'ingredient': ingredient,
+        'history': processed_history,
+    }
+    return render(request, 'inventory/ingredient_details.html', context)

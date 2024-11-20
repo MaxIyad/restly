@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ ingredient.name|title }} Details
+{% endblock %}
+
+{% block content %}
+    <h1>{{ ingredient.name|title }} Details</h1>
+    <p><strong>Quantity:</strong> {{ ingredient.quantity }}</p>
+    <p><strong>Category:</strong> {{ ingredient.category.name }}</p>
+    <p><strong>Unit Type:</strong> {{ ingredient.unit_type }}</p>
+    <p><strong>Unit Multiplier:</strong> {{ ingredient.unit_multiplier }}</p>
+    <p><strong>Total Cost:</strong> ${{ ingredient.total_cost }}</p>
+
+    <h2>History</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Change Type</th>
+                <th>Order</th>
+                <th>Quantity</th>
+                <th>Unit</th>
+                <th>User</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in history %}
+                <tr>
+                    <td>{{ record.date|date:"Y-m-d H:i:s" }}</td>
+                    <td>{{ record.change_type }}</td>
+                    <td>{{ record.order }}</td>
+                    <td>{{ record.quantity }}</td>
+                    <td>{{ record.unit_type }} (Multiplier: {{ record.unit_multiplier }})</td>
+                    <td>{{ record.user }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
