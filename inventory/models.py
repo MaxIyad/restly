@@ -28,7 +28,6 @@ class Ingredient(models.Model):
         ('cm', 'centimeter'),
         ('oz', 'ounce'),
         ('fl_oz', 'fluid ounce'),
-        ('pcs', 'piece'),
         ('in', 'inch'),
     ]
 
