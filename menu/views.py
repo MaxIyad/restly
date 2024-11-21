@@ -1,3 +1,4 @@
+# menu/views.py:
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from .models import Menu, MenuItem, RecipeIngredient
@@ -111,40 +112,45 @@ def category_detail(request, menu_name, category_name):
 
 ######################################################################################################
 
-
-
 def menu_item_detail(request, menu_name, category_name, menu_item_name):
     menu = get_object_or_404(Menu, name=menu_name)
     category = get_object_or_404(MenuCategory, name=category_name, menu=menu)
     menu_item = get_object_or_404(MenuItem, name=menu_item_name, category=category)
     recipe_ingredients = menu_item.recipe_ingredients.all()
-    
+
     ingredient = None
+
     if request.method == "POST":
         if "add_ingredient" in request.POST:
-            # Get the ingredient ID from POST data
-            ingredient_id = request.POST.get("ingredient")
-            ingredient = Ingredient.objects.filter(id=ingredient_id).first()
-            recipe_ingredient_form = RecipeIngredientForm(request.POST, ingredient=ingredient)
+            ingredient_name = request.POST.get("ingredient_name")
+            ingredient = Ingredient.objects.filter(name=ingredient_name).first()
+
+            recipe_ingredient_form = RecipeIngredientForm(request.POST)
 
             if recipe_ingredient_form.is_valid():
+                # Create the RecipeIngredient object
                 recipe_ingredient = recipe_ingredient_form.save(commit=False)
-                recipe_ingredient.menu_item = menu_item  # Associate the menu item explicitly
-                recipe_ingredient.save()  # Save to the database
-                messages.success(
-                    request,
-                    f"Ingredient '{recipe_ingredient.ingredient.name}' added to '{menu_item.name}' from category '{recipe_ingredient.category.name}'."
-                )
-                return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+
+                if ingredient:
+                    recipe_ingredient.ingredient = ingredient
+                    recipe_ingredient.menu_item = menu_item  # Associate the menu item
+                    recipe_ingredient.save()  # Save to the database
+                    messages.success(
+                        request,
+                        f"Ingredient '{recipe_ingredient.ingredient.name}' added to '{menu_item.name}' "
+                        f"from category '{recipe_ingredient.category.name}'."
+                    )
+                    return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+                else:
+                    messages.error(request, "Selected ingredient does not exist.")
         elif "remove_ingredient" in request.POST:
-            # Remove a recipe ingredient
             ingredient_id = request.POST.get("ingredient_id")
             recipe_ingredient = get_object_or_404(RecipeIngredient, id=ingredient_id, menu_item=menu_item)
             recipe_ingredient.delete()
             messages.success(request, f"Ingredient '{recipe_ingredient.ingredient.name}' removed from '{menu_item.name}'.")
             return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
     else:
-        recipe_ingredient_form = RecipeIngredientForm(ingredient=ingredient)
+        recipe_ingredient_form = RecipeIngredientForm()
 
     context = {
         'menu': menu,
@@ -158,18 +164,20 @@ def menu_item_detail(request, menu_name, category_name, menu_item_name):
 
 
 
+
+
+
 def get_categories_for_ingredient(request):
-    ingredient_id = request.GET.get('ingredient_id')
-    if not ingredient_id:
-        return JsonResponse({'error': 'No ingredient ID provided'}, status=400)
+    ingredient_name = request.GET.get('ingredient_name')
+    if not ingredient_name:
+        return JsonResponse({'error': 'No ingredient name provided'}, status=400)
 
     try:
-        ingredient = Ingredient.objects.get(id=ingredient_id)
-        categories = Category.objects.filter(ingredient=ingredient)
+        # Fetch all ingredients with the same name
+        ingredients = Ingredient.objects.filter(name__iexact=ingredient_name)
+        categories = Category.objects.filter(ingredient__in=ingredients).distinct()
         categories_data = [{'id': category.id, 'name': category.name} for category in categories]
         return JsonResponse({'categories': categories_data})
-    except Ingredient.DoesNotExist:
-        return JsonResponse({'error': 'Ingredient not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

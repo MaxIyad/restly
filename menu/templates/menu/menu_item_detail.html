@@ -1,12 +1,31 @@
+<!-- menu_list.html -->
+
+
 <h1>{{ menu_item.name }}</h1>
 <p><strong>Category:</strong> {{ category.name }}</p>
 
 <!-- Add recipe ingredient -->
 <form method="post">
     {% csrf_token %}
-    {{ recipe_ingredient_form.as_p }}
+    <label for="id_ingredient_name">Ingredient</label>
+    <select id="id_ingredient_name" name="ingredient_name" class="form-control">
+        <option value="">Select an ingredient</option>
+        {% for name in recipe_ingredient_form.fields.ingredient_name.choices %}
+            <option value="{{ name.0 }}">{{ name.1 }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="id_category">Category</label>
+    <select id="id_category" name="category" class="form-control">
+        <option value="">Select a category</option>
+    </select>
+
+    <label for="id_quantity">Quantity</label>
+    <input type="number" id="id_quantity" name="quantity" class="form-control" step="0.01">
+
     <button type="submit" name="add_ingredient" class="btn btn-primary">Add Ingredient</button>
 </form>
+
 
 
 <!-- List recipe ingredients -->
@@ -44,18 +63,19 @@
     </tbody>
 </table>
 <script>
+
     document.addEventListener("DOMContentLoaded", function () {
-        const ingredientSelect = document.querySelector("#id_ingredient");
+        const ingredientSelect = document.querySelector("#id_ingredient_name");
         const categorySelect = document.querySelector("#id_category");
 
         ingredientSelect.addEventListener("change", function () {
-            const ingredientId = this.value;
+            const ingredientName = this.value;
 
             // Clear existing options in the category dropdown
             categorySelect.innerHTML = '<option value="">Select a category</option>';
 
-            if (ingredientId) {
-                fetch(`/get-categories-for-ingredient/?ingredient_id=${ingredientId}`)
+            if (ingredientName) {
+                fetch(`/get-categories-for-ingredient/?ingredient_name=${ingredientName}`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
@@ -80,4 +100,6 @@
             }
         });
     });
+
+
 </script>

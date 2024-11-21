@@ -22,6 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('settings/', include('settings.urls')),
     path('inventory/', include('inventory.urls')),
-    path('menu/', include('menu.urls', namespace="menu")),
+    path('menu/', include('menu.urls')),
     path('get-categories-for-ingredient/', get_categories_for_ingredient, name='get_categories_for_ingredient'),
+
 ]

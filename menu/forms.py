@@ -1,3 +1,4 @@
+# menu/forms.py
 from django import forms
 from .models import Menu, MenuItem, RecipeIngredient, MenuCategory
 from inventory.models import Ingredient
@@ -6,38 +7,46 @@ from inventory.models import Category
 
 
 
-
 class RecipeIngredientForm(forms.ModelForm):
-    ingredient = forms.ModelChoiceField(
-        queryset=Ingredient.objects.all(),
+    ingredient_name = forms.ChoiceField(
         label="Ingredient",
-        widget=forms.Select(attrs={"class": "form-control"}),
+        widget=forms.Select(attrs={"class": "form-control"})
     )
     category = forms.ModelChoiceField(
-        queryset=Category.objects.none(),  # Initially empty
+        queryset=Category.objects.none(),
         label="Deplete From Category",
-        widget=forms.Select(attrs={"class": "form-control"}),
+        widget=forms.Select(attrs={"class": "form-control"})
     )
 
     def __init__(self, *args, **kwargs):
+        # Pop the custom 'ingredient' argument if it exists
         ingredient = kwargs.pop('ingredient', None)
         super().__init__(*args, **kwargs)
 
-        # Customize the ingredient label to include unit multiplier and type
-        self.fields['ingredient'].label_from_instance = lambda obj: f"{obj.name} ({obj.unit_multiplier}{obj.unit_type})"
+        # Populate ingredient_name choices
+        ingredient_names = (
+            Ingredient.objects.values_list('name', flat=True)
+            .distinct()
+        )
+        self.fields['ingredient_name'].choices = [
+            (name, name) for name in ingredient_names
+        ]
 
-        # Filter categories based on the selected ingredient
+        # Filter categories based on the provided ingredient
         if ingredient:
-            self.fields['category'].queryset = Category.objects.filter(ingredient=ingredient)
+            self.fields['category'].queryset = Category.objects.filter(
+                ingredient=ingredient
+            )
         else:
-            self.fields['category'].queryset = Category.objects.all()  # Default to all if no ingredient
+            self.fields['category'].queryset = Category.objects.none()
 
     class Meta:
         model = RecipeIngredient
-        fields = ['ingredient', 'quantity', 'category']
+        fields = ['ingredient_name', 'quantity', 'category']
         widgets = {
             'quantity': forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
         }
+
 
 
 
