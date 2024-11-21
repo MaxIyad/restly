@@ -63,17 +63,16 @@
     </tbody>
 </table>
 <script>
-
     document.addEventListener("DOMContentLoaded", function () {
         const ingredientSelect = document.querySelector("#id_ingredient_name");
         const categorySelect = document.querySelector("#id_category");
-
+    
         ingredientSelect.addEventListener("change", function () {
             const ingredientName = this.value;
-
+    
             // Clear existing options in the category dropdown
             categorySelect.innerHTML = '<option value="">Select a category</option>';
-
+    
             if (ingredientName) {
                 fetch(`/get-categories-for-ingredient/?ingredient_name=${ingredientName}`)
                     .then(response => {
@@ -100,6 +99,4 @@
             }
         });
     });
-
-
-</script>
+    </script>

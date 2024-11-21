@@ -4,6 +4,7 @@
 {% extends 'base.html' %}
 
 {% load humanize %}
+{% load custom_filters %}
 {% block content %}
 {% if message %}
 <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
@@ -45,7 +46,16 @@
                 <td>{{ ingredient.converted_quantity }}</td>
                 <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
                 <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:2|intcomma }}</td>
-                <td>{{ settings.get_currency_type_display }}{{ ingredient.total_cost|floatformat:2|intcomma }}</td>
+                <td>
+                    {% if ingredient.total_cost < 0 %}
+                        <span class="badge bg-danger" style="display: inline-block; padding: 0.5em; border: 1px solid #dc3545; border-radius: 4px;">
+                            {{ settings.get_currency_type_display }}{{ ingredient.total_cost|floatformat:2|intcomma|slice:":1" }}{{ ingredient.total_cost|abs_value|floatformat:2|intcomma }}
+                        </span>
+                    {% else %}
+                        {{ settings.get_currency_type_display }}{{ ingredient.total_cost|floatformat:2|intcomma }}
+                    {% endif %}
+                </td>
+                
                 <td>{{ ingredient.converted_threshold }}</td>
                 <td>{{ ingredient.estimated_usage|default:"-" }}</td>
                 <td>

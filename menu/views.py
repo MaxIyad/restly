@@ -112,45 +112,69 @@ def category_detail(request, menu_name, category_name):
 
 ######################################################################################################
 
+
+
+
+
+
+
+
 def menu_item_detail(request, menu_name, category_name, menu_item_name):
     menu = get_object_or_404(Menu, name=menu_name)
     category = get_object_or_404(MenuCategory, name=category_name, menu=menu)
     menu_item = get_object_or_404(MenuItem, name=menu_item_name, category=category)
     recipe_ingredients = menu_item.recipe_ingredients.all()
 
-    ingredient = None
-
     if request.method == "POST":
         if "add_ingredient" in request.POST:
+            # Get ingredient name and category ID from the form
             ingredient_name = request.POST.get("ingredient_name")
+            category_id = request.POST.get("category")
+            quantity = request.POST.get("quantity")
+
+            # Validate the input
+            if not ingredient_name:
+                messages.error(request, "Please select an ingredient to add.")
+                return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+            
+            if not category_id:
+                messages.error(request, "Please select a category for the ingredient.")
+                return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+
+            if not quantity:
+                messages.error(request, "Please specify the quantity.")
+                return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+
+            # Fetch the ingredient and category objects
             ingredient = Ingredient.objects.filter(name=ingredient_name).first()
+            category = Category.objects.filter(id=category_id).first()
 
-            recipe_ingredient_form = RecipeIngredientForm(request.POST)
+            if not ingredient:
+                messages.error(request, "The selected ingredient does not exist.")
+                return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
 
-            if recipe_ingredient_form.is_valid():
-                # Create the RecipeIngredient object
-                recipe_ingredient = recipe_ingredient_form.save(commit=False)
+            # Create and save the RecipeIngredient
+            RecipeIngredient.objects.create(
+                menu_item=menu_item,
+                ingredient=ingredient,
+                category=category,
+                quantity=quantity
+            )
 
-                if ingredient:
-                    recipe_ingredient.ingredient = ingredient
-                    recipe_ingredient.menu_item = menu_item  # Associate the menu item
-                    recipe_ingredient.save()  # Save to the database
-                    messages.success(
-                        request,
-                        f"Ingredient '{recipe_ingredient.ingredient.name}' added to '{menu_item.name}' "
-                        f"from category '{recipe_ingredient.category.name}'."
-                    )
-                    return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
-                else:
-                    messages.error(request, "Selected ingredient does not exist.")
+            messages.success(
+                request,
+                f"Ingredient '{ingredient.name}' added to '{menu_item.name}' from category '{category.name if category else 'N/A'}'."
+            )
+            return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+
         elif "remove_ingredient" in request.POST:
             ingredient_id = request.POST.get("ingredient_id")
             recipe_ingredient = get_object_or_404(RecipeIngredient, id=ingredient_id, menu_item=menu_item)
             recipe_ingredient.delete()
             messages.success(request, f"Ingredient '{recipe_ingredient.ingredient.name}' removed from '{menu_item.name}'.")
             return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
-    else:
-        recipe_ingredient_form = RecipeIngredientForm()
+
+    recipe_ingredient_form = RecipeIngredientForm()
 
     context = {
         'menu': menu,
@@ -185,12 +209,17 @@ def get_categories_for_ingredient(request):
 
 
 
+
+
+
+
+
 def simulate_order(request, menu_name, category_name, menu_item_name):
     menu = get_object_or_404(Menu, name=menu_name)
     category = get_object_or_404(MenuCategory, name=category_name, menu=menu)
     menu_item = get_object_or_404(MenuItem, name=menu_item_name, category=category)
     recipe_ingredients = menu_item.recipe_ingredients.all()
-    errors = []
+    warnings = []
 
     # Deduct ingredient quantities only from the specified category
     for recipe_ingredient in recipe_ingredients:
@@ -198,28 +227,31 @@ def simulate_order(request, menu_name, category_name, menu_item_name):
         category_to_deplete = recipe_ingredient.category
 
         if category_to_deplete is None:
-            errors.append(f"Category for {ingredient.name} is not specified!")
+            warnings.append(f"Category for {ingredient.name} is not specified!")
             continue
 
-        # Filter ingredient in the specified category
-        ingredient_in_category = Ingredient.objects.filter(
-            id=ingredient.id, category=category_to_deplete
-        ).first()
-
-        if not ingredient_in_category:
-            errors.append(f"{ingredient.name} does not exist in the {category_to_deplete.name} category!")
+        # Fetch the ingredient with the matching name and category
+        try:
+            ingredient_in_category = Ingredient.objects.get(
+                name=ingredient.name,
+                category=category_to_deplete
+            )
+        except Ingredient.DoesNotExist:
+            warnings.append(f"{ingredient.name} does not exist in the {category_to_deplete.name} category!")
             continue
 
-        if ingredient_in_category.quantity >= recipe_ingredient.quantity:
-            ingredient_in_category.quantity -= recipe_ingredient.quantity
-            ingredient_in_category.save()
-        else:
-            errors.append(
-                f"Not enough {ingredient.name} in category {category_to_deplete.name} to fulfill the order!"
+        # Subtract the quantity, allowing for negative values
+        ingredient_in_category.quantity -= recipe_ingredient.quantity
+        ingredient_in_category.save()
+
+        # Add a warning if the ingredient goes below zero
+        if ingredient_in_category.quantity < 0:
+            warnings.append(
+                f"{ingredient.name} in category {category_to_deplete.name} is now in deficit ({ingredient_in_category.quantity})."
             )
 
-    if errors:
-        messages.error(request, " ".join(errors))
+    if warnings:
+        messages.warning(request, " ".join(warnings))
     else:
         messages.success(request, f"Order for '{menu_item.name}' simulated successfully!")
 
