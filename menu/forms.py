@@ -37,17 +37,12 @@ class RecipeIngredientForm(forms.ModelForm):
 
 
 
-
-
-
-
-
 ###########################################################################################################################################################3
 
 class MenuForm(forms.ModelForm):
     class Meta:
         model = Menu
-        fields = ['name', 'is_active']
+        fields = ['name']
 
 class MenuCategoryForm(forms.ModelForm):
     class Meta:

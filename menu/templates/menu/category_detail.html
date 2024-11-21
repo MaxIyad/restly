@@ -14,7 +14,8 @@
 <ul>
     {% for item in menu_items %}
     <li>
-        <a href="{% url 'menu_item_detail' menu.name category.name item.name %}">{{ item.name }}</a>
+        <a href="{% url 'menu_item_detail' menu.slug category.slug item.slug %}">{{ item.name }}</a>
+
     </li>
     {% empty %}
     <li>No menu items found in this category.</li>

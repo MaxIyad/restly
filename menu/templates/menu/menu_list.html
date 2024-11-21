@@ -1,38 +1,80 @@
-<!-- menu_list.html -->
- 
-<h1>Menus</h1>
+{% extends 'base.html' %}
 
-<!-- Form to add a new menu -->
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Add Menu</button>
-</form>
+{% block title %}
+Menus
+{% endblock %}
 
-<!-- List of menus with checkboxes for activation -->
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Active</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for menu in menus %}
-        <tr>
-            <td>{{ menu.name }}</td>
-            <td>
-                <form method="post" style="display: inline;">
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-primary">Menus</h1>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addMenuModal">
+            <i class="bi bi-plus-circle"></i> Add Menu
+        </button>
+    </div>
+
+    <!-- List of Menus -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Available Menus</h2>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Active</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for menu in menus %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'menu_detail' menu.slug %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-eye"></i> {{ menu.name }}
+                            </a>
+                            
+                        </td>
+                        <td>
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="menu_id" value="{{ menu.id }}">
+                                <input type="checkbox" onchange="this.form.submit()" {% if menu.is_active %}checked{% endif %}>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center text-muted">No menus available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Menu Modal -->
+    <div class="modal fade" id="addMenuModal" tabindex="-1" aria-labelledby="addMenuModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addMenuModalLabel">Add New Menu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post">
                     {% csrf_token %}
-                    <input type="hidden" name="menu_id" value="{{ menu.id }}">
-                    <input type="checkbox" onchange="this.form.submit()" {% if menu.is_active %}checked{% endif %}>
+                    <div class="modal-body">
+                        {{ form.as_p }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Add Menu
+                        </button>
+                    </div>
                 </form>
-            </td>
-            <td>
-                <a href="{% url 'menu_detail' menu.name %}">View Menu</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

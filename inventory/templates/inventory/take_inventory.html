@@ -41,9 +41,9 @@
                     {% for ingredient in category.ingredient_set.all %}
                     <tr>
                         <td>
-                            <a href="{% url 'ingredient_details' category.name ingredient.name %}">
+                            <a href="{% url 'ingredient_details' category.slug ingredient.slug %}">
                                 {{ ingredient.name }}
-                            </a>
+                            </a> 
                             
                         </td>
                         <td>

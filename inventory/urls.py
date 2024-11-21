@@ -14,5 +14,5 @@ urlpatterns = [
     path('history/', views.inventory_history, name='inventory_history'),
     path('export_inventory/<str:file_format>/', views.export_inventory, name='export_inventory'),
     path('export_history/<str:file_format>/', views.export_history, name='export_history'),
-    path('<str:category_name>/<str:ingredient_name>/', views.ingredient_details, name='ingredient_details'),
+    path('<str:category_slug>/<str:slug>/', views.ingredient_details, name='ingredient_details'),
 ]

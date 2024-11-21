@@ -11,9 +11,6 @@ from django.http import JsonResponse
 from inventory.models import Category
 
 
-
-
-
 def menu_list(request):
     menus = Menu.objects.all()
 
@@ -36,26 +33,35 @@ def menu_list(request):
     else:
         form = MenuForm()
 
-    return render(request, 'menu/menu_list.html', {'menus': menus, 'form': form})
+    context = {
+        'menus': menus,
+        'form': form,
+    }
+    return render(request, 'menu/menu_list.html', context)
 
 
-def menu_detail(request, menu_name):
-    menu = get_object_or_404(Menu, name=menu_name)
+
+def menu_detail(request, menu_slug):
+    menu = get_object_or_404(Menu, slug=menu_slug)
     categories = menu.categories.prefetch_related("items")
 
+    # Initialize forms for GET requests
+    category_form = MenuCategoryForm()
+    item_form = MenuItemForm()
+
     if request.method == "POST":
-        if "add_category" in request.POST:
-            # Add a new category
+        if "add_category" in request.POST:  # Identify the specific action
             category_form = MenuCategoryForm(request.POST)
             if category_form.is_valid():
                 category = category_form.save(commit=False)
                 category.menu = menu
                 category.save()
                 messages.success(request, f"Category '{category.name}' added to menu '{menu.name}'.")
-                return redirect('menu_detail', menu_name=menu_name)
+                return redirect('menu_detail', menu_slug=menu_slug)
+            else:
+                messages.error(request, "Failed to add category. Please check the form.")
 
-        elif "add_menu_item" in request.POST:
-            # Add a new menu item to a category
+        elif "add_menu_item" in request.POST:  # Handle menu item addition
             category_id = request.POST.get("category_id")
             category = get_object_or_404(MenuCategory, id=category_id, menu=menu)
             item_form = MenuItemForm(request.POST)
@@ -64,17 +70,15 @@ def menu_detail(request, menu_name):
                 menu_item.category = category
                 menu_item.save()
                 messages.success(request, f"Menu item '{menu_item.name}' added to category '{category.name}'.")
-                return redirect('menu_detail', menu_name=menu_name)
-
-    else:
-        category_form = MenuCategoryForm()
-        item_form = MenuItemForm()
+                return redirect('menu_detail', menu_slug=menu_slug)
+            else:
+                messages.error(request, "Failed to add menu item. Please check the form.")
 
     context = {
         'menu': menu,
         'categories': categories,
         'category_form': category_form,
-        'item_form': item_form,
+        'menu_item_form': item_form,
     }
     return render(request, 'menu/menu_detail.html', context)
 
@@ -82,9 +86,10 @@ def menu_detail(request, menu_name):
 
 
 
-def category_detail(request, menu_name, category_name):
-    menu = get_object_or_404(Menu, name=menu_name)
-    category = get_object_or_404(MenuCategory, name=category_name, menu=menu)
+'''
+def category_detail(request, menu_slug, category_slug):
+    menu = get_object_or_404(Menu, slug=menu_slug)
+    category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
     menu_items = category.items.all()
 
     if request.method == "POST":
@@ -96,7 +101,7 @@ def category_detail(request, menu_name, category_name):
                 menu_item.category = category
                 menu_item.save()
                 messages.success(request, f"Menu item '{menu_item.name}' added to category '{category.name}'.")
-                return redirect('category_detail', menu_name=menu_name, category_name=category_name)
+                return redirect('category_detail', menu_name=menu_slug, category_name=category_slug)
 
     else:
         menu_item_form = MenuItemForm()
@@ -109,6 +114,11 @@ def category_detail(request, menu_name, category_name):
     }
     return render(request, 'menu/category_detail.html', context)
 
+'''
+
+
+
+
 
 ######################################################################################################
 
@@ -119,60 +129,59 @@ def category_detail(request, menu_name, category_name):
 
 
 
-def menu_item_detail(request, menu_name, category_name, menu_item_name):
-    menu = get_object_or_404(Menu, name=menu_name)
-    category = get_object_or_404(MenuCategory, name=category_name, menu=menu)
-    menu_item = get_object_or_404(MenuItem, name=menu_item_name, category=category)
-    recipe_ingredients = menu_item.recipe_ingredients.all()
+
+
+
+
+
+
+
+def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
+    menu = get_object_or_404(Menu, slug=menu_slug)
+    category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
+    menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
+    recipe_ingredients = menu_item.recipe_ingredients.select_related('ingredient', 'category')
 
     if request.method == "POST":
         if "add_ingredient" in request.POST:
-            # Get ingredient name and category ID from the form
+            # Get ingredient details
             ingredient_name = request.POST.get("ingredient_name")
             category_id = request.POST.get("category")
             quantity = request.POST.get("quantity")
 
-            # Validate the input
+            # Validation
             if not ingredient_name:
                 messages.error(request, "Please select an ingredient to add.")
-                return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
-            
+                return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
             if not category_id:
                 messages.error(request, "Please select a category for the ingredient.")
-                return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
-
+                return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
             if not quantity:
                 messages.error(request, "Please specify the quantity.")
-                return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+                return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
 
-            # Fetch the ingredient and category objects
-            ingredient = Ingredient.objects.filter(name=ingredient_name).first()
-            category = Category.objects.filter(id=category_id).first()
+            # Create and save the ingredient
+            ingredient = Ingredient.objects.filter(name=ingredient_name, category_id=category_id).first()
 
             if not ingredient:
                 messages.error(request, "The selected ingredient does not exist.")
-                return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+                return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
 
-            # Create and save the RecipeIngredient
             RecipeIngredient.objects.create(
                 menu_item=menu_item,
                 ingredient=ingredient,
-                category=category,
+                category=ingredient.category,
                 quantity=quantity
             )
-
-            messages.success(
-                request,
-                f"Ingredient '{ingredient.name}' added to '{menu_item.name}' from category '{category.name if category else 'N/A'}'."
-            )
-            return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+            messages.success(request, f"Ingredient '{ingredient.name}' added to '{menu_item.name}'.")
+            return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
 
         elif "remove_ingredient" in request.POST:
             ingredient_id = request.POST.get("ingredient_id")
             recipe_ingredient = get_object_or_404(RecipeIngredient, id=ingredient_id, menu_item=menu_item)
             recipe_ingredient.delete()
             messages.success(request, f"Ingredient '{recipe_ingredient.ingredient.name}' removed from '{menu_item.name}'.")
-            return redirect('menu_item_detail', menu_name=menu_name, category_name=category_name, menu_item_name=menu_item_name)
+            return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
 
     recipe_ingredient_form = RecipeIngredientForm()
 
@@ -184,6 +193,7 @@ def menu_item_detail(request, menu_name, category_name, menu_item_name):
         'recipe_ingredient_form': recipe_ingredient_form,
     }
     return render(request, 'menu/menu_item_detail.html', context)
+
 
 
 
@@ -214,10 +224,10 @@ def get_categories_for_ingredient(request):
 
 
 
-def simulate_order(request, menu_name, category_name, menu_item_name):
-    menu = get_object_or_404(Menu, name=menu_name)
-    category = get_object_or_404(MenuCategory, name=category_name, menu=menu)
-    menu_item = get_object_or_404(MenuItem, name=menu_item_name, category=category)
+def simulate_order(request, menu_slug, category_slug, menu_item_slug):
+    menu = get_object_or_404(Menu, slug=menu_slug)
+    category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
+    menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
     recipe_ingredients = menu_item.recipe_ingredients.all()
     warnings = []
 
@@ -254,5 +264,5 @@ def simulate_order(request, menu_name, category_name, menu_item_name):
         messages.warning(request, " ".join(warnings))
     else:
         messages.success(request, f"Order for '{menu_item.name}' simulated successfully!")
-
-    return redirect('menu_detail', menu_name=menu_name)
+  
+    return redirect('menu_detail', menu_slug=menu_slug)

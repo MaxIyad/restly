@@ -2,7 +2,6 @@
 
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Ingredient, Category
-from django.http import HttpResponseBadRequest
 from settings.models import Settings 
 from .forms import IngredientForm, CategoryForm
 from django import forms
@@ -51,7 +50,6 @@ def ingredient_list(request):
     context = {
         'categories': categories,
         'settings': settings_instance,
-        'message': display_message,  # Pass the single message to the template
     }
     return render(request, 'inventory/ingredient_list.html', context)
 
@@ -467,11 +465,12 @@ def export_history(request, file_format):
     return export_data(df, file_format, f"Filtered_{change_type}_History")
 
 
-def ingredient_details(request, category_name, ingredient_name):
+def ingredient_details(request, category_slug, slug):
+    category = get_object_or_404(Category, slug=category_slug)
     ingredient = get_object_or_404(
         Ingredient,
-        category__name__iexact=category_name,  # Match category name
-        name__iexact=ingredient_name          # Match ingredient name
+        category=category,
+        slug=slug
     )
     history = ingredient.history.all().order_by('-history_date')
 
@@ -504,6 +503,6 @@ def ingredient_details(request, category_name, ingredient_name):
 
     context = {
         'ingredient': ingredient,
-        'history': processed_history,
+        'history': history,
     }
     return render(request, 'inventory/ingredient_details.html', context)

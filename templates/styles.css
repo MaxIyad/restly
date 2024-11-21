@@ -153,3 +153,44 @@ body {
     background-color: rgba(255, 255, 255, 0.25);
     border-radius: 0.5rem;
 }
+
+.card-header h2 {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+.list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+.container {
+    max-width: 960px;
+}
+.card-header h2 {
+    font-size: 1.25rem;
+}
+.table {
+    margin-bottom: 0;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+.card-header .btn {
+    margin-left: auto;
+}
+
+
+.card-header h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}

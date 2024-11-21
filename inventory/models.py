@@ -4,19 +4,38 @@ from django.db import models
 from simple_history.models import HistoricalRecords
 from decimal import Decimal, ROUND_HALF_UP
 from django.core.exceptions import ValidationError
-
+from django.utils.text import slugify
 
 # Category model for ingredient filtering
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True, default="global")
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
     order = models.PositiveIntegerField(default=1)
 
     class Meta:
         ordering = ['order'] 
+        
+    def save(self, *args, **kwargs):
 
+        if self.pk:
+            old_name = Category.objects.filter(pk=self.pk).values('name').first()
+            if old_name and old_name['name'] != self.name:
+                self.slug = None  # Reset slug to regenerate it
+
+
+        if not self.slug:  # Generate slug only if it doesn't exist
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            while Category.objects.filter(slug=slug).exclude(id=self.id).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
 
     def __str__(self):
+        
         return self.name
 
 # Ingredient model
@@ -32,6 +51,7 @@ class Ingredient(models.Model):
     ]
 
     name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
     quantity = models.FloatField()  # Quantity in stock
     threshold = models.FloatField(default=0)  # Minimum threshold for inventory
     category = models.ForeignKey('Category', on_delete=models.CASCADE)
@@ -51,6 +71,20 @@ class Ingredient(models.Model):
     def save(self, *args, **kwargs):
         # Calculate the total cost for current quantity
         self.name = self.name.lower()
+
+        if self.pk:
+            old_name = Ingredient.objects.filter(pk=self.pk).values('name').first()
+            if old_name and old_name['name'] != self.name:
+                self.slug = None  # Reset slug to regenerate it
+                
+        if not self.slug:  # Generate slug only if it doesn't exist
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            while Ingredient.objects.filter(slug=slug).exclude(id=self.id).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
         self.total_cost = self.quantity * self.unit_cost
         super().save(*args, **kwargs)
 
