@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'simple_history',
     'settings.apps.SettingsConfig',
     'inventory.apps.InventoryConfig',  
+    'menu.apps.MenuConfig',
 
 ]
 

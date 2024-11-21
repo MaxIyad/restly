@@ -1,0 +1,26 @@
+<h1>{{ menu.name }}</h1>
+
+<!-- Add a new category -->
+<form method="post">
+    {% csrf_token %}
+    {{ category_form.as_p }}
+    <button type="submit">Add Category</button>
+</form>
+
+<!-- List categories and their items -->
+{% for category in categories %}
+    <h2>
+        <a href="{% url 'category_detail' menu.name category.name %}">{{ category.name }}</a>
+    </h2>
+    <ul>
+        {% for item in category.items.all %}
+        <li>
+            <a href="{% url 'menu_item_detail' menu.name category.name item.name %}">{{ item.name }}</a>
+            <form method="post" action="{% url 'simulate_order' menu.name category.name item.name %}" style="display: inline;">
+                {% csrf_token %}    
+                <button type="submit">Simulate Order</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+{% endfor %}

@@ -16,10 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from menu.views import get_categories_for_ingredient
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('settings/', include('settings.urls')),
     path('inventory/', include('inventory.urls')),
-
+    path('menu/', include('menu.urls', namespace="menu")),
+    path('get-categories-for-ingredient/', get_categories_for_ingredient, name='get_categories_for_ingredient'),
 ]

@@ -1,0 +1,19 @@
+<h1>{{ menu.name }}: {{ category.name }}</h1>
+
+<!-- Add a new menu item -->
+<form method="post">
+    {% csrf_token %}
+    {{ menu_item_form.as_p }}
+    <button type="submit" name="add_menu_item">Add Menu Item</button>
+</form>
+
+<!-- List menu items -->
+<ul>
+    {% for item in menu_items %}
+    <li>
+        <a href="{% url 'menu_item_detail' menu.name category.name item.name %}">{{ item.name }}</a>
+    </li>
+    {% empty %}
+    <li>No menu items found in this category.</li>
+    {% endfor %}
+</ul>

@@ -1,0 +1,83 @@
+<h1>{{ menu_item.name }}</h1>
+<p><strong>Category:</strong> {{ category.name }}</p>
+
+<!-- Add recipe ingredient -->
+<form method="post">
+    {% csrf_token %}
+    {{ recipe_ingredient_form.as_p }}
+    <button type="submit" name="add_ingredient" class="btn btn-primary">Add Ingredient</button>
+</form>
+
+
+<!-- List recipe ingredients -->
+<table>
+    <thead>
+        <tr>
+            <th>Ingredient</th>
+            <th>Quantity</th>
+            <th>Unit</th>
+            <th>Deplete From</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for recipe_ingredient in recipe_ingredients %}
+        <tr>
+            <td>{{ recipe_ingredient.ingredient.name }}</td>
+            <td>{{ recipe_ingredient.quantity }}</td>
+            <td>{{ recipe_ingredient.ingredient.unit_multiplier }}{{ recipe_ingredient.ingredient.unit_type }}</td>
+            <td>{{ recipe_ingredient.category.name }}</td>
+            <td>
+                <!-- Remove Ingredient Button -->
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="ingredient_id" value="{{ recipe_ingredient.id }}">
+                    <button type="submit" name="remove_ingredient" class="btn btn-danger btn-sm">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No ingredients added to this recipe.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ingredientSelect = document.querySelector("#id_ingredient");
+        const categorySelect = document.querySelector("#id_category");
+
+        ingredientSelect.addEventListener("change", function () {
+            const ingredientId = this.value;
+
+            // Clear existing options in the category dropdown
+            categorySelect.innerHTML = '<option value="">Select a category</option>';
+
+            if (ingredientId) {
+                fetch(`/get-categories-for-ingredient/?ingredient_id=${ingredientId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.categories && data.categories.length > 0) {
+                            data.categories.forEach(category => {
+                                const option = document.createElement("option");
+                                option.value = category.id;
+                                option.textContent = category.name;
+                                categorySelect.appendChild(option);
+                            });
+                        } else {
+                            console.log("No categories found for the selected ingredient.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching categories:", error);
+                    });
+            }
+        });
+    });
+</script>

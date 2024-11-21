@@ -1,0 +1,36 @@
+<h1>Menus</h1>
+
+<!-- Form to add a new menu -->
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add Menu</button>
+</form>
+
+<!-- List of menus with checkboxes for activation -->
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Active</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for menu in menus %}
+        <tr>
+            <td>{{ menu.name }}</td>
+            <td>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="menu_id" value="{{ menu.id }}">
+                    <input type="checkbox" onchange="this.form.submit()" {% if menu.is_active %}checked{% endif %}>
+                </form>
+            </td>
+            <td>
+                <a href="{% url 'menu_detail' menu.name %}">View Menu</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
