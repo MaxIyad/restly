@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Sales Report
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h1>Sales Report</h1>
+
+    <!-- Menu Sales -->
+    <h3>Sales by Menu</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Menu</th>
+                <th>Total Revenue</th>
+                <th>Total Items</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for menu in menu_sales %}
+            <tr>
+                <td>{{ menu.menu }}</td>
+                <td>${{ menu.total_revenue|floatformat:2 }}</td>
+                <td>{{ menu.items_sold }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Category Sales -->
+    <h3>Sales by Category</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Menu</th>
+                <th>Total Revenue ($)</th>
+                <th>Items Sold</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in category_sales %}
+            <tr>
+                <td>{{ category.category }}</td>
+                <td>{{ category.menu }}</td>
+                <td>${{ category.total_revenue|floatformat:2 }}</td>
+                <td>{{ category.items_sold }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Item Sales -->
+    <h3>Sales by Menu Item</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th>Menu</th>
+                <th>Revenue ($)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in item_sales %}
+            <tr>
+                <td>{{ item.item }}</td>
+                <td>{{ item.category }}</td>
+                <td>{{ item.menu }}</td>
+                <td>${{ item.revenue|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Ingredient Sales -->
+    <h3>Revenue by Ingredient</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Ingredient</th>
+                <th>Categories</th>
+                <th>Revenue ($)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ingredient in ingredient_sales %}
+            <tr>
+                <td>{{ ingredient.name }}</td>
+                <td>{{ ingredient.categories }}</td>
+                <td>${{ ingredient.revenue|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

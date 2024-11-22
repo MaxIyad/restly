@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
+from django.db.models import Sum, F
 from inventory.models import Ingredient
-from menu.models import MenuItem, RecipeIngredient
+from menu.models import Menu, MenuCategory, MenuItem, RecipeIngredient
 from decimal import Decimal, InvalidOperation
 from django.db import transaction
 
@@ -89,3 +90,69 @@ def estimate_view(request):
             context["success"] = "Inventory reset successfully."
 
     return render(request, "reports/estimate.html", context)
+
+
+def sales_view(request):
+    # Aggregate sales data from active menus
+    active_menus = Menu.objects.filter(is_active=True)
+
+    # Menu-level sales data
+    menu_sales = []
+    for menu in active_menus:
+        menu_items = MenuItem.objects.filter(category__menu=menu)
+        total_revenue = menu_items.aggregate(total_revenue=Sum(F('cost')))['total_revenue'] or Decimal("0")
+        menu_sales.append({
+            "menu": menu.name,
+            "total_revenue": total_revenue,
+            "items_sold": menu_items.count()
+        })
+
+    # Category-level sales data
+    category_sales = []
+    for category in MenuCategory.objects.filter(menu__in=active_menus):
+        items = MenuItem.objects.filter(category=category)
+        total_revenue = items.aggregate(total_revenue=Sum(F('cost')))['total_revenue'] or Decimal("0")
+        category_sales.append({
+            "category": category.name,
+            "menu": category.menu.name,
+            "total_revenue": total_revenue,
+            "items_sold": items.count()
+        })
+
+    # Item-level sales data
+    item_sales = []
+    for item in MenuItem.objects.filter(category__menu__in=active_menus):
+        item_revenue = item.cost or Decimal("0")
+        item_sales.append({
+            "item": item.name,
+            "category": item.category.name,
+            "menu": item.category.menu.name,
+            "revenue": item_revenue
+        })
+
+    # Ingredient-level sales data
+    ingredient_sales = {}
+    for recipe in RecipeIngredient.objects.filter(menu_item__category__menu__in=active_menus).select_related('ingredient'):
+        ingredient = recipe.ingredient
+        if ingredient.id not in ingredient_sales:
+            ingredient_sales[ingredient.id] = {
+                "name": ingredient.name,
+                "categories": set(),
+                "revenue": Decimal("0")
+            }
+        ingredient_sales[ingredient.id]["categories"].add(recipe.category.name if recipe.category else "Uncategorized")
+        if recipe.menu_item.cost:
+            ingredient_sales[ingredient.id]["revenue"] += Decimal(recipe.menu_item.cost) * Decimal(recipe.quantity)
+
+    # Convert ingredient categories to comma-separated strings
+    for ingredient_data in ingredient_sales.values():
+        ingredient_data["categories"] = ", ".join(ingredient_data["categories"])
+
+    context = {
+        "menu_sales": menu_sales,
+        "category_sales": category_sales,
+        "item_sales": item_sales,
+        "ingredient_sales": ingredient_sales.values(),
+    }
+
+    return render(request, "reports/sales.html", context)
