@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'settings.apps.SettingsConfig',
     'inventory.apps.InventoryConfig',  
     'menu.apps.MenuConfig',
+    'reports.apps.ReportsConfig',
 
 ]
 

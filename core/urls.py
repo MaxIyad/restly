@@ -23,6 +23,7 @@ urlpatterns = [
     path('settings/', include('settings.urls')),
     path('inventory/', include('inventory.urls')),
     path('menu/', include('menu.urls')),
+    path('reports/', include('reports.urls')),
     path('get-categories-for-ingredient/', get_categories_for_ingredient, name='get_categories_for_ingredient'),
 
 ]
