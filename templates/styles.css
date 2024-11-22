@@ -194,3 +194,89 @@ body {
     justify-content: space-between;
     align-items: center;
 }
+
+
+/* Menu Box Styles */
+.menu-box {
+    background-color: #007bff; /* Blue background */
+    border: 2px solid transparent;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-box:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Menu Title */
+.menu-box .menu-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+/* List of Categories */
+.menu-box .list-group-item {
+    background-color: white;
+    color: #333;
+    font-size: 0.95rem;
+    border: none;
+    border-bottom: 1px solid #ddd;
+}
+
+.menu-box .list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Footer with Active Checkbox */
+.menu-box .card-footer {
+    border-top: 1px solid #ddd;
+    background-color: #f8f9fa;
+    padding: 0.75rem;
+}
+
+
+/* Menu Box Styles */
+.menu-box {
+    background-color: #007bff; /* Blue background */
+    border: 2px solid transparent;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-box:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Menu Title */
+.menu-box .menu-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+/* List of Categories */
+.menu-box .list-group-item {
+    background-color: white;
+    color: #333;
+    font-size: 0.95rem;
+    border: none;
+    border-bottom: 1px solid #ddd;
+}
+
+.menu-box .list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Footer with Active Checkbox */
+.menu-box .card-footer {
+    border-top: 1px solid #ddd;
+    background-color: #f8f9fa;
+    padding: 0.75rem;
+}

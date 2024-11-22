@@ -13,8 +13,9 @@
         <a href="{% url 'menu_detail' menu.slug %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left-circle"></i> Back to {{ category.name }}
         </a>
-        
     </div>
+    
+
 
     <!-- Add Recipe Ingredient Form -->
     <div class="card shadow-sm mb-4">
@@ -33,12 +34,15 @@
                         {% endfor %}
                     </select>
                 </div>
+                <!-- Placeholder(?) -->
                 <div class="mb-3">
                     <label for="id_category" class="form-label">Category</label>
                     <select id="id_category" name="category" class="form-control">
                         <option value="">Select a category</option>
                     </select>
-                </div>
+                </div>               
+                
+                
                 <div class="mb-3">
                     <label for="id_quantity" class="form-label">Quantity</label>
                     <input type="number" id="id_quantity" name="quantity" class="form-control" step="0.01">
@@ -63,6 +67,7 @@
                         <th>Ingredient</th>
                         <th>Quantity</th>
                         <th>Unit</th>
+                        <th>Price</th> <!-- New column for price -->
                         <th>Deplete From</th>
                         <th>Actions</th>
                     </tr>
@@ -73,10 +78,11 @@
                         <td>
                             <a href="{% url 'ingredient_details' recipe_ingredient.category.slug recipe_ingredient.ingredient.slug %}">
                                 {{ recipe_ingredient.ingredient.name }}
-                            </a>                            
+                            </a>
                         </td>
                         <td>{{ recipe_ingredient.quantity }}</td>
                         <td>{{ recipe_ingredient.ingredient.unit_multiplier }}{{ recipe_ingredient.ingredient.unit_type }}</td>
+                        <td>${{ recipe_ingredient.calculated_price|floatformat:2 }}</td> <!-- Display calculated price -->
                         <td>{{ recipe_ingredient.category.name }}</td>
                         <td>
                             <form method="post" style="display:inline;">
@@ -86,7 +92,6 @@
                                     <i class="bi bi-trash"></i> Remove
                                 </button>
                             </form>
-                            
                         </td>
                     </tr>
                     {% endfor %}
@@ -97,6 +102,30 @@
             {% endif %}
         </div>
     </div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h2 class="mb-0">Update Cost and Margin</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" id="cost-margin-form">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="cost" class="form-label">Cost ($)</label>
+                    <input type="number" id="cost" name="cost" class="form-control" step="0.01" value="{{ menu_item.cost }}">
+                </div>
+                <div class="mb-3">
+                    <label for="margin" class="form-label">Margin (%)</label>
+                    <input type="number" id="margin" name="margin" class="form-control" step="0.01" value="{{ margin }}">
+                </div>
+                <p>Total Ingredient Cost: ${{ total_ingredient_cost|floatformat:2 }}</p>
+                <button type="submit" name="update_cost" class="btn btn-success">
+                    <i class="bi bi-save"></i> Save
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    
 </div>
 
 <!-- JavaScript for Dynamic Category Loading -->
@@ -104,19 +133,23 @@
     document.addEventListener("DOMContentLoaded", function () {
         const ingredientSelect = document.querySelector("#id_ingredient_name");
         const categorySelect = document.querySelector("#id_category");
+        const unitDisplay = document.createElement("p");
+        const formBody = document.querySelector(".card-body form");
 
+        unitDisplay.id = "unit-info";
+        unitDisplay.className = "text-muted";
+        formBody.appendChild(unitDisplay);
+
+        // Fetch categories and unit info when ingredient changes
         ingredientSelect.addEventListener("change", function () {
             const ingredientName = this.value;
-
-            // Clear existing options in the category dropdown
             categorySelect.innerHTML = '<option value="">Select a category</option>';
+            unitDisplay.textContent = "";
 
             if (ingredientName) {
                 fetch(`/get-categories-for-ingredient/?ingredient_name=${ingredientName}`)
                     .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                         return response.json();
                     })
                     .then(data => {
@@ -125,17 +158,57 @@
                                 const option = document.createElement("option");
                                 option.value = category.id;
                                 option.textContent = category.name;
+                                option.dataset.unitMultiplier = category.unit_multiplier;
+                                option.dataset.unitType = category.unit_type;
                                 categorySelect.appendChild(option);
                             });
                         } else {
                             console.log("No categories found for the selected ingredient.");
                         }
                     })
-                    .catch(error => {
-                        console.error("Error fetching categories:", error);
-                    });
+                    .catch(error => console.error("Error fetching categories:", error));
+            }
+        });
+
+        // Update unit display when category changes
+        categorySelect.addEventListener("change", function () {
+            const selectedOption = this.options[this.selectedIndex];
+            const unitMultiplier = selectedOption.dataset.unitMultiplier || "";
+            const unitType = selectedOption.dataset.unitType || "";
+
+            if (unitMultiplier && unitType) {
+                unitDisplay.textContent = `Unit: ${unitMultiplier}${unitType}`;
+            } else {
+                unitDisplay.textContent = "No unit information available.";
             }
         });
     });
 </script>
+
+
+<!-- Cost Calcuator Updater -->
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const costInput = document.getElementById("cost");
+        const marginInput = document.getElementById("margin");
+        const totalIngredientCost = parseFloat({{ total_ingredient_cost|floatformat:2 }});
+    
+        costInput.addEventListener("input", function () {
+            const cost = parseFloat(costInput.value);
+            if (!isNaN(cost)) {
+                marginInput.value = (((cost - totalIngredientCost) / totalIngredientCost) * 100).toFixed(2);
+            }
+        });
+    
+        marginInput.addEventListener("input", function () {
+            const margin = parseFloat(marginInput.value);
+            if (!isNaN(margin)) {
+                costInput.value = (totalIngredientCost * (1 + margin / 100)).toFixed(2);
+            }
+        });
+    });
+    </script>
+    
+
 {% endblock %}

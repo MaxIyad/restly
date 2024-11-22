@@ -5,7 +5,7 @@ from .models import Menu, MenuItem, RecipeIngredient
 from inventory.models import Ingredient
 from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientForm, MenuItemForm
 from django.contrib import messages
-
+from decimal import Decimal
 
 from django.http import JsonResponse
 from inventory.models import Category
@@ -13,13 +13,14 @@ from inventory.models import Category
 
 def menu_list(request):
     menus = Menu.objects.all()
+    error_flag = False
 
     if request.method == "POST":
         # Check for activation changes
         menu_id = request.POST.get('menu_id')
         if menu_id:
             menu = Menu.objects.get(id=menu_id)
-            menu.is_active = not menu.is_active  # Toggle active state
+            menu.is_active = not menu.is_active 
             menu.save()
             messages.success(request, f"Menu '{menu.name}' is now active!")
             return redirect('menu_list')
@@ -30,12 +31,15 @@ def menu_list(request):
             form.save()
             messages.success(request, "Menu added successfully!")
             return redirect('menu_list')
+        else:
+            error_flag = True
     else:
         form = MenuForm()
 
     context = {
         'menus': menus,
         'form': form,
+        'error_flag': error_flag,
     }
     return render(request, 'menu/menu_list.html', context)
 
@@ -45,13 +49,12 @@ def menu_detail(request, menu_slug):
     menu = get_object_or_404(Menu, slug=menu_slug)
     categories = menu.categories.prefetch_related("items")
 
-    # Initialize forms for GET requests
     category_form = MenuCategoryForm()
     item_form = MenuItemForm()
 
     if request.method == "POST":
-        if "add_category" in request.POST:  # Identify the specific action
-            category_form = MenuCategoryForm(request.POST)
+        if "add_category" in request.POST: 
+            category_form = MenuCategoryForm(request.POST, menu=menu)
             if category_form.is_valid():
                 category = category_form.save(commit=False)
                 category.menu = menu
@@ -61,7 +64,7 @@ def menu_detail(request, menu_slug):
             else:
                 messages.error(request, "Failed to add category. Please check the form.")
 
-        elif "add_menu_item" in request.POST:  # Handle menu item addition
+        elif "add_menu_item" in request.POST:  
             category_id = request.POST.get("category_id")
             category = get_object_or_404(MenuCategory, id=category_id, menu=menu)
             item_form = MenuItemForm(request.POST)
@@ -142,9 +145,55 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
     recipe_ingredients = menu_item.recipe_ingredients.select_related('ingredient', 'category')
 
+    total_ingredient_cost = Decimal(0)  # Use Decimal for monetary values
+    for ingredient in recipe_ingredients:
+        ingredient.calculated_price = Decimal(ingredient.quantity) * Decimal(ingredient.ingredient.unit_cost)
+        total_ingredient_cost += ingredient.calculated_price
+
+    # Calculate margin (default to 0 if no cost)
+    margin = Decimal(0)
+    if menu_item.cost and total_ingredient_cost > 0:
+        margin = ((menu_item.cost - total_ingredient_cost) / total_ingredient_cost) * 100
+        margin = round(margin, 2)
+
     if request.method == "POST":
-        if "add_ingredient" in request.POST:
-            # Get ingredient details
+
+        cost = request.POST.get("cost")
+        margin = request.POST.get("margin")
+
+        if cost:
+            try:
+                menu_item.cost = float(cost)
+                menu_item.save()
+                messages.success(request, f"Cost for '{menu_item.name}' updated successfully.")
+            except ValueError:
+                messages.error(request, "Invalid cost value.")
+
+        elif margin:
+            try:
+                margin_percentage = float(margin)
+                menu_item.cost = round(total_ingredient_cost * (1 + margin_percentage / 100), 2)
+                menu_item.save()
+                messages.success(request, f"Margin for '{menu_item.name}' updated successfully.")
+            except ValueError:
+                messages.error(request, "Invalid margin value.")
+
+
+
+        # Menu item sell price form
+        elif "update_cost" in request.POST:
+            cost = request.POST.get("cost")
+            if cost:
+                try:
+                    menu_item.cost = float(cost)
+                    menu_item.save()
+                    messages.success(request, f"Cost for '{menu_item.name}' updated successfully.")
+                except ValueError:
+                    messages.error(request, "Invalid cost value.")
+            else:
+                messages.error(request, "Cost cannot be empty.")
+
+        elif "add_ingredient" in request.POST:
             ingredient_name = request.POST.get("ingredient_name")
             category_id = request.POST.get("category")
             quantity = request.POST.get("quantity")
@@ -187,15 +236,14 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
 
     context = {
         'menu': menu,
+        'margin': margin,
         'category': category,
         'menu_item': menu_item,
         'recipe_ingredients': recipe_ingredients,
+        'total_ingredient_cost': total_ingredient_cost,
         'recipe_ingredient_form': recipe_ingredient_form,
     }
     return render(request, 'menu/menu_item_detail.html', context)
-
-
-
 
 
 
@@ -207,15 +255,21 @@ def get_categories_for_ingredient(request):
         return JsonResponse({'error': 'No ingredient name provided'}, status=400)
 
     try:
-        # Fetch all ingredients with the same name
+        # Fetch all ingredients with the given name
         ingredients = Ingredient.objects.filter(name__iexact=ingredient_name)
-        categories = Category.objects.filter(ingredient__in=ingredients).distinct()
-        categories_data = [{'id': category.id, 'name': category.name} for category in categories]
+        categories_data = []
+
+        for ingredient in ingredients:
+            categories_data.append({
+                'id': ingredient.category.id,
+                'name': ingredient.category.name,
+                'unit_multiplier': ingredient.unit_multiplier,
+                'unit_type': ingredient.unit_type,
+            })
+
         return JsonResponse({'categories': categories_data})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-
 
 
 

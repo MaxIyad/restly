@@ -25,11 +25,7 @@ Add Ingredients
         {% for form in formset %}
         <div class="ingredient-row card mb-3 shadow-sm p-3">
             <div class="card-body">
-                {% if form.errors %}
-                <div class="alert alert-danger">
-                    {{ form.non_field_errors }}
-                </div>
-                {% endif %}
+                
                 {{ form.as_p }}
             </div>
             <div class="card-footer text-end">

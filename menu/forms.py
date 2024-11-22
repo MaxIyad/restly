@@ -1,10 +1,7 @@
-# menu/forms.py
 from django import forms
 from .models import Menu, MenuItem, RecipeIngredient, MenuCategory
-from inventory.models import Ingredient
-from inventory.models import Category
-
-
+from inventory.models import Ingredient, Category
+from django.core.exceptions import ValidationError
 
 class RecipeIngredientForm(forms.ModelForm):
     ingredient_name = forms.ChoiceField(
@@ -34,10 +31,7 @@ class RecipeIngredientForm(forms.ModelForm):
             'quantity': forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
         }
 
-
-
-
-###########################################################################################################################################################3
+###################################################################################################
 
 class MenuForm(forms.ModelForm):
     class Meta:
@@ -50,11 +44,25 @@ class MenuCategoryForm(forms.ModelForm):
         fields = ['name']
         labels = {'name': 'Category Name'}
 
+    def __init__(self, *args, **kwargs):
+        self.menu = kwargs.pop('menu', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        if self.menu and MenuCategory.objects.filter(name=name, menu=self.menu).exists():
+            raise ValidationError(f"A category with the name '{name}' already exists in this menu.")
+        return name
+
 class MenuItemForm(forms.ModelForm):
     class Meta:
         model = MenuItem
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'cost']
         labels = {
             'name': 'Menu Item Name',
             'description': 'Description',
+            'cost': 'Cost'
+        }
+        widgets = {
+            'cost': forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),  # Widget for cost input for menu_item_detail
         }

@@ -1,3 +1,5 @@
+<!-- menu_detail.html -->
+
 {% extends 'base.html' %}
 
 {% block title %}
@@ -21,11 +23,14 @@
         <div class="card-body">
             <form method="post">
                 {% csrf_token %}
+ 
                 {{ category_form.as_p }}
+                
                 <button type="submit" class="btn btn-success" name="add_category">
                     <i class="bi bi-plus-circle"></i> Add Category
                 </button>
             </form>
+            
         </div>
     </div>
 
@@ -34,10 +39,8 @@
     {% for category in categories %}
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">
-                
-                    {{ category.name|title }}
-                
+            <h2 class="mb-0">                
+                    {{ category.name|title }}                
             </h2>
             <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addMenuItemModal-{{ category.id }}">
                 <i class="bi bi-plus-circle"></i> Add Menu Item
@@ -52,7 +55,6 @@
                         {{ item.name|title }}
                     </a>                    
                     <form method="post" action="{% url 'simulate_order' menu.slug category.slug item.slug %}">
-
                         {% csrf_token %}
                         <button type="submit" class="btn btn-outline-secondary btn-sm">
                             <i class="bi bi-cart"></i> Simulate Order
