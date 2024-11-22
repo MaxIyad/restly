@@ -163,114 +163,87 @@ def category_detail(request, menu_slug, category_slug):
 
 
 
-
-
-
 def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     menu = get_object_or_404(Menu, slug=menu_slug)
     category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
     recipe_ingredients = menu_item.recipe_ingredients.select_related('ingredient', 'category')
 
-    total_ingredient_cost = Decimal(0)  # Use Decimal for monetary values
-    for ingredient in recipe_ingredients:
-        ingredient.calculated_price = Decimal(ingredient.quantity) * Decimal(ingredient.ingredient.unit_cost)
-        total_ingredient_cost += ingredient.calculated_price
+    # Update the calculated price for each ingredient
+    for recipe_ingredient in recipe_ingredients:
+        recipe_ingredient.calculated_price = (
+            Decimal(recipe_ingredient.quantity) * Decimal(recipe_ingredient.ingredient.unit_cost)
+        )
 
-    # Calculate margin (default to 0 if no cost)
-    margin = Decimal(0)
-    if menu_item.cost and total_ingredient_cost > 0:
-        margin = ((menu_item.cost - total_ingredient_cost) / total_ingredient_cost) * 100
-        margin = round(margin, 2)
+    total_ingredient_cost = sum(ri.calculated_price for ri in recipe_ingredients)
+
+    # Filter ingredients by category
+    selected_category_id = request.GET.get('category_id')
+    inventory_categories = Category.objects.all()
+    ingredients = Ingredient.objects.filter(category_id=selected_category_id) if selected_category_id else []
 
     if request.method == "POST":
-
-        cost = request.POST.get("cost")
-        margin = request.POST.get("margin")
-
-        if cost:
-            try:
-                menu_item.cost = float(cost)
-                menu_item.save()
-                messages.success(request, f"Cost for '{menu_item.name}' updated successfully.")
-            except ValueError:
-                messages.error(request, "Invalid cost value.")
-
-        elif margin:
-            try:
-                margin_percentage = float(margin)
-                menu_item.cost = round(total_ingredient_cost * (1 + margin_percentage / 100), 2)
-                menu_item.save()
-                messages.success(request, f"Margin for '{menu_item.name}' updated successfully.")
-            except ValueError:
-                messages.error(request, "Invalid margin value.")
-
-
-
-        # Menu item sell price form
-        elif "update_cost" in request.POST:
-            cost = request.POST.get("cost")
-            if cost:
-                try:
-                    menu_item.cost = float(cost)
-                    menu_item.save()
-                    messages.success(request, f"Cost for '{menu_item.name}' updated successfully.")
-                except ValueError:
-                    messages.error(request, "Invalid cost value.")
-            else:
-                messages.error(request, "Cost cannot be empty.")
-
-        elif "add_ingredient" in request.POST:
-            ingredient_name = request.POST.get("ingredient_name")
-            category_id = request.POST.get("category")
-            quantity = request.POST.get("quantity")
-
-            # Validation
-            if not ingredient_name:
-                messages.error(request, "Please select an ingredient to add.")
-                return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
-            if not category_id:
-                messages.error(request, "Please select a category for the ingredient.")
-                return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
-            if not quantity:
-                messages.error(request, "Please specify the quantity.")
-                return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
-
-            # Create and save the ingredient
-            ingredient = Ingredient.objects.filter(name=ingredient_name, category_id=category_id).first()
-
-            if not ingredient:
-                messages.error(request, "The selected ingredient does not exist.")
-                return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
-
+        action = request.POST.get("action")
+        if action == "add_ingredient":
+            ingredient_id = request.POST.get("ingredient_id")
+            ingredient = get_object_or_404(Ingredient, id=ingredient_id)
             RecipeIngredient.objects.create(
                 menu_item=menu_item,
                 ingredient=ingredient,
                 category=ingredient.category,
-                quantity=quantity
+                quantity=1.0  # Default quantity
             )
-            messages.success(request, f"Ingredient '{ingredient.name}' added to '{menu_item.name}'.")
-            return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
-
-        elif "remove_ingredient" in request.POST:
-            ingredient_id = request.POST.get("ingredient_id")
-            recipe_ingredient = get_object_or_404(RecipeIngredient, id=ingredient_id, menu_item=menu_item)
+            messages.success(request, f"Ingredient '{ingredient.name}' added.")
+            return redirect(request.path + f"?category_id={selected_category_id}")
+        
+        elif action == "remove_ingredient":
+            recipe_ingredient_id = request.POST.get("ingredient_id")
+            recipe_ingredient = get_object_or_404(RecipeIngredient, id=recipe_ingredient_id)
             recipe_ingredient.delete()
-            messages.success(request, f"Ingredient '{recipe_ingredient.ingredient.name}' removed from '{menu_item.name}'.")
-            return redirect('menu_item_detail', menu_slug=menu_slug, category_slug=category_slug, menu_item_slug=menu_item_slug)
+            messages.success(request, f"Ingredient '{recipe_ingredient.ingredient.name}' removed.")
+            return redirect(request.path)
 
-    recipe_ingredient_form = RecipeIngredientForm()
+        elif action == "save_quantities":
+            for key, value in request.POST.items():
+                if key.startswith("quantity-"):
+                    recipe_ingredient_id = key.split("-")[1]
+                    recipe_ingredient = get_object_or_404(RecipeIngredient, id=recipe_ingredient_id)
+                    try:
+                        recipe_ingredient.quantity = Decimal(value)
+                        recipe_ingredient.save()
+                    except Exception as e:
+                        messages.error(request, f"Failed to update quantity for '{recipe_ingredient.ingredient.name}': {e}")
+            messages.success(request, "Quantities updated successfully.")
+            return redirect(request.path)
+
+        elif "update_cost" in request.POST:
+            # Handle the cost and margin updates
+            cost = request.POST.get("cost")
+            margin = request.POST.get("margin")
+            try:
+                if cost:
+                    menu_item.cost = Decimal(cost)
+                elif margin:
+                    # Calculate cost based on margin if provided
+                    menu_item.cost = total_ingredient_cost * (1 + Decimal(margin) / 100)
+                menu_item.save()
+                messages.success(request, f"Cost and margin for '{menu_item.name}' updated successfully.")
+            except Exception as e:
+                messages.error(request, f"Failed to update cost and margin: {e}")
+            return redirect(request.path)
 
     context = {
         'menu': menu,
-        'margin': margin,
         'category': category,
         'menu_item': menu_item,
         'recipe_ingredients': recipe_ingredients,
         'total_ingredient_cost': total_ingredient_cost,
-        'recipe_ingredient_form': recipe_ingredient_form,
+        'inventory_categories': inventory_categories,
+        'ingredients': ingredients,
+        'selected_category_id': int(selected_category_id) if selected_category_id else None,
     }
     return render(request, 'menu/menu_item_detail.html', context)
+
 
 
 #################################################################################################################################################

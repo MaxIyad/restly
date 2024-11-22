@@ -67,7 +67,7 @@ class MenuItem(models.Model):
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     category = models.ForeignKey(MenuCategory, on_delete=models.CASCADE, related_name="items")
     description = models.TextField(blank=True, null=True)
-    cost = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)  # Sell price :D
+    cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Sell price :D
     order = models.PositiveIntegerField(default=1)
 
 
@@ -95,6 +95,8 @@ class RecipeIngredient(models.Model):
     order = models.PositiveIntegerField(default=1)
     quantity = models.FloatField(help_text="Quantity of the ingredient used in the recipe")
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True, help_text="Category to deplete from")
+
+    
 
     class Meta:
         ordering = ['order'] 

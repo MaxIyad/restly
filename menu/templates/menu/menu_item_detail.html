@@ -1,5 +1,3 @@
-<!-- menu_item_detail.html -->
-
 {% extends 'base.html' %}
 
 {% block title %}
@@ -11,98 +9,96 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="text-primary">{{ menu_item.name }}</h1>
         <a href="{% url 'menu_detail' menu.slug %}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left-circle"></i> Back to {{ category.name }}
+            <i class="bi bi-arrow-left-circle"></i> Back to {{ menu.name }}
         </a>
     </div>
-    
 
-
-    <!-- Add Recipe Ingredient Form -->
+    <!-- Add Recipe Ingredient Section -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white">
             <h2 class="mb-0">Add Recipe Ingredient</h2>
         </div>
         <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
+            <form method="get" id="category-filter-form">
                 <div class="mb-3">
-                    <label for="id_ingredient_name" class="form-label">Ingredient</label>
-                    <select id="id_ingredient_name" name="ingredient_name" class="form-control">
-                        <option value="">Select an ingredient</option>
-                        {% for name in recipe_ingredient_form.fields.ingredient_name.choices %}
-                            <option value="{{ name.0 }}">{{ name.1 }}</option>
+                    <label for="category-select" class="form-label">Inventory Category</label>
+                    <select id="category-select" name="category_id" class="form-control">
+                        <option value="">Select a category</option>
+                        {% for category in inventory_categories %}
+                        <option value="{{ category.id }}" {% if selected_category_id == category.id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
-                <!-- Placeholder(?) -->
-                <div class="mb-3">
-                    <label for="id_category" class="form-label">Category</label>
-                    <select id="id_category" name="category" class="form-control">
-                        <option value="">Select a category</option>
-                    </select>
-                </div>               
-                
-                
-                <div class="mb-3">
-                    <label for="id_quantity" class="form-label">Quantity</label>
-                    <input type="number" id="id_quantity" name="quantity" class="form-control" step="0.000001">
-                </div>
-                <button type="submit" name="add_ingredient" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Add Ingredient
-                </button>
             </form>
+            <div id="ingredient-list">
+                <h3>Ingredients in Selected Category</h3>
+                <ul class="list-group">
+                    {% for ingredient in ingredients %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ ingredient.name }} ({{ ingredient.quantity }} {{ ingredient.unit_type }})
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="ingredient_id" value="{{ ingredient.id }}">
+                            <input type="hidden" name="action" value="add_ingredient">
+                            <button type="submit" class="btn btn-success btn-sm">Add Ingredient</button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
     </div>
 
-    <!-- List Recipe Ingredients -->
-    <div class="card shadow-sm mb-4 mt-4">
+    <!-- Recipe Ingredients Section -->
+    <div class="card shadow-sm mb-4">
         <div class="card-header bg-light">
             <h2 class="mb-0">Recipe Ingredients</h2>
         </div>
         <div class="card-body">
-            {% if recipe_ingredients %}
-            <table class="table table-striped">
-                <thead class="table-light">
-                    <tr>
-                        <th>Ingredient</th>
-                        <th>Quantity</th>
-                        <th>Unit</th>
-                        <th>Price</th> <!-- New column for price -->
-                        <th>Deplete From</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for recipe_ingredient in recipe_ingredients %}
-                    <tr>
-                        <td>
-                            <a href="{% url 'ingredient_details' recipe_ingredient.category.slug recipe_ingredient.ingredient.slug %}">
-                                {{ recipe_ingredient.ingredient.name }}
-                            </a>
-                        </td>
-                        <td>{{ recipe_ingredient.quantity }}</td>
-                        <td>{{ recipe_ingredient.ingredient.unit_multiplier }}{{ recipe_ingredient.ingredient.unit_type }}</td>
-                        <td>${{ recipe_ingredient.calculated_price|floatformat:2 }}</td> <!-- Display calculated price -->
-                        <td>{{ recipe_ingredient.category.name }}</td>
-                        <td>
-                            <form method="post" style="display:inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="ingredient_id" value="{{ recipe_ingredient.id }}">
-                                <button type="submit" name="remove_ingredient" class="btn btn-danger btn-sm">
-                                    <i class="bi bi-trash"></i> Remove
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p class="text-muted">No ingredients added to this recipe.</p>
-            {% endif %}
+            <form method="post" id="save-quantities-form">
+                {% csrf_token %}
+                <table class="table table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ingredient</th>
+                            <th>Quantity</th>
+                            <th>Unit</th>
+                            <th>Price</th>
+                            <th>Deplete From</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for recipe_ingredient in recipe_ingredients %}
+                        <tr>
+                            <td>{{ recipe_ingredient.ingredient.name }}</td>
+                            <td>
+                                <input type="number" name="quantity-{{ recipe_ingredient.id }}" class="form-control"
+                                       value="{{ recipe_ingredient.quantity }}" step="0.000001">
+                            </td>
+                            <td>{{ recipe_ingredient.ingredient.unit_multiplier }}{{ recipe_ingredient.ingredient.unit_type }}</td>
+                            <td>${{ recipe_ingredient.calculated_price|floatformat:2 }}</td>
+                            <td>{{ recipe_ingredient.category.name }}</td>
+                            <td>
+                                <form method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="ingredient_id" value="{{ recipe_ingredient.id }}">
+                                    <input type="hidden" name="action" value="remove_ingredient">
+                                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="submit" class="btn btn-primary mt-3" name="action" value="save_quantities">
+                    Save Quantities
+                </button>
+            </form>
         </div>
     </div>
-
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light">
             <h2 class="mb-0">Update Cost and Margin</h2>
@@ -111,83 +107,33 @@
             <form method="post" id="cost-margin-form">
                 {% csrf_token %}
                 <div class="mb-3">
-                    <label for="cost" class="form-label">Cost ($)</label>
-                    <input type="number" id="cost" name="cost" class="form-control" step="0.000001" value="{{ menu_item.cost }}">
+                    <label for="cost" class="form-label">Price</label>
+                    <input type="number" id="cost" name="cost" class="form-control" step="0.01" value="{{ menu_item.cost }}">
                 </div>
                 <div class="mb-3">
                     <label for="margin" class="form-label">Margin (%)</label>
-                    <input type="number" id="margin" name="margin" class="form-control" step="0.000001" value="{{ margin }}">
+                    <input type="number" id="margin" name="margin" class="form-control" step="0.001" value="{{ margin }}">
                 </div>
                 <p>Total Ingredient Cost: ${{ total_ingredient_cost|floatformat:2 }}</p>
                 <button type="submit" name="update_cost" class="btn btn-success">
                     <i class="bi bi-save"></i> Apply Changes
                 </button>
             </form>
+            
         </div>
     </div>
     
     
+    
 </div>
 
-<!-- JavaScript for Dynamic Category Loading -->
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const ingredientSelect = document.querySelector("#id_ingredient_name");
-        const categorySelect = document.querySelector("#id_category");
-        const unitDisplay = document.createElement("p");
-        const formBody = document.querySelector(".card-body form");
-
-        unitDisplay.id = "unit-info";
-        unitDisplay.className = "text-muted";
-        formBody.appendChild(unitDisplay);
-
-        // Fetch categories and unit info when ingredient changes
-        ingredientSelect.addEventListener("change", function () {
-            const ingredientName = this.value;
-            categorySelect.innerHTML = '<option value="">Select a category</option>';
-            unitDisplay.textContent = "";
-
-            if (ingredientName) {
-                fetch(`/get-categories-for-ingredient/?ingredient_name=${ingredientName}`)
-                    .then(response => {
-                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.categories && data.categories.length > 0) {
-                            data.categories.forEach(category => {
-                                const option = document.createElement("option");
-                                option.value = category.id;
-                                option.textContent = category.name;
-                                option.dataset.unitMultiplier = category.unit_multiplier;
-                                option.dataset.unitType = category.unit_type;
-                                categorySelect.appendChild(option);
-                            });
-                        } else {
-                            console.log("No categories found for the selected ingredient.");
-                        }
-                    })
-                    .catch(error => console.error("Error fetching categories:", error));
-            }
-        });
-
-        // Update unit display when category changes
-        categorySelect.addEventListener("change", function () {
-            const selectedOption = this.options[this.selectedIndex];
-            const unitMultiplier = selectedOption.dataset.unitMultiplier || "";
-            const unitType = selectedOption.dataset.unitType || "";
-
-            if (unitMultiplier && unitType) {
-                unitDisplay.textContent = `Unit: ${unitMultiplier}${unitType}`;
-            } else {
-                unitDisplay.textContent = "No unit information available.";
-            }
-        });
+    document.getElementById('category-select').addEventListener('change', function () {
+        document.getElementById('category-filter-form').submit();
     });
 </script>
 
 
-<!-- Cost Calcuator Updater -->
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -211,5 +157,4 @@
     });
     </script>
     
-
 {% endblock %}
