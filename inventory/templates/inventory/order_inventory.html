@@ -51,7 +51,7 @@
                         <input type="text" name="name-{{ ingredient.id }}" value="{{ ingredient.name|title }}" class="form-control" />
                     </td>
                     <td>
-                        <input type="number" name="quantity-{{ ingredient.id }}" value="{{ ingredient.quantity }}" step="0.01" class="form-control" />
+                        <input type="number" name="quantity-{{ ingredient.id }}" value="{{ ingredient.quantity }}" step="0.000001" class="form-control" />
                     </td>
                     <td>
                         <select name="unit_type-{{ ingredient.id }}" class="form-select">
@@ -61,7 +61,7 @@
                         </select>
                     </td>
                     <td>
-                        <input type="number" name="unit_multiplier-{{ ingredient.id }}" value="{{ ingredient.unit_multiplier }}" step="0.01" class="form-control" />
+                        <input type="number" name="unit_multiplier-{{ ingredient.id }}" value="{{ ingredient.unit_multiplier }}" step="0.000001" class="form-control" />
                     </td>
                     <td>
                         <select name="ingredient-category-{{ ingredient.id }}" class="form-select">

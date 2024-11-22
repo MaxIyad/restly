@@ -45,7 +45,7 @@
                 
                 <div class="mb-3">
                     <label for="id_quantity" class="form-label">Quantity</label>
-                    <input type="number" id="id_quantity" name="quantity" class="form-control" step="0.01">
+                    <input type="number" id="id_quantity" name="quantity" class="form-control" step="0.000001">
                 </div>
                 <button type="submit" name="add_ingredient" class="btn btn-success">
                     <i class="bi bi-plus-circle"></i> Add Ingredient
@@ -112,11 +112,11 @@
                 {% csrf_token %}
                 <div class="mb-3">
                     <label for="cost" class="form-label">Cost ($)</label>
-                    <input type="number" id="cost" name="cost" class="form-control" step="0.01" value="{{ menu_item.cost }}">
+                    <input type="number" id="cost" name="cost" class="form-control" step="0.000001" value="{{ menu_item.cost }}">
                 </div>
                 <div class="mb-3">
                     <label for="margin" class="form-label">Margin (%)</label>
-                    <input type="number" id="margin" name="margin" class="form-control" step="0.01" value="{{ margin }}">
+                    <input type="number" id="margin" name="margin" class="form-control" step="0.000001" value="{{ margin }}">
                 </div>
                 <p>Total Ingredient Cost: ${{ total_ingredient_cost|floatformat:2 }}</p>
                 <button type="submit" name="update_cost" class="btn btn-success">

@@ -59,7 +59,7 @@ class Ingredient(models.Model):
     unit_multiplier = models.FloatField()  # Multiplier for unit type
     unit_cost = models.FloatField()  # Cost per unit
     estimated_usage = models.FloatField(null=True, blank=True)  # Optional, estimated usage per day
-    total_cost = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
+    total_cost = models.DecimalField(max_digits=12, decimal_places=6, editable=False)
     history = HistoricalRecords()
     order = models.PositiveIntegerField(default=1)
     change_source = models.CharField(max_length=50, blank=True, null=True)

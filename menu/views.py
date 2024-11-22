@@ -7,6 +7,7 @@ from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientFor
 from django.contrib import messages
 from decimal import Decimal
 from django.db.models import Prefetch
+from django.db import models
 
 from django.http import JsonResponse
 from inventory.models import Category
@@ -15,8 +16,11 @@ from inventory.models import Category
 def menu_list(request):
     menus = Menu.objects.all()
     error_flag = False
+    
 
     if request.method == "POST":
+
+        
         # Check for activation changes
         menu_id = request.POST.get('menu_id')
         if menu_id:
@@ -25,6 +29,13 @@ def menu_list(request):
             menu.save()
             messages.success(request, f"Menu '{menu.name}' is now active!")
             return redirect('menu_list')
+        
+        if "delete_menu_id" in request.POST:
+            menu_id = int(request.POST["delete_menu_id"])
+            menu = get_object_or_404(Menu, id=menu_id)
+            menu.delete()
+            messages.success(request, f"Menu '{menu.name}' deleted successfully!")
+            return redirect("menu_list")
 
         # Handle new menu creation
         form = MenuForm(request.POST)
@@ -54,7 +65,22 @@ def menu_detail(request, menu_slug):
     item_form = MenuItemForm()
 
     if request.method == "POST":
-        if "add_category" in request.POST: 
+
+        if "delete_category_id" in request.POST:
+            category_id = int(request.POST["delete_category_id"])
+            category = get_object_or_404(MenuCategory, id=category_id, menu=menu)
+            category.delete()
+            messages.success(request, f"Category '{category.name}' deleted successfully!")
+            return redirect("menu_detail", menu_slug=menu.slug)
+
+        elif "delete_item_id" in request.POST:
+            item_id = int(request.POST["delete_item_id"])
+            item = get_object_or_404(MenuItem, id=item_id, category__menu=menu)
+            item.delete()
+            messages.success(request, f"Menu item '{item.name}' deleted successfully!")
+            return redirect("menu_detail", menu_slug=menu.slug)
+        
+        elif "add_category" in request.POST: 
             category_form = MenuCategoryForm(request.POST, menu=menu)
             if category_form.is_valid():
                 category = category_form.save(commit=False)
@@ -323,35 +349,85 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
     return redirect('menu_detail', menu_slug=menu_slug)
 
 
-
-
-
 def order_menu(request, menu_slug):
     menu = get_object_or_404(Menu, slug=menu_slug)
     categories = menu.categories.prefetch_related(
-        Prefetch('items', queryset=MenuItem.objects.order_by('order'))
+        models.Prefetch('items', queryset=MenuItem.objects.order_by('order'))
     )
+    error_messages = []  # Collect error messages for invalid updates
 
-    if request.method == "POST":
-        # Process updates to category and item order
-        for key, value in request.POST.items():
-            if key.startswith('category-order-'):
-                category_id = int(key.split('-')[-1])
+    if request.method == 'POST':
+
+        # Handle item deletion
+        if 'delete_item_id' in request.POST:
+            try:
+                item_id = int(request.POST.get('delete_item_id'))
+                item = MenuItem.objects.get(id=item_id)
+                item.delete()
+                messages.success(request, f"Menu item '{item.name}' deleted successfully!")
+                return redirect('order_menu', menu_slug=menu.slug)
+            except MenuItem.DoesNotExist:
+                messages.error(request, "Menu item does not exist.")
+                return redirect('order_menu', menu_slug=menu.slug)
+
+        # Handle category deletion
+        if 'delete_category_id' in request.POST:
+            try:
+                category_id = int(request.POST.get('delete_category_id'))
                 category = MenuCategory.objects.get(id=category_id, menu=menu)
-                category.order = int(value)
-                category.save()
+                category.delete()
+                messages.success(request, f"Category '{category.name}' and its items were deleted successfully!")
+                return redirect('order_menu', menu_slug=menu.slug)
+            except MenuCategory.DoesNotExist:
+                messages.error(request, "Category does not exist.")
+                return redirect('order_menu', menu_slug=menu.slug)
 
-            elif key.startswith('item-order-'):
-                item_id = int(key.split('-')[-1])
-                item = MenuItem.objects.get(id=item_id, category__menu=menu)
-                item.order = int(value)
-                item.save()
+        # Process updates for categories and menu items
+        for key, value in request.POST.items():
+            try:
+                if key.startswith('category-name-'):
+                    category_id = int(key.split('-')[-1])
+                    category = MenuCategory.objects.get(id=category_id, menu=menu)
+                    category.name = value.strip()
+                    category.full_clean()  # Validate before saving
+                    category.save()
+                elif key.startswith('category-order-'):
+                    category_id = int(key.split('-')[-1])
+                    category = MenuCategory.objects.get(id=category_id, menu=menu)
+                    category.order = int(value)
+                    category.save()
+                elif key.startswith('item-name-'):
+                    item_id = int(key.split('-')[-1])
+                    item = MenuItem.objects.get(id=item_id, category__menu=menu)
+                    item.name = value.strip()
+                    item.full_clean()  # Validate before saving
+                    item.save()
+                elif key.startswith('item-order-'):
+                    item_id = int(key.split('-')[-1])
+                    item = MenuItem.objects.get(id=item_id, category__menu=menu)
+                    item.order = int(value)
+                    item.save()
+                elif key.startswith('item-cost-'):
+                    item_id = int(key.split('-')[-1])
+                    item = MenuItem.objects.get(id=item_id, category__menu=menu)
+                    item.cost = float(value)
+                    item.save()
+            except Exception as e:
+                error_messages.append(f"Error processing {key}: {e}")
 
-        messages.success(request, "Order updated successfully!")
+        if error_messages:
+            for error in error_messages:
+                messages.error(request, error)
+        else:
+            messages.success(request, "Menu order updated successfully!")
+
         return redirect('order_menu', menu_slug=menu.slug)
+
+    category_form = MenuCategoryForm()
 
     context = {
         'menu': menu,
         'categories': categories,
+        'category_form': category_form,
     }
     return render(request, 'menu/order_menu.html', context)

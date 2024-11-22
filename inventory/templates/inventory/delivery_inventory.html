@@ -48,8 +48,8 @@
                         </td>
                         <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
                         <td>{{ ingredient.converted_quantity }}</td>
-                        <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:2|intcomma }}</td>
-                        <td>{{ settings.get_currency_type_display }}{{ ingredient.total_cost|floatformat:2|intcomma }}</td>
+                        <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:6|intcomma }}</td>
+                        <td>{{ settings.get_currency_type_display }}{{ ingredient.total_cost|floatformat:6|intcomma }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
