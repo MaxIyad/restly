@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}
+    Order Menu: {{ menu.name }}
+{% endblock %}
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-primary">Order Menu: {{ menu.name }}</h1>
+        <a href="{% url 'menu_detail' menu.slug %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left-circle"></i> Back to Menu
+        </a>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for category in categories %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">{{ category.name }}</h2>
+                <input type="number" name="category-order-{{ category.id }}" value="{{ category.order }}" class="form-control w-auto">
+            </div>
+            <div class="card-body">
+                {% if category.items.all %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in category.items.all %}
+                        <tr>
+                            <td>
+                                <input type="number" name="item-order-{{ item.id }}" value="{{ item.order }}" class="form-control w-auto">
+                            </td>
+                            <td>{{ item.name }}</td>
+                            <td>
+                                <a href="{% url 'menu_item_detail' menu.slug category.slug item.slug %}" class="btn btn-info btn-sm">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">No items in this category.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save"></i> Save Order
+        </button>
+    </form>
+</div>
+{% endblock %}

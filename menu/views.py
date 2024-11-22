@@ -6,6 +6,7 @@ from inventory.models import Ingredient
 from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientForm, MenuItemForm
 from django.contrib import messages
 from decimal import Decimal
+from django.db.models import Prefetch
 
 from django.http import JsonResponse
 from inventory.models import Category
@@ -246,7 +247,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     return render(request, 'menu/menu_item_detail.html', context)
 
 
-
+#################################################################################################################################################
 
 
 def get_categories_for_ingredient(request):
@@ -320,3 +321,37 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
         messages.success(request, f"Order for '{menu_item.name}' simulated successfully!")
   
     return redirect('menu_detail', menu_slug=menu_slug)
+
+
+
+
+
+def order_menu(request, menu_slug):
+    menu = get_object_or_404(Menu, slug=menu_slug)
+    categories = menu.categories.prefetch_related(
+        Prefetch('items', queryset=MenuItem.objects.order_by('order'))
+    )
+
+    if request.method == "POST":
+        # Process updates to category and item order
+        for key, value in request.POST.items():
+            if key.startswith('category-order-'):
+                category_id = int(key.split('-')[-1])
+                category = MenuCategory.objects.get(id=category_id, menu=menu)
+                category.order = int(value)
+                category.save()
+
+            elif key.startswith('item-order-'):
+                item_id = int(key.split('-')[-1])
+                item = MenuItem.objects.get(id=item_id, category__menu=menu)
+                item.order = int(value)
+                item.save()
+
+        messages.success(request, "Order updated successfully!")
+        return redirect('order_menu', menu_slug=menu.slug)
+
+    context = {
+        'menu': menu,
+        'categories': categories,
+    }
+    return render(request, 'menu/order_menu.html', context)

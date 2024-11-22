@@ -36,8 +36,10 @@ class MenuCategory(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     menu = models.ForeignKey(Menu, on_delete=models.CASCADE, related_name="categories")
+    order = models.PositiveIntegerField(default=1)
 
     class Meta:
+        ordering = ['order']
         unique_together = ('name', 'menu')
 
     def save(self, *args, **kwargs):
@@ -66,6 +68,7 @@ class MenuItem(models.Model):
     category = models.ForeignKey(MenuCategory, on_delete=models.CASCADE, related_name="items")
     description = models.TextField(blank=True, null=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Sell price :D
+    order = models.PositiveIntegerField(default=1)
 
 
     def save(self, *args, **kwargs):
@@ -81,13 +84,20 @@ class MenuItem(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        ordering = ['order']
 
 
 class RecipeIngredient(models.Model):
     menu_item = models.ForeignKey(MenuItem, related_name="recipe_ingredients", on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=1)
     quantity = models.FloatField(help_text="Quantity of the ingredient used in the recipe")
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True, help_text="Category to deplete from")
+
+    class Meta:
+        ordering = ['order'] 
 
     def __str__(self):
         return f"{self.ingredient.name} ({self.quantity}) for {self.menu_item.name}"
