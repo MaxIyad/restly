@@ -79,7 +79,7 @@
                                        value="{{ recipe_ingredient.quantity }}" step="0.000001">
                             </td>
                             <td>{{ recipe_ingredient.ingredient.unit_multiplier }}{{ recipe_ingredient.ingredient.unit_type }}</td>
-                            <td>${{ recipe_ingredient.calculated_price|floatformat:2 }}</td>
+                            <td>{{ settings.get_currency_type_display }}{{ recipe_ingredient.calculated_price|floatformat:2 }}</td>
                             <td>{{ recipe_ingredient.category.name }}</td>
                             <td>
                                 <form method="post" style="display:inline;">
@@ -107,18 +107,19 @@
             <form method="post" id="cost-margin-form">
                 {% csrf_token %}
                 <div class="mb-3">
-                    <label for="cost" class="form-label">Price</label>
-                    <input type="number" id="cost" name="cost" class="form-control" step="0.01" value="{{ menu_item.cost }}">
+                    <label for="cost" class="form-label">Price ({{ settings.get_currency_type_display }})</label>
+                    <input type="number" id="cost" name="cost" class="form-control" step="0.01" min="0" value="{{ menu_item.cost }}">
                 </div>
                 <div class="mb-3">
                     <label for="margin" class="form-label">Margin (%)</label>
                     <input type="number" id="margin" name="margin" class="form-control" step="0.001" value="{{ margin }}">
                 </div>
-                <p>Total Ingredient Cost: ${{ total_ingredient_cost|floatformat:2 }}</p>
-                <button type="submit" name="update_cost" class="btn btn-success">
+                <p>Total Ingredient Cost: {{ settings.get_currency_type_display }}{{ total_ingredient_cost|floatformat:2 }}</p>
+                <button type="submit" name="action" value="update_cost" class="btn btn-success">
                     <i class="bi bi-save"></i> Apply Changes
                 </button>
             </form>
+            
             
         </div>
     </div>

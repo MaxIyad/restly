@@ -7,6 +7,7 @@ from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientFor
 from django.contrib import messages
 from decimal import Decimal
 from django.db.models import Prefetch
+from settings.models import Settings
 from django.db import models
 
 from django.http import JsonResponse
@@ -60,13 +61,30 @@ def menu_list(request):
 def menu_detail(request, menu_slug):
     menu = get_object_or_404(Menu, slug=menu_slug)
     categories = menu.categories.prefetch_related("items")
+    settings_instance = Settings.objects.first()
 
     category_form = MenuCategoryForm()
     item_form = MenuItemForm()
 
     if request.method == "POST":
 
-        if "delete_category_id" in request.POST:
+        if "toggle_item_id" in request.POST:
+            item_id = int(request.POST["toggle_item_id"])
+            item = get_object_or_404(MenuItem, id=item_id, category__menu=menu)
+            item.is_active = not item.is_active
+            item.save()
+            messages.success(request, f"Menu item '{item.name}' activation toggled.")
+            return redirect("menu_detail", menu_slug=menu.slug)
+
+        elif "toggle_category_id" in request.POST:
+            category_id = int(request.POST["toggle_category_id"])
+            category = get_object_or_404(MenuCategory, id=category_id, menu=menu)
+            category.is_active = not category.is_active
+            category.save()
+            messages.success(request, f"Category '{category.name}' activation toggled.")
+            return redirect("menu_detail", menu_slug=menu.slug)
+        
+        elif "delete_category_id" in request.POST:
             category_id = int(request.POST["delete_category_id"])
             category = get_object_or_404(MenuCategory, id=category_id, menu=menu)
             category.delete()
@@ -109,6 +127,7 @@ def menu_detail(request, menu_slug):
         'categories': categories,
         'category_form': category_form,
         'menu_item_form': item_form,
+        'settings': settings_instance,
     }
     return render(request, 'menu/menu_detail.html', context)
 
@@ -168,14 +187,17 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
     recipe_ingredients = menu_item.recipe_ingredients.select_related('ingredient', 'category')
+    settings_instance = Settings.objects.first()
+
+    total_ingredient_cost = sum(
+        Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost) for ri in recipe_ingredients
+    )
 
     # Update the calculated price for each ingredient
     for recipe_ingredient in recipe_ingredients:
         recipe_ingredient.calculated_price = (
             Decimal(recipe_ingredient.quantity) * Decimal(recipe_ingredient.ingredient.unit_cost)
         )
-
-    total_ingredient_cost = sum(ri.calculated_price for ri in recipe_ingredients)
 
     # Filter ingredients by category
     selected_category_id = request.GET.get('category_id')
@@ -204,6 +226,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             return redirect(request.path)
 
         elif action == "save_quantities":
+            # Save ingredient quantities
             for key, value in request.POST.items():
                 if key.startswith("quantity-"):
                     recipe_ingredient_id = key.split("-")[1]
@@ -212,24 +235,24 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
                         recipe_ingredient.quantity = Decimal(value)
                         recipe_ingredient.save()
                     except Exception as e:
-                        messages.error(request, f"Failed to update quantity for '{recipe_ingredient.ingredient.name}': {e}")
+                        messages.error(request, f"Error updating quantity for {recipe_ingredient.ingredient.name}: {e}")
             messages.success(request, "Quantities updated successfully.")
             return redirect(request.path)
 
-        elif "update_cost" in request.POST:
-            # Handle the cost and margin updates
+        elif action == "update_cost":
+            # Update cost and margin
             cost = request.POST.get("cost")
-            margin = request.POST.get("margin")
             try:
-                if cost:
-                    menu_item.cost = Decimal(cost)
-                elif margin:
-                    # Calculate cost based on margin if provided
-                    menu_item.cost = total_ingredient_cost * (1 + Decimal(margin) / 100)
-                menu_item.save()
-                messages.success(request, f"Cost and margin for '{menu_item.name}' updated successfully.")
+                if cost is not None:
+                    cost = Decimal(cost)
+                    if cost < 0:
+                        messages.error(request, "Cost cannot be negative.")
+                    else:
+                        menu_item.cost = cost
+                        menu_item.save()
+                        messages.success(request, f"Updated cost for {menu_item.name} successfully.")
             except Exception as e:
-                messages.error(request, f"Failed to update cost and margin: {e}")
+                messages.error(request, f"Error updating cost: {e}")
             return redirect(request.path)
 
     context = {
@@ -239,8 +262,10 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         'recipe_ingredients': recipe_ingredients,
         'total_ingredient_cost': total_ingredient_cost,
         'inventory_categories': inventory_categories,
+        'settings': settings_instance,
         'ingredients': ingredients,
         'selected_category_id': int(selected_category_id) if selected_category_id else None,
+        
     }
     return render(request, 'menu/menu_item_detail.html', context)
 
@@ -282,6 +307,16 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
     menu = get_object_or_404(Menu, slug=menu_slug)
     category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
+
+    if not category.is_active:
+        messages.error(request, f"Cannot simulate order. The category '{category.name}' is inactive.")
+        return redirect('menu_detail', menu_slug=menu_slug)
+    
+    if not menu_item.is_active:
+        messages.error(request, f"Cannot simulate order. The menu item '{menu_item.name}' is inactive.")
+        return redirect('menu_detail', menu_slug=menu_slug)
+
+
     recipe_ingredients = menu_item.recipe_ingredients.all()
     warnings = []
 
@@ -320,6 +355,11 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
         messages.success(request, f"Order for '{menu_item.name}' simulated successfully!")
   
     return redirect('menu_detail', menu_slug=menu_slug)
+
+
+
+
+
 
 
 def order_menu(request, menu_slug):

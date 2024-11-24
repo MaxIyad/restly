@@ -37,6 +37,7 @@ class MenuCategory(models.Model):
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     menu = models.ForeignKey(Menu, on_delete=models.CASCADE, related_name="categories")
     order = models.PositiveIntegerField(default=1)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['order']
@@ -67,8 +68,10 @@ class MenuItem(models.Model):
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     category = models.ForeignKey(MenuCategory, on_delete=models.CASCADE, related_name="items")
     description = models.TextField(blank=True, null=True)
-    cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Sell price :D
+    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # Sell price :D
     order = models.PositiveIntegerField(default=1)
+    is_active = models.BooleanField(default=True)
+    
 
 
     def save(self, *args, **kwargs):
