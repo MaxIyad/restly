@@ -115,7 +115,6 @@ def estimate_view(request):
                         break
                     total_cost = new_total_cost
 
-                # Goal explanation
                 currency_symbol = settings_instance.get_currency_type_display()
                 profit = revenue_goal - total_cost
 
@@ -143,19 +142,16 @@ def estimate_view(request):
                     # Ensure cost and calculate margin
                     price = item.cost or Decimal("0")
                     if price <= total_ingredient_cost:
-                        continue  # Skip items with non-profitable pricing
+                        continue  # Skip items with non-profitable (negative) pricing - otherwise crazy shit happens and cba fix that
 
                     margin_currency = price - total_ingredient_cost
                     margin_percentage = (margin_currency / total_ingredient_cost * 100) if total_ingredient_cost > 0 else 0
                     
-                    # Calculate units needed
-                    if revenue_goal and price > 0:
-                        units_needed = (revenue_goal / price).quantize(Decimal("1"), rounding="ROUND_UP")
-                    elif profit_goal and margin_currency > 0:
-                        units_needed = (profit_goal / margin_currency).quantize(Decimal("1"), rounding="ROUND_UP")
-                    else:
-                        units_needed = 0
-
+                    # Calculate units needed to achieve the profit goal
+                    units_needed = (
+                        (profit_goal / margin_currency).quantize(Decimal("1"), rounding="ROUND_UP")
+                        if profit_goal and margin_currency > 0 else 0
+                    )
                     total_revenue = price * units_needed
                     profit = total_revenue - (total_ingredient_cost * units_needed)
 
@@ -185,15 +181,13 @@ def estimate_view(request):
             except (InvalidOperation, Exception) as e:
                 context["error"] = f"Error in calculation: {e}"
 
+            
+
     return render(request, "reports/estimate.html", context)
 
 
 
-
-
-
-
-
+# Left off: the caluclations for message and the three lines under the goal entry feild are fucked.
 
 
 

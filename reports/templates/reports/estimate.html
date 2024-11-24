@@ -136,14 +136,20 @@
                         <td>{{ item.cost|floatformat:2 }}</td>
                         <td>{{ item.margin }}</td>
                         <td>{{ item.price|floatformat:2 }}</td>
-                        <td>{{ item.units_needed|floatformat:2 }}</td>
-                        <td>{{ item.total_revenue|floatformat:2 }}</td>
-                        <td>{{ item.profit|floatformat:2 }}</td>
+                        <td>
+                            <input type="number" 
+                                   class="form-control units-needed-input" 
+                                   data-price="{{ item.price }}" 
+                                   data-cost="{{ item.cost }}" 
+                                   value="{{ item.units_needed|floatformat:2 }}" 
+                                   step="1" min="0">
+                        </td>
+                        <td class="total-revenue-cell">{{ item.total_revenue|floatformat:2 }}</td>
+                        <td class="profit-cell">{{ item.profit|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            
         </div>
     </div>
     {% endif %}
@@ -158,6 +164,24 @@
             row.style.display = ingredient.includes(query) ? "" : "none";
         });
     }
+
+    document.querySelectorAll('.units-needed-input').forEach(input => {
+        input.addEventListener('input', function () {
+            const unitsNeeded = parseFloat(this.value) || 0;
+            const price = parseFloat(this.dataset.price);
+            const cost = parseFloat(this.dataset.cost);
+
+            // Calculate Total Revenue and Profit
+            const totalRevenue = (unitsNeeded * price).toFixed(2);
+            const profit = (totalRevenue - (unitsNeeded * cost)).toFixed(2);
+
+            // Update corresponding cells
+            const row = this.closest('tr');
+            row.querySelector('.total-revenue-cell').textContent = totalRevenue;
+            row.querySelector('.profit-cell').textContent = profit;
+        });
+    });
+
 </script>
 
 <style>
