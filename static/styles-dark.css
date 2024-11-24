@@ -1,0 +1,255 @@
+/* Global Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #121212; /* Dark background */
+    color: #e0e0e0; /* Light text */
+}
+
+.container {
+    max-width: 960px;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.navbar {
+    background-color: #1e1e1e;
+    border-bottom: 1px solid #333;
+}
+
+.navbar .dropdown-submenu > .dropdown-menu {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+}
+
+/* Table Styling */
+.table {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border: 1px solid #333;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+    border-color: #333;
+}
+
+.table-light {
+    background-color: #2a2a2a; /* Slightly lighter for contrast */
+    color: #ffffff;
+}
+
+/* Badge Styling */
+.badge {
+    font-size: 0.9rem;
+    padding: 0.5em;
+    color: #fff;
+    background-color: #333;
+}
+
+/* Sidebar Styling */
+#sidebar {
+    width: 250px;
+    min-height: 100vh;
+    background-color: #1e1e1e; /* Dark sidebar */
+    color: #e0e0e0;
+}
+
+#sidebar .navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+#sidebar a {
+    color: #e0e0e0;
+}
+
+#sidebar a:hover,
+#sidebar a.active {
+    color: #007bff;
+    background-color: #333;
+    border-radius: 4px;
+}
+
+/* Responsive Sidebar */
+@media (max-width: 991px) {
+    #sidebar {
+        display: none;
+    }
+
+    .d-lg-none {
+        display: block;
+    }
+}
+
+.sidebar.collapsed {
+    width: 60px;
+}
+
+.sidebar.collapsed .nav-link {
+    text-align: center;
+    padding: 0.75rem;
+}
+
+.sidebar.collapsed .nav-link i {
+    margin-right: 0;
+}
+
+.sidebar.collapsed .nav-link span {
+    display: none;
+}
+
+/* Card Styling */
+.card-header {
+    background-color: #1e1e1e;
+    border-bottom: 1px solid #333;
+    color: #ffffff;
+}
+
+.card-header h2,
+.card-header .menu-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #e0e0e0;
+}
+
+.card-footer {
+    background-color: #1e1e1e;
+    border-top: 1px solid #333;
+    padding: 0.75rem;
+}
+
+/* List Group Styling */
+.list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border: none;
+    border-bottom: 1px solid #333;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Breadcrumb Button Alignment */
+.breadcrumb + .btn-secondary {
+    margin-left: auto;
+}
+
+/* Menu Box Styling */
+.menu-box {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Ensures uniform height */
+    background-color: #333; /* Darker box */
+    border: 2px solid transparent;
+    border-radius: 10px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-box:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.menu-box .card-body {
+    flex-grow: 1; /* Occupies available space */
+    padding: 1rem;
+}
+
+.menu-box .menu-title {
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.menu-box .list-group-item {
+    font-size: 0.95rem;
+    color: #e0e0e0;
+}
+
+/* Highlighting Important Values */
+.highlight-montery-goal-text {
+    font-weight: bold;
+    color: #4caf50; /* Bright green for highlights */
+    font-size: 1.1em;
+}
+
+.row.g-4 > .col-md-4 {
+    height: 100%; /* Ensures each column fills the row */
+}
+
+/* Modal Title Styling */
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+/* Buttons */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #004a99;
+}
+
+.btn-secondary {
+    background-color: #444;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+.btn-secondary:hover {
+    background-color: #333;
+    border-color: #444;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: #ffffff;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* Search Box */
+input[type="text"] {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border: 1px solid #555;
+}
+
+input[type="text"]::placeholder {
+    color: #999;
+}
+
+/* Table Search Filter */
+#search {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border: 1px solid #555;
+}
+
+#search::placeholder {
+    color: #999;
+}

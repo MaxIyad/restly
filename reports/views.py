@@ -11,8 +11,6 @@ from menu.models import MenuItem, RecipeIngredient
 from inventory.models import Ingredient, Category
 from settings.models import Settings
 
-
-
 def estimate_view(request):
     active_menu_items = MenuItem.objects.filter(
         category__menu__is_active=True, is_active=True
@@ -21,7 +19,6 @@ def estimate_view(request):
 
     context = {
         "ingredients_by_category": {},
-        "menu_items_data": [],
         "revenue_goal": None,
         "profit_goal": None,
         "total_cost": None,
@@ -29,6 +26,8 @@ def estimate_view(request):
         "profitability_percentage": None,
         "success": None,
         "error": None,
+        "ingredient_distribution": [],
+        "profitability_data": {},
         "goal_explanation": "",
         "settings": settings_instance,
     }
@@ -49,11 +48,11 @@ def estimate_view(request):
     grouped_ingredients = {category.name: [] for category in categories}
 
     if request.method == "POST":
-        mode = request.POST.get("mode", "").strip()
+        mode = request.POST.get("mode")
 
         if mode == "revenue_to_ingredients":
             try:
-                # Parse input
+                # Validate input
                 revenue_goal_input = request.POST.get("revenue_goal", "").strip()
                 profit_goal_input = request.POST.get("profit_goal", "").strip()
 
@@ -70,8 +69,7 @@ def estimate_view(request):
                 while iteration < max_iterations:
                     iteration += 1
 
-                    if profit_goal is not None and revenue_goal is None:
-                        # Revenue goal is derived from profit goal
+                    if profit_goal is not None:
                         revenue_goal = profit_goal + total_cost
 
                     new_total_cost = Decimal(0)
@@ -115,73 +113,44 @@ def estimate_view(request):
                         break
                     total_cost = new_total_cost
 
-                currency_symbol = settings_instance.get_currency_type_display()
-                profit = revenue_goal - total_cost
+                if revenue_goal is not None:
+                    profit = revenue_goal - total_cost
 
-                if profit_goal is not None:
-                    context["goal_explanation"] = (
-                        f"To achieve <span class='highlight-montery-goal-text'>{currency_symbol}{profit_goal:.2f}</span> in profit, "
-                        f"you’ll spend {currency_symbol}{total_cost:.2f} on costs, "
-                        f"resulting in {currency_symbol}{revenue_goal:.2f} as revenue."
-                    )
-                else:
-                    context["goal_explanation"] = (
-                        f"To generate {currency_symbol}{revenue_goal:.2f} in revenue, "
-                        f"you’ll spend {currency_symbol}{total_cost:.2f} on costs, "
-                        f"leaving {currency_symbol}{profit:.2f} in profit."
-                    )
+                    # Fetch currency type from settings
+                    currency_symbol = settings_instance.get_currency_type_display()
 
-                # Calculate menu item data
-                menu_items_data = []
-                for item in active_menu_items:
-                    # Total ingredient cost for the menu item
-                    total_ingredient_cost = sum(
-                        Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost or 0)
-                        for ri in item.recipe_ingredients.select_related("ingredient")
-                    )
-                    # Ensure cost and calculate margin
-                    price = item.cost or Decimal("0")
-                    if price <= total_ingredient_cost:
-                        continue  # Skip items with non-profitable (negative) pricing - otherwise crazy shit happens and cba fix that
+                    if profit_goal is not None:
+                        context["goal_explanation"] = (
+                            f"To achieve <span class='highlight-montery-goal-text'>{currency_symbol}{profit_goal:.2f}</span> in profit, "
+                            f"{currency_symbol}{total_cost:.2f} will be spent on costs, "
+                            f"resulting in {currency_symbol}{revenue_goal:.2f} as revenue."
+                        )
+                    else:
+                        context["goal_explanation"] = (
+                            f"To generate {currency_symbol}{revenue_goal:.2f} in revenue, "
+                            f"{currency_symbol}{total_cost:.2f} will be spent on costs, "
+                            f"leaving {currency_symbol}{profit:.2f} in profit."
+                            )
 
-                    margin_currency = price - total_ingredient_cost
-                    margin_percentage = (margin_currency / total_ingredient_cost * 100) if total_ingredient_cost > 0 else 0
-                    
-                    # Calculate units needed to achieve the profit goal
-                    units_needed = (
-                        (profit_goal / margin_currency).quantize(Decimal("1"), rounding="ROUND_UP")
-                        if profit_goal and margin_currency > 0 else 0
-                    )
-                    total_revenue = price * units_needed
-                    profit = total_revenue - (total_ingredient_cost * units_needed)
-
-                    menu_items_data.append({
-                        "name": item.name,
-                        "cost": total_ingredient_cost,
-                        "margin": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
-                        "price": price,
-                        "units_needed": units_needed,
-                        "total_revenue": total_revenue,
-                        "profit": profit,
-                    })
-
-                # Update context
-                context.update({
-                    "revenue_goal": revenue_goal,
-                    "profit_goal": profit_goal,
-                    "total_cost": total_cost,
-                    "profitability": profit,
-                    "profitability_percentage": (
-                        (profit / revenue_goal * 100) if revenue_goal and revenue_goal > 0 else Decimal(0)
-                    ),
-                    "ingredients_by_category": grouped_ingredients,
-                    "menu_items_data": menu_items_data,
-                })
+                context["revenue_goal"] = revenue_goal
+                context["profit_goal"] = profit_goal
+                context["total_cost"] = total_cost
+                context["profitability"] = revenue_goal - total_cost if revenue_goal else None
+                context["profitability_percentage"] = (
+                    (context["profitability"] / revenue_goal * 100)
+                    if revenue_goal and revenue_goal > 0
+                    else Decimal(0)
+                )
+                context["profitability_data"] = {
+                    "revenue_goal": float(revenue_goal or 0),
+                    "total_cost": float(total_cost),
+                    "profitability": float(context["profitability"] or 0),
+                }
 
             except (InvalidOperation, Exception) as e:
                 context["error"] = f"Error in calculation: {e}"
 
-            
+    context["ingredients_by_category"] = grouped_ingredients
 
     return render(request, "reports/estimate.html", context)
 
