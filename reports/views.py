@@ -14,6 +14,11 @@ from settings.models import Settings
 
 
 
+
+
+
+
+
 def estimate_view(request):
     # Fetch active menu items
     active_menu_items = MenuItem.objects.filter(
@@ -71,6 +76,8 @@ def estimate_view(request):
 
                 while iteration < max_iterations:
                     iteration += 1
+
+
 
                     if profit_goal is not None:
                         revenue_goal = profit_goal + total_cost
@@ -141,15 +148,18 @@ def estimate_view(request):
                         Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost or 0)
                         for ri in item.recipe_ingredients.select_related("ingredient")
                     )
-                    # Ensure cost and calculate margin
                     price = item.cost or Decimal("0")
                     margin_currency = price - total_ingredient_cost
                     margin_percentage = (margin_currency / total_ingredient_cost * 100) if total_ingredient_cost > 0 else 0
-                    units_needed = (
-                        revenue_goal / price if price > 0 and revenue_goal else 0
-                    )
-                    revenue_acquired = price * round(units_needed, 2)  # Revenue for this menu item. Rounded here otherwise it'll display exact copy of revenue_goal
-                    profit_acquired = revenue_acquired - (total_ingredient_cost * units_needed)
+
+                    # If margin is zero or negative, skip calculation (otherwise, 404)
+                    if margin_currency <= 0:
+                        continue
+
+                    units_needed = (profit_goal / margin_currency) if profit_goal else (revenue_goal / price)
+
+                    revenue_acquired = price * round(units_needed, 2)
+                    profit_acquired = margin_currency * round(units_needed,2)
 
                     menu_items_data.append({
                         "name": item.name,
@@ -157,10 +167,10 @@ def estimate_view(request):
                         "margin": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
                         "price": price,
                         "units_needed": units_needed,
-                        "revenue_acquired": revenue_acquired, 
+                        "revenue_acquired": revenue_acquired,
                         "profit_acquired": profit_acquired,
-
                     })
+
 
                 # Update context
                 context.update({
