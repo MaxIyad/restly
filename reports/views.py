@@ -164,11 +164,12 @@ def estimate_view(request):
                     menu_items_data.append({
                         "name": item.name,
                         "cost": total_ingredient_cost,
-                        "margin": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
+                        "margin": margin_currency,
                         "price": price,
                         "units_needed": units_needed,
                         "revenue_acquired": revenue_acquired,
                         "profit_acquired": profit_acquired,
+                        "margin_display": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
                     })
 
 

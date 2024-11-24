@@ -117,7 +117,7 @@
             <h2 class="mb-0">Menu Items</h2>
         </div>
         <div class="card-body">
-            <table class="table table-bordered table-striped mt-3">
+            <table class="table table-bordered table-striped mt-3" id="menu-items-table">
                 <thead>
                     <tr>
                         <th>Menu Item</th>
@@ -126,30 +126,62 @@
                         <th>Price ({{ settings.get_currency_type_display }})</th>
                         <th>Units Needed</th>
                         <th>Revenue ({{ settings.get_currency_type_display }})</th>
-                        <th>Profit Acquired ({{ settings.get_currency_type_display }})</th> 
-
+                        <th>Profit Acquired ({{ settings.get_currency_type_display }})</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in menu_items_data %}
-                    <tr>
+                    <tr data-price="{{ item.price }}" data-margin="{{ item.margin }}">
                         <td>{{ item.name }}</td>
                         <td>{{ item.cost|floatformat:2 }}</td>
-                        <td>{{ item.margin }}</td>
+                        <td>{{ item.margin_display }}</td>  <!-- Display the formatted margin -->
                         <td>{{ item.price|floatformat:2 }}</td>
-                        <td>{{ item.units_needed|floatformat:2 }}</td>
-                        <td>{{ item.revenue_acquired|floatformat:2 }}</td> >
-                        <td>{{ item.profit_acquired|floatformat:2 }}</td>
-
+                        <td>
+                            <input type="number" class="form-control units-input" min="0" step="1" value="{{ item.units_needed|floatformat:2 }}">
+                        </td>
+                        <td class="revenue">{{ item.revenue_acquired|floatformat:2 }}</td>
+                        <td class="profit">{{ item.profit_acquired|floatformat:2 }}</td>
                     </tr>
+                    
                     {% endfor %}
                 </tbody>
+                
             </table>
-            
         </div>
     </div>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const table = document.getElementById("menu-items-table");
+    const rows = table.querySelectorAll("tbody tr");
+
+    rows.forEach(row => {
+        const unitsInput = row.querySelector(".units-input");
+        const revenueCell = row.querySelector(".revenue");
+        const profitCell = row.querySelector(".profit");
+
+        // Parse price and margin as numbers
+        const price = parseFloat(row.getAttribute("data-price")) || 0;
+        const margin = parseFloat(row.getAttribute("data-margin")) || 0;
+
+        unitsInput.addEventListener("input", function () {
+            const unitsNeeded = parseFloat(unitsInput.value) || 0;
+
+            // Calculate Revenue and Profit
+            const revenue = unitsNeeded * price;
+            const profit = unitsNeeded * margin;
+
+            // Update the cells
+            revenueCell.textContent = revenue.toFixed(2);
+            profitCell.textContent = profit.toFixed(2);
+        });
+    });
+});
+
+
+</script>
 
 <script>
     function filterTable(index) {
