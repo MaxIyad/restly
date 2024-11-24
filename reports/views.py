@@ -13,7 +13,6 @@ from settings.models import Settings
 
 
 
-
 def estimate_view(request):
     active_menu_items = MenuItem.objects.filter(
         category__menu__is_active=True, is_active=True
@@ -71,7 +70,8 @@ def estimate_view(request):
                 while iteration < max_iterations:
                     iteration += 1
 
-                    if profit_goal is not None:
+                    if profit_goal is not None and revenue_goal is None:
+                        # Revenue goal is derived from profit goal
                         revenue_goal = profit_goal + total_cost
 
                     new_total_cost = Decimal(0)
@@ -142,17 +142,31 @@ def estimate_view(request):
                     )
                     # Ensure cost and calculate margin
                     price = item.cost or Decimal("0")
+                    if price <= total_ingredient_cost:
+                        continue  # Skip items with non-profitable pricing
+
                     margin_currency = price - total_ingredient_cost
                     margin_percentage = (margin_currency / total_ingredient_cost * 100) if total_ingredient_cost > 0 else 0
-                    units_needed = (
-                        revenue_goal / price if price > 0 and revenue_goal else 0
-                    )
+                    
+                    # Calculate units needed
+                    if revenue_goal and price > 0:
+                        units_needed = (revenue_goal / price).quantize(Decimal("1"), rounding="ROUND_UP")
+                    elif profit_goal and margin_currency > 0:
+                        units_needed = (profit_goal / margin_currency).quantize(Decimal("1"), rounding="ROUND_UP")
+                    else:
+                        units_needed = 0
+
+                    total_revenue = price * units_needed
+                    profit = total_revenue - (total_ingredient_cost * units_needed)
+
                     menu_items_data.append({
                         "name": item.name,
                         "cost": total_ingredient_cost,
                         "margin": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
                         "price": price,
                         "units_needed": units_needed,
+                        "total_revenue": total_revenue,
+                        "profit": profit,
                     })
 
                 # Update context
@@ -172,6 +186,7 @@ def estimate_view(request):
                 context["error"] = f"Error in calculation: {e}"
 
     return render(request, "reports/estimate.html", context)
+
 
 
 

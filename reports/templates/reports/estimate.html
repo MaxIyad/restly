@@ -125,6 +125,8 @@
                         <th>Margin ({{ settings.get_currency_type_display }})</th>
                         <th>Price ({{ settings.get_currency_type_display }})</th>
                         <th>Units Needed</th>
+                        <th>Total Revenue ({{ settings.get_currency_type_display }})</th>
+                        <th>Profit ({{ settings.get_currency_type_display }})</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -135,11 +137,13 @@
                         <td>{{ item.margin }}</td>
                         <td>{{ item.price|floatformat:2 }}</td>
                         <td>{{ item.units_needed|floatformat:2 }}</td>
+                        <td>{{ item.total_revenue|floatformat:2 }}</td>
+                        <td>{{ item.profit|floatformat:2 }}</td>
                     </tr>
-                    
                     {% endfor %}
                 </tbody>
             </table>
+            
         </div>
     </div>
     {% endif %}
