@@ -15,6 +15,7 @@ from settings.models import Settings
 
 
 def estimate_view(request):
+    # Fetch active menu items
     active_menu_items = MenuItem.objects.filter(
         category__menu__is_active=True, is_active=True
     ).select_related('category', 'category__menu')
@@ -147,12 +148,18 @@ def estimate_view(request):
                     units_needed = (
                         revenue_goal / price if price > 0 and revenue_goal else 0
                     )
+                    revenue_acquired = price * round(units_needed, 2)  # Revenue for this menu item. Rounded here otherwise it'll display exact copy of revenue_goal
+                    profit_acquired = revenue_acquired - (total_ingredient_cost * units_needed)
+
                     menu_items_data.append({
                         "name": item.name,
                         "cost": total_ingredient_cost,
                         "margin": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
                         "price": price,
                         "units_needed": units_needed,
+                        "revenue_acquired": revenue_acquired, 
+                        "profit_acquired": profit_acquired,
+
                     })
 
                 # Update context
