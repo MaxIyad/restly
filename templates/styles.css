@@ -195,3 +195,10 @@ body {
     align-items: center;
     gap: 0.5rem;
 }
+
+
+.highlight-montery-goal-text {
+    font-weight: bold;
+    color: #2a9d8f; /* Highlight with a soothing green shade */
+    font-size: 1.1em;
+}

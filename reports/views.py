@@ -1,4 +1,6 @@
 import csv
+from django.db.models import Sum, F, FloatField, ExpressionWrapper
+from menu.models import MenuItem, RecipeIngredient
 from decimal import Decimal, InvalidOperation
 from collections import defaultdict
 from django.shortcuts import render
@@ -6,30 +8,21 @@ from django.http import HttpResponse
 from django.db.models import Sum, F, FloatField, ExpressionWrapper
 from django.db import transaction
 from menu.models import MenuItem, RecipeIngredient
-from inventory.models import Ingredient
-import csv
-from decimal import Decimal, InvalidOperation
-from collections import defaultdict
-from django.shortcuts import render
-from django.http import HttpResponse
-from django.db.models import Sum, F, FloatField, ExpressionWrapper
-from django.db import transaction
-from menu.models import MenuItem, RecipeIngredient
-from inventory.models import Ingredient
+from inventory.models import Ingredient, Category
+from settings.models import Settings
 
 
 
 
 def estimate_view(request):
-    # Fetch active menu items
     active_menu_items = MenuItem.objects.filter(
         category__menu__is_active=True, is_active=True
     ).select_related('category', 'category__menu')
+    settings_instance = Settings.objects.first()
 
-    # Initialize context
     context = {
-        "required_ingredients": [],
-        "ingredients_required": {},
+        "ingredients_by_category": {},
+        "menu_items_data": [],
         "revenue_goal": None,
         "profit_goal": None,
         "total_cost": None,
@@ -37,11 +30,10 @@ def estimate_view(request):
         "profitability_percentage": None,
         "success": None,
         "error": None,
-        "ingredient_distribution": [],
-        "profitability_data": {},
+        "goal_explanation": "",
+        "settings": settings_instance,
     }
 
-    # Query RecipeIngredients to calculate required quantities and average revenue
     recipe_data = (
         RecipeIngredient.objects.filter(menu_item__in=active_menu_items)
         .values("ingredient_id", "ingredient__name", "ingredient__unit_type")
@@ -49,108 +41,135 @@ def estimate_view(request):
             total_quantity=Sum(F("quantity")),
             avg_revenue_per_unit=ExpressionWrapper(
                 Sum(F("menu_item__cost") * F("quantity")) / Sum(F("quantity")),
-                output_field=FloatField()
+                output_field=FloatField(),
             )
         )
-        .order_by("ingredient__name")
     )
 
-    # Add recipe data to context
-    ingredient_quantities = defaultdict(Decimal)
-    for data in recipe_data:
-        total_quantity = Decimal(data["total_quantity"] or 0)
-        ingredient_quantities[data["ingredient__name"]] += total_quantity
-        context["required_ingredients"].append({
-            "id": data["ingredient_id"],
-            "name": data["ingredient__name"],
-            "unit_type": data["ingredient__unit_type"],
-            "total_quantity": total_quantity,
-            "average_revenue_per_unit": Decimal(data["avg_revenue_per_unit"] or 0),
-        })
+    categories = Category.objects.prefetch_related('ingredient_set')
+    grouped_ingredients = {category.name: [] for category in categories}
 
-    # Add ingredient distribution to context for charts
-    context["ingredient_distribution"] = [
-        {"name": k, "quantity": float(v)} for k, v in ingredient_quantities.items()
-    ]
-
-    # Handle form submissions
     if request.method == "POST":
-        mode = request.POST.get("mode")  # "revenue_to_ingredients", "edit_inventory", "export_csv"
+        mode = request.POST.get("mode", "").strip()
 
         if mode == "revenue_to_ingredients":
             try:
-                # Validate and sanitize inputs
+                # Parse input
                 revenue_goal_input = request.POST.get("revenue_goal", "").strip()
                 profit_goal_input = request.POST.get("profit_goal", "").strip()
 
-                # Convert inputs to Decimal, defaulting to 0 if invalid
                 revenue_goal = Decimal(revenue_goal_input) if revenue_goal_input else None
                 profit_goal = Decimal(profit_goal_input) if profit_goal_input else None
 
-                ingredient_totals = {}
+                if revenue_goal is None and profit_goal is None:
+                    raise InvalidOperation("Both revenue and profit goals are missing.")
+
                 total_cost = Decimal(0)
+                max_iterations = 10
+                iteration = 0
 
-                # Adjust revenue goal based on profit goal if provided
-                for ingredient_data in context["required_ingredients"]:
-                    avg_revenue_per_unit = ingredient_data["average_revenue_per_unit"]
-                    unit_cost = Decimal(Ingredient.objects.get(pk=ingredient_data["id"]).unit_cost)
+                while iteration < max_iterations:
+                    iteration += 1
 
-                    if avg_revenue_per_unit > 0:
-                        quantity_needed = Decimal(0)
+                    if profit_goal is not None:
+                        revenue_goal = profit_goal + total_cost
 
-                        if profit_goal is not None:
-                            # Recalculate revenue goal dynamically to include profit goal
-                            revenue_goal = profit_goal + total_cost
+                    new_total_cost = Decimal(0)
 
-                        if revenue_goal is not None:
-                            quantity_needed = revenue_goal / avg_revenue_per_unit
+                    for category in categories:
+                        grouped_ingredients[category.name] = []
 
-                        ingredient_totals[ingredient_data["name"]] = {
-                            "quantity": quantity_needed,
-                            "unit_type": ingredient_data["unit_type"],
-                            "unit_cost": unit_cost,
-                            "total_cost": quantity_needed * unit_cost,
-                        }
-                        total_cost += quantity_needed * unit_cost
+                        for ingredient in category.ingredient_set.all():
+                            matching_data = next(
+                                (data for data in recipe_data if data["ingredient_id"] == ingredient.id), None
+                            )
 
-                context["ingredients_required"] = ingredient_totals
-                context["revenue_goal"] = revenue_goal
-                context["profit_goal"] = profit_goal
-                context["total_cost"] = total_cost
-                context["profitability"] = profit_goal if profit_goal else (revenue_goal - total_cost if revenue_goal else None)
-                context["profitability_percentage"] = (
-                    (context["profitability"] / revenue_goal * 100) if revenue_goal and revenue_goal > 0 else Decimal(0)
-                )
-                context["profitability_data"] = {
-                    "revenue_goal": float(revenue_goal or 0),
-                    "total_cost": float(total_cost),
-                    "profitability": float(context["profitability"] or 0),
-                }
+                            if matching_data:
+                                avg_revenue_per_unit = Decimal(
+                                    matching_data["avg_revenue_per_unit"] or 0
+                                )
+                                unit_cost = Decimal(ingredient.unit_cost or 0)
+                                current_quantity = Decimal(ingredient.quantity or 0)
+
+                                quantity_needed = (
+                                    revenue_goal / avg_revenue_per_unit
+                                    if avg_revenue_per_unit > 0 and revenue_goal
+                                    else Decimal(0)
+                                )
+                                sufficient = current_quantity >= quantity_needed
+                                total_cost_for_ingredient = quantity_needed * unit_cost
+
+                                grouped_ingredients[category.name].append({
+                                    "name": ingredient.name,
+                                    "unit_type": ingredient.unit_type,
+                                    "quantity_needed": quantity_needed,
+                                    "current_quantity": current_quantity,
+                                    "unit_cost": unit_cost,
+                                    "total_cost": total_cost_for_ingredient,
+                                    "sufficient": sufficient,
+                                })
+
+                                new_total_cost += total_cost_for_ingredient
+
+                    if abs(new_total_cost - total_cost) < Decimal("0.01"):
+                        break
+                    total_cost = new_total_cost
+
+                # Goal explanation
+                currency_symbol = settings_instance.get_currency_type_display()
+                profit = revenue_goal - total_cost
+
+                if profit_goal is not None:
+                    context["goal_explanation"] = (
+                        f"To achieve <span class='highlight-montery-goal-text'>{currency_symbol}{profit_goal:.2f}</span> in profit, "
+                        f"you’ll spend {currency_symbol}{total_cost:.2f} on costs, "
+                        f"resulting in {currency_symbol}{revenue_goal:.2f} as revenue."
+                    )
+                else:
+                    context["goal_explanation"] = (
+                        f"To generate {currency_symbol}{revenue_goal:.2f} in revenue, "
+                        f"you’ll spend {currency_symbol}{total_cost:.2f} on costs, "
+                        f"leaving {currency_symbol}{profit:.2f} in profit."
+                    )
+
+                # Calculate menu item data
+                menu_items_data = []
+                for item in active_menu_items:
+                    # Total ingredient cost for the menu item
+                    total_ingredient_cost = sum(
+                        Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost or 0)
+                        for ri in item.recipe_ingredients.select_related("ingredient")
+                    )
+                    # Ensure cost and calculate margin
+                    price = item.cost or Decimal("0")
+                    margin_currency = price - total_ingredient_cost
+                    margin_percentage = (margin_currency / total_ingredient_cost * 100) if total_ingredient_cost > 0 else 0
+                    units_needed = (
+                        revenue_goal / price if price > 0 and revenue_goal else 0
+                    )
+                    menu_items_data.append({
+                        "name": item.name,
+                        "cost": total_ingredient_cost,
+                        "margin": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
+                        "price": price,
+                        "units_needed": units_needed,
+                    })
+
+                # Update context
+                context.update({
+                    "revenue_goal": revenue_goal,
+                    "profit_goal": profit_goal,
+                    "total_cost": total_cost,
+                    "profitability": profit,
+                    "profitability_percentage": (
+                        (profit / revenue_goal * 100) if revenue_goal and revenue_goal > 0 else Decimal(0)
+                    ),
+                    "ingredients_by_category": grouped_ingredients,
+                    "menu_items_data": menu_items_data,
+                })
+
             except (InvalidOperation, Exception) as e:
                 context["error"] = f"Error in calculation: {e}"
-
-        elif mode == "edit_inventory":
-            try:
-                with transaction.atomic():
-                    for ingredient_data in context["required_ingredients"]:
-                        ingredient = Ingredient.objects.get(pk=ingredient_data["id"])
-                        new_quantity = request.POST.get(f"quantity_{ingredient.id}")
-                        if new_quantity is not None:
-                            ingredient.quantity = float(new_quantity)  # Convert back to float
-                            ingredient.save()
-                context["success"] = "Inventory updated successfully."
-            except (InvalidOperation, Exception) as e:
-                context["error"] = f"Error updating inventory: {e}"
-
-        elif mode == "export_csv":
-            response = HttpResponse(content_type="text/csv")
-            response["Content-Disposition"] = 'attachment; filename="ingredients_required.csv"'
-
-            writer = csv.writer(response)
-            writer.writerow(["Ingredient", "Quantity Needed", "Unit", "Unit Cost", "Total Cost"])
-            for name, data in context["ingredients_required"].items():
-                writer.writerow([name, f"{data['quantity']:.2f}", data["unit_type"], f"${data['unit_cost']:.2f}", f"${data['total_cost']:.2f}"])
-            return response
 
     return render(request, "reports/estimate.html", context)
 
@@ -159,6 +178,15 @@ def estimate_view(request):
 
 
 
+
+
+
+
+
+
+###########################################################################################################################################################
+###########################################################################################################################################################
+###########################################################################################################################################################
 
 
 def sales_view(request):

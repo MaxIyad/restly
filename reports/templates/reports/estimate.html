@@ -1,180 +1,166 @@
 {% extends "base.html" %}
 
-{% block title %}Estimate Ingredients{% endblock %}
+{% block title %}
+    Estimate Ingredients
+{% endblock %}
 
 {% block content %}
 <div class="container my-4">
-    <h1>Estimate Ingredients</h1>
-
-    <!-- Display Ingredients for Active Menus -->
-    <h3>Ingredients for Active Menus</h3>
-    <div class="mt-3 mb-4">
-        <input type="text" id="search" class="form-control" placeholder="Search ingredients..." onkeyup="filterTable()">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-primary">Estimate Ingredients</h1>
     </div>
 
-    <form method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="mode" value="edit_inventory">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Ingredient</th>
-                    <th>Current Quantity</th>
-                    <th>Total Needed</th>
-                    <th>Unit</th>
-                    <th>Categories</th>
-                    <th>Average Revenue per Unit ($)
-                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Revenue generated per unit of this ingredient."></i>
-                    </th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ingredient in required_ingredients %}
-                <tr class="{% if ingredient.total_quantity < 10 %}table-danger{% elif ingredient.total_quantity < 20 %}table-warning{% else %}table-success{% endif %}">
-                    <td>{{ ingredient.name }}</td>
-                    <td>
-                        <input type="number" class="form-control" name="quantity_{{ ingredient.id }}" 
-                               value="{{ ingredient.total_quantity|floatformat:2 }}" step="0.01">
-                    </td>
-                    <td>{{ ingredient.total_quantity|floatformat:2 }}</td>
-                    <td>{{ ingredient.unit_type }}</td>
-                    <td>{{ ingredient.categories }}</td>
-                    <td>${{ ingredient.average_revenue_per_unit|floatformat:2 }}</td>
-                    <td>
-                        {% if ingredient.total_quantity < 10 %}
-                        <span class="badge bg-danger">Low</span>
-                        {% elif ingredient.total_quantity < 20 %}
-                        <span class="badge bg-warning">Medium</span>
-                        {% else %}
-                        <span class="badge bg-success">Sufficient</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
-    </form>
-
-    <!-- Reset Button -->
-    <form method="POST" class="mt-3">
-        {% csrf_token %}
-        <input type="hidden" name="mode" value="reset_inventory">
-        <label for="reset_mode" class="form-label">Reset Mode:</label>
-        <select id="reset_mode" name="reset_mode" class="form-select">
-            <option value="refresh">Refresh from Database</option>
-            <option value="zero">Set Quantities to Zero</option>
-        </select>
-        <button type="submit" class="btn btn-secondary mt-3">Reset Inventory</button>
-    </form>
-
-    <!-- CSV Export -->
-    <form method="POST" class="mt-3">
-        {% csrf_token %}
-        <input type="hidden" name="mode" value="export_csv">
-        <button type="submit" class="btn btn-success">Export as CSV</button>
-    </form>
-
     <!-- Revenue and Profit Goal Calculation -->
-    <form method="POST" class="mt-4">
-        {% csrf_token %}
-        <h3>Calculate Ingredients for Goals</h3>
-        <div class="row">
-            <div class="col-md-6">
-                <input type="hidden" name="mode" value="revenue_to_ingredients">
-                <label for="revenue_goal" class="form-label">Revenue Goal ($)</label>
-                <input type="number" id="revenue_goal" name="revenue_goal" class="form-control" step="0.01">
-            </div>
-            <div class="col-md-6">
-                <label for="profit_goal" class="form-label">Profit Goal ($)</label>
-                <input type="number" id="profit_goal" name="profit_goal" class="form-control" step="0.01">
-            </div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Calculate Ingredients for Goals</h2>
         </div>
-        <button type="submit" class="btn btn-primary mt-3">Calculate</button>
-    </form>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="mode" value="revenue_to_ingredients">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="revenue_goal" class="form-label">Revenue Goal 
+                            <span class="highlight-value">({{ settings.get_currency_type_display }})</span>
+                        </label>
+                        <input type="number" id="revenue_goal" name="revenue_goal" class="form-control" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="profit_goal" class="form-label">Profit Goal 
+                            <span class="highlight-value">({{ settings.get_currency_type_display }})</span>
+                        </label>
+                        <input type="number" id="profit_goal" name="profit_goal" class="form-control" step="0.01">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3 w-100">Calculate</button>
+            </form>
+        </div>
+    </div>
 
-    <!-- Display Results -->
-    {% if ingredients_required %}
-    <h3 class="mt-4">Required Ingredients</h3>
-    <ul>
-        {% for ingredient, data in ingredients_required.items %}
-        <li>{{ ingredient }}: {{ data.quantity|floatformat:2 }} {{ data.unit_type }} (Cost: ${{ data.total_cost|floatformat:2 }})</li>
-        {% endfor %}
-    </ul>
-    <p class="mt-3">Total Cost: ${{ total_cost|floatformat:2 }}</p>
-    <p>Profitability: ${{ profitability|floatformat:2 }} ({{ profitability_percentage|floatformat:2 }}%)</p>
+    <!-- Calculations Summary -->
+    {% if revenue_goal %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h2 class="mb-0">Calculation Summary</h2>
+        </div>
+        <div class="card-body">
+            <p><strong>Revenue:</strong> 
+                <span class="highlight-value">{{ settings.get_currency_type_display }}{{ revenue_goal|floatformat:2 }}</span>
+            </p>
+            <p><strong>Total Cost:</strong> 
+                <span class="highlight-value">{{ settings.get_currency_type_display }}{{ total_cost|floatformat:2 }}</span>
+            </p>
+            <p><strong>Profitability:</strong> 
+                <span class="highlight-value">{{ settings.get_currency_type_display }}{{ profitability|floatformat:2 }}</span> 
+                (<span class="highlight-value">{{ profitability_percentage|floatformat:2 }}%</span>)
+            </p>
+            {% if goal_explanation %}
+            <div class="alert alert-info mt-3">{{ goal_explanation|safe }}</div>
+            {% endif %}
+        </div>
+    </div>
     {% endif %}
 
-    {% if success %}
-    <div class="alert alert-success mt-4">{{ success }}</div>
+    <!-- Required Ingredients -->
+    {% if ingredients_by_category %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Required Ingredients</h2>
+        </div>
+        <div class="card-body">
+            {% for category, ingredients in ingredients_by_category.items %}
+            <div class="mb-4">
+                <h3>{{ category }}</h3>
+                <table class="table table-bordered table-striped mt-3">
+                    <thead>
+                        <tr>
+                            <th>Ingredient</th>
+                            <th>Quantity Needed</th>
+                            <th>Current Quantity</th>
+                            <th>Unit</th>
+                            <th>Unit Cost ({{ settings.get_currency_type_display }})</th>
+                            <th>Total Cost ({{ settings.get_currency_type_display }})</th>
+                            <th>Sufficient</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ingredient in ingredients %}
+                        <tr>
+                            <td>{{ ingredient.name }}</td>
+                            <td>{{ ingredient.quantity_needed|floatformat:2 }}</td>
+                            <td>{{ ingredient.current_quantity|floatformat:2 }}</td>
+                            <td>{{ ingredient.unit_type }}</td>
+                            <td>{{ ingredient.unit_cost|floatformat:2 }}</td>
+                            <td>{{ ingredient.total_cost|floatformat:2 }}</td>
+                            <td>
+                                {% if ingredient.sufficient %}
+                                <span class="badge bg-success">Sufficient</span>
+                                {% else %}
+                                <span class="badge bg-danger">Insufficient</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
 
-    {% if error %}
-    <div class="alert alert-danger mt-4">{{ error }}</div>
+    <!-- Menu Items Table -->
+    {% if menu_items_data %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Menu Items</h2>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-striped mt-3">
+                <thead>
+                    <tr>
+                        <th>Menu Item</th>
+                        <th>Cost ({{ settings.get_currency_type_display }})</th>
+                        <th>Margin ({{ settings.get_currency_type_display }})</th>
+                        <th>Price ({{ settings.get_currency_type_display }})</th>
+                        <th>Units Needed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in menu_items_data %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.cost|floatformat:2 }}</td>
+                        <td>{{ item.margin }}</td>
+                        <td>{{ item.price|floatformat:2 }}</td>
+                        <td>{{ item.units_needed|floatformat:2 }}</td>
+                    </tr>
+                    
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
     {% endif %}
-</div>
-
-<!-- Charts -->
-<div class="mt-5">
-    <h3>Profitability Overview</h3>
-    <canvas id="profitabilityChart"></canvas>
-</div>
-<div class="mt-5">
-    <h3>Ingredient Usage Distribution</h3>
-    <canvas id="ingredientChart"></canvas>
 </div>
 
 <script>
-    const profitabilityCtx = document.getElementById('profitabilityChart').getContext('2d');
-    const profitabilityData = {{ profitability_data|safe }};
-    new Chart(profitabilityCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Revenue Goal', 'Total Cost', 'Profitability'],
-            datasets: [{
-                label: 'Amount ($)',
-                data: [profitabilityData.revenue_goal, profitabilityData.total_cost, profitabilityData.profitability],
-                backgroundColor: ['#007bff', '#dc3545', '#28a745']
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: ctx => `$${ctx.raw.toFixed(2)}` } }
-            }
-        }
-    });
-
-    const ingredientCtx = document.getElementById('ingredientChart').getContext('2d');
-    const ingredientData = {{ ingredient_distribution|safe }};
-    new Chart(ingredientCtx, {
-        type: 'pie',
-        data: {
-            labels: ingredientData.map(item => item.name),
-            datasets: [{
-                label: 'Quantity',
-                data: ingredientData.map(item => item.quantity),
-                backgroundColor: ['#007bff', '#dc3545', '#ffc107', '#28a745', '#17a2b8', '#6610f2']
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'bottom' },
-                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw.toFixed(2)}` } }
-            }
-        }
-    });
-
-    function filterTable() {
-        const query = document.getElementById("search").value.toLowerCase();
-        const rows = document.querySelectorAll("tbody tr");
+    function filterTable(index) {
+        const query = document.getElementById(`search-${index}`).value.toLowerCase();
+        const rows = document.querySelectorAll(`#table-${index} tbody tr`);
         rows.forEach(row => {
             const ingredient = row.querySelector("td").textContent.toLowerCase();
             row.style.display = ingredient.includes(query) ? "" : "none";
         });
     }
 </script>
+
+<style>
+    .highlight-value {
+        font-weight: bold;
+        color: #007bff;
+    }
+</style>
+
 {% endblock %}
