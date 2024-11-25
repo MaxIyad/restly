@@ -9,6 +9,7 @@ from decimal import Decimal
 from django.db.models import Prefetch
 from settings.models import Settings
 from django.db import models
+from reports.models import Order
 
 from django.http import JsonResponse
 from inventory.models import Category
@@ -302,7 +303,6 @@ def get_categories_for_ingredient(request):
 
 
 
-
 def simulate_order(request, menu_slug, category_slug, menu_item_slug):
     menu = get_object_or_404(Menu, slug=menu_slug)
     category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
@@ -316,11 +316,11 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
         messages.error(request, f"Cannot simulate order. The menu item '{menu_item.name}' is inactive.")
         return redirect('menu_detail', menu_slug=menu_slug)
 
-
     recipe_ingredients = menu_item.recipe_ingredients.all()
     warnings = []
 
-    # Deduct ingredient quantities only from the specified category
+    # Calculate total cost
+    total_cost = Decimal(0)
     for recipe_ingredient in recipe_ingredients:
         ingredient = recipe_ingredient.ingredient
         category_to_deplete = recipe_ingredient.category
@@ -329,7 +329,6 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
             warnings.append(f"Category for {ingredient.name} is not specified!")
             continue
 
-        # Fetch the ingredient with the matching name and category
         try:
             ingredient_in_category = Ingredient.objects.get(
                 name=ingredient.name,
@@ -339,23 +338,38 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
             warnings.append(f"{ingredient.name} does not exist in the {category_to_deplete.name} category!")
             continue
 
-        # Subtract the quantity, allowing for negative values
+        # Deduct quantity
         ingredient_in_category.quantity -= recipe_ingredient.quantity
         ingredient_in_category.save()
 
-        # Add a warning if the ingredient goes below zero
+        # Calculate cost
+        total_cost += Decimal(recipe_ingredient.quantity) * Decimal(ingredient_in_category.unit_cost)
+
         if ingredient_in_category.quantity < 0:
             warnings.append(
                 f"{ingredient.name} in category {category_to_deplete.name} is now in deficit ({ingredient_in_category.quantity})."
             )
 
+    # Calculate revenue and profit
+    price = menu_item.cost or Decimal(0)
+    total_revenue = price
+    total_profit = total_revenue - total_cost
+
+    # Record the order
+    Order.objects.create(
+        customer_name="Unknown",
+        taken_by=request.user,  # Current logged-in user
+        total_cost=total_cost,
+        total_revenue=total_revenue,
+        total_profit=total_profit,
+    )
+
     if warnings:
         messages.warning(request, " ".join(warnings))
     else:
         messages.success(request, f"Order for '{menu_item.name}' simulated successfully!")
-  
-    return redirect('menu_detail', menu_slug=menu_slug)
 
+    return redirect('menu_detail', menu_slug=menu_slug)
 
 
 

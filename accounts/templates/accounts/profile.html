@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h2>Your Profile</h2>
+    <p><strong>Username:</strong> {{ user.username }}</p>
+    <p><strong>Is Staff:</strong> {{ user.is_staff }}</p>
+    <p><strong>Is Active:</strong> {{ user.is_active }}</p>
+
+    <h3 class="mt-4">Change PIN</h3>
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="current_pin" class="form-label">Current PIN</label>
+            <input type="password" name="current_pin" id="current_pin" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="new_pin" class="form-label">New PIN</label>
+            <input type="password" name="new_pin" id="new_pin" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="confirm_new_pin" class="form-label">Confirm New PIN</label>
+            <input type="password" name="confirm_new_pin" id="confirm_new_pin" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Update PIN</button>
+    </form>
+
+    {% if all_users %}
+    <h3 class="mt-4">All Accounts</h3>
+    <table class="table table-bordered mt-3">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Is Staff</th>
+                <th>Is Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for account in all_users %}
+            <tr>
+                <td>{{ account.id }}</td>
+                <td>{{ account.username }}</td>
+                <td>{{ account.is_staff }}</td>
+                <td>{{ account.is_active }}</td>
+                <td>
+                    <a href="{% url 'manage_permissions' account.id %}" class="btn btn-sm btn-primary">Manage Permissions</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{% if customer %}Edit Customer{% else %}Create Customer{% endif %}</h2>
+<form method="POST">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" name="name" id="name" class="form-control" value="{{ customer.name|default:'' }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="phone" class="form-label">Phone</label>
+        <input type="text" name="phone" id="phone" class="form-control" value="{{ customer.phone|default:'' }}">
+    </div>
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" name="email" id="email" class="form-control" value="{{ customer.email|default:'' }}">
+    </div>
+    <div class="mb-3">
+        <label for="address" class="form-label">Address</label>
+        <textarea name="address" id="address" class="form-control">{{ customer.address|default:'' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label for="allergens" class="form-label">Allergens</label>
+        <textarea name="allergens" id="allergens" class="form-control">{{ customer.allergens|default:'' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label for="notes" class="form-label">Notes</label>
+        <textarea name="notes" id="notes" class="form-control">{{ customer.notes|default:'' }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>
+{% endblock %}

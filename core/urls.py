@@ -25,5 +25,7 @@ urlpatterns = [
     path('menu/', include('menu.urls')),
     path('reports/', include('reports.urls')),
     path('get-categories-for-ingredient/', get_categories_for_ingredient, name='get_categories_for_ingredient'),
+    path('accounts/', include('accounts.urls')),
+    path('captcha/', include('captcha.urls')),
 
 ]

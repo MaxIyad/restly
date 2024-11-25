@@ -1,6 +1,6 @@
 import csv
 from django.db.models import Sum, F, FloatField, ExpressionWrapper
-from menu.models import MenuItem, RecipeIngredient
+from menu.models import MenuItem, RecipeIngredient, Menu
 from decimal import Decimal, InvalidOperation
 from collections import defaultdict
 from django.shortcuts import render
@@ -10,6 +10,7 @@ from django.db import transaction
 from menu.models import MenuItem, RecipeIngredient
 from inventory.models import Ingredient, Category
 from settings.models import Settings
+from .models import Order
 
 
 
@@ -206,6 +207,23 @@ def estimate_view(request):
 ###########################################################################################################################################################
 ###########################################################################################################################################################
 
+from reports.models import Order
+
+def order_history_view(request):
+    orders = Order.objects.all().order_by('-order_date')  
+    context = {
+        "orders": orders,
+    }
+
+    return render(request, "reports/order_history.html", context)
+
+
+
+
+
+
+
+
 
 def sales_view(request):
     # Aggregate sales data from active menus
@@ -272,3 +290,64 @@ def sales_view(request):
 
     return render(request, "reports/sales.html", context)
 
+
+###########################################################################################################################################################
+###########################################################################################################################################################
+###########################################################################################################################################################
+
+
+def customer_list(request):
+    customers = Customer.objects.all()
+    return render(request, "customers/customer_list.html", {"customers": customers})
+
+def customer_detail(request, customer_id):
+    customer = get_object_or_404(Customer, id=customer_id)
+    return render(request, "customers/customer_detail.html", {"customer": customer})
+
+def customer_create(request):
+    if request.method == "POST":
+        name = request.POST.get("name")
+        phone = request.POST.get("phone")
+        email = request.POST.get("email")
+        address = request.POST.get("address")
+        allergens = request.POST.get("allergens")
+        notes = request.POST.get("notes")
+
+        if not name:
+            messages.error(request, "Customer name is required.")
+        else:
+            customer = Customer.objects.create(
+                name=name,
+                phone=phone,
+                email=email,
+                address=address,
+                allergens=allergens,
+                notes=notes,
+            )
+            messages.success(request, "Customer created successfully.")
+            return redirect("customer_list")
+
+    return render(request, "customers/customer_create.html")
+
+def customer_edit(request, customer_id):
+    customer = get_object_or_404(Customer, id=customer_id)
+    if request.method == "POST":
+        customer.name = request.POST.get("name", customer.name)
+        customer.phone = request.POST.get("phone", customer.phone)
+        customer.email = request.POST.get("email", customer.email)
+        customer.address = request.POST.get("address", customer.address)
+        customer.allergens = request.POST.get("allergens", customer.allergens)
+        customer.notes = request.POST.get("notes", customer.notes)
+        customer.save()
+        messages.success(request, "Customer updated successfully.")
+        return redirect("customer_detail", customer_id=customer.id)
+
+    return render(request, "customers/customer_edit.html", {"customer": customer})
+
+def customer_delete(request, customer_id):
+    customer = get_object_or_404(Customer, id=customer_id)
+    if request.method == "POST":
+        customer.delete()
+        messages.success(request, "Customer deleted successfully.")
+        return redirect("customer_list")
+    return render(request, "customers/customer_delete.html", {"customer": customer})
