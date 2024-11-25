@@ -271,3 +271,4 @@ def sales_view(request):
     }
 
     return render(request, "reports/sales.html", context)
+
