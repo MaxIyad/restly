@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Add Allergen
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4 text-primary">Manage Allergens</h1>
+
+<!-- Add Allergen Form -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h2 class="mb-0">Add a New Allergen</h2>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Add Allergen
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Existing Allergens -->
+<div class="card shadow-sm">
+    <div class="card-header bg-light">
+        <h2 class="mb-0">Existing Allergens</h2>
+    </div>
+    <div class="card-body">
+        {% if allergens %}
+        <ul class="list-group">
+            {% for allergen in allergens %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{% url 'allergen_details' allergen.id %}" class="text-decoration-none">
+                    {{ allergen.name }}
+                </a>
+                <form method="post" action="{% url 'allergen_delete' allergen.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash"></i> Remove
+                    </button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">No allergens found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

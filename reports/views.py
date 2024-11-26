@@ -19,9 +19,8 @@ from .models import Order
 
 
 
-
 def estimate_view(request):
-    # Fetch active menu items
+
     active_menu_items = MenuItem.objects.filter(
         category__menu__is_active=True, is_active=True
     ).select_related('category', 'category__menu')
