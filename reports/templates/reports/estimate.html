@@ -125,8 +125,13 @@
                         <th>Margin ({{ settings.get_currency_type_display }})</th>
                         <th>Price ({{ settings.get_currency_type_display }})</th>
                         <th>Units Needed</th>
+<<<<<<< HEAD
                         <th>Revenue ({{ settings.get_currency_type_display }})</th>
                         <th>Profit Acquired ({{ settings.get_currency_type_display }})</th>
+=======
+                        <th>Total Revenue ({{ settings.get_currency_type_display }})</th>
+                        <th>Profit ({{ settings.get_currency_type_display }})</th>
+>>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
                     </tr>
                 </thead>
                 <tbody>
@@ -136,17 +141,23 @@
                         <td>{{ item.cost|floatformat:2 }}</td>
                         <td>{{ item.margin_display }}</td>  <!-- Display the formatted margin -->
                         <td>{{ item.price|floatformat:2 }}</td>
+<<<<<<< HEAD
                         <td>
                             <input type="number" class="form-control units-input" min="0" step="1" value="{{ item.units_needed|floatformat:2 }}">
                         </td>
                         <td class="revenue">{{ item.revenue_acquired|floatformat:2 }}</td>
                         <td class="profit">{{ item.profit_acquired|floatformat:2 }}</td>
+=======
+                        <td>{{ item.units_needed|floatformat:2 }}</td>
+                        <td>{{ item.total_revenue|floatformat:2 }}</td>
+                        <td>{{ item.profit|floatformat:2 }}</td>
+>>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
                     </tr>
-                    
                     {% endfor %}
                 </tbody>
                 
             </table>
+            
         </div>
     </div>
     {% endif %}

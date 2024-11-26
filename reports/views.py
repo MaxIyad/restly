@@ -18,7 +18,6 @@ from .models import Order
 
 
 
-
 def estimate_view(request):
 
     active_menu_items = MenuItem.objects.filter(
@@ -77,9 +76,14 @@ def estimate_view(request):
                 while iteration < max_iterations:
                     iteration += 1
 
+<<<<<<< HEAD
 
 
                     if profit_goal is not None:
+=======
+                    if profit_goal is not None and revenue_goal is None:
+                        # Revenue goal is derived from profit goal
+>>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
                         revenue_goal = profit_goal + total_cost
 
                     new_total_cost = Decimal(0)
@@ -149,8 +153,12 @@ def estimate_view(request):
                         for ri in item.recipe_ingredients.select_related("ingredient")
                     )
                     price = item.cost or Decimal("0")
+                    if price <= total_ingredient_cost:
+                        continue  # Skip items with non-profitable pricing
+
                     margin_currency = price - total_ingredient_cost
                     margin_percentage = (margin_currency / total_ingredient_cost * 100) if total_ingredient_cost > 0 else 0
+<<<<<<< HEAD
 
                     # If margin is zero or negative, skip calculation (otherwise, 404)
                     if margin_currency <= 0:
@@ -160,6 +168,19 @@ def estimate_view(request):
 
                     revenue_acquired = price * round(units_needed, 2)
                     profit_acquired = margin_currency * round(units_needed,2)
+=======
+                    
+                    # Calculate units needed
+                    if revenue_goal and price > 0:
+                        units_needed = (revenue_goal / price).quantize(Decimal("1"), rounding="ROUND_UP")
+                    elif profit_goal and margin_currency > 0:
+                        units_needed = (profit_goal / margin_currency).quantize(Decimal("1"), rounding="ROUND_UP")
+                    else:
+                        units_needed = 0
+
+                    total_revenue = price * units_needed
+                    profit = total_revenue - (total_ingredient_cost * units_needed)
+>>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
 
                     menu_items_data.append({
                         "name": item.name,
@@ -167,9 +188,14 @@ def estimate_view(request):
                         "margin": margin_currency,
                         "price": price,
                         "units_needed": units_needed,
+<<<<<<< HEAD
                         "revenue_acquired": revenue_acquired,
                         "profit_acquired": profit_acquired,
                         "margin_display": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
+=======
+                        "total_revenue": total_revenue,
+                        "profit": profit,
+>>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
                     })
 
 
@@ -190,6 +216,7 @@ def estimate_view(request):
                 context["error"] = f"Error in calculation: {e}"
 
     return render(request, "reports/estimate.html", context)
+
 
 
 
