@@ -1,0 +1,29 @@
+<table class="table">
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>IP Address</th>
+            <th>Timestamp</th>
+            <th>Status</th>
+            <th>Reason</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for attempt in attempts %}
+        <tr>
+            <td>{{ attempt.username }}</td>
+            <td>{{ attempt.ip_address }}</td>
+            <td>{{ attempt.timestamp }}</td>
+            <td>
+                {% if attempt.success %}
+                    Success
+                {% else %}
+                    Failed
+                {% endif %}
+            </td>
+            
+            <td>{{ attempt.reason }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

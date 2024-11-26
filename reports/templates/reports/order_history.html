@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Order History
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-primary">Order History</h1>
+    </div>
+    <table class="table table-bordered table-striped mt-3">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Taken By</th>
+                <th>Date</th>
+                <th>Total Cost</th>
+                <th>Total Revenue</th>
+                <th>Total Profit</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.customer_name }}</td>
+                <td>{{ order.taken_by.username }}</td>
+                <td>{{ order.order_date|date:"Y-m-d H:i" }}</td>
+                <td>{{ order.total_cost|floatformat:2 }}</td>
+                <td>{{ order.total_revenue|floatformat:2 }}</td>
+                <td>{{ order.total_profit|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

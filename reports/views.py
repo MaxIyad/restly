@@ -1,6 +1,6 @@
 import csv
 from django.db.models import Sum, F, FloatField, ExpressionWrapper
-from menu.models import MenuItem, RecipeIngredient
+from menu.models import MenuItem, RecipeIngredient, Menu
 from decimal import Decimal, InvalidOperation
 from collections import defaultdict
 from django.shortcuts import render
@@ -10,8 +10,14 @@ from django.db import transaction
 from menu.models import MenuItem, RecipeIngredient
 from inventory.models import Ingredient, Category
 from settings.models import Settings
+from .models import Order
+
+
+
+
 
 def estimate_view(request):
+
     active_menu_items = MenuItem.objects.filter(
         category__menu__is_active=True, is_active=True
     ).select_related('category', 'category__menu')
@@ -69,7 +75,18 @@ def estimate_view(request):
                 while iteration < max_iterations:
                     iteration += 1
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+
+
                     if profit_goal is not None:
+=======
+                    if profit_goal is not None and revenue_goal is None:
+                        # Revenue goal is derived from profit goal
+>>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
+=======
+                    if profit_goal is not None:
+>>>>>>> 13c3635acfc796b8e2d883388f6aa35f5dc8fe0d
                         revenue_goal = profit_goal + total_cost
 
                     new_total_cost = Decimal(0)
@@ -119,12 +136,46 @@ def estimate_view(request):
                     # Fetch currency type from settings
                     currency_symbol = settings_instance.get_currency_type_display()
 
+<<<<<<< HEAD
+                # Calculate menu item data
+                menu_items_data = []
+                for item in active_menu_items:
+                    # Total ingredient cost for the menu item
+                    total_ingredient_cost = sum(
+                        Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost or 0)
+                        for ri in item.recipe_ingredients.select_related("ingredient")
+                    )
+                    price = item.cost or Decimal("0")
+                    if price <= total_ingredient_cost:
+                        continue  # Skip items with non-profitable pricing
+
+                    margin_currency = price - total_ingredient_cost
+                    margin_percentage = (margin_currency / total_ingredient_cost * 100) if total_ingredient_cost > 0 else 0
+<<<<<<< HEAD
+
+                    # If margin is zero or negative, skip calculation (otherwise, 404)
+                    if margin_currency <= 0:
+                        continue
+
+                    units_needed = (profit_goal / margin_currency) if profit_goal else (revenue_goal / price)
+
+                    revenue_acquired = price * round(units_needed, 2)
+                    profit_acquired = margin_currency * round(units_needed,2)
+=======
+                    
+                    # Calculate units needed
+                    if revenue_goal and price > 0:
+                        units_needed = (revenue_goal / price).quantize(Decimal("1"), rounding="ROUND_UP")
+                    elif profit_goal and margin_currency > 0:
+                        units_needed = (profit_goal / margin_currency).quantize(Decimal("1"), rounding="ROUND_UP")
+=======
                     if profit_goal is not None:
                         context["goal_explanation"] = (
                             f"To achieve <span class='highlight-montery-goal-text'>{currency_symbol}{profit_goal:.2f}</span> in profit, "
                             f"{currency_symbol}{total_cost:.2f} will be spent on costs, "
                             f"resulting in {currency_symbol}{revenue_goal:.2f} as revenue."
                         )
+>>>>>>> 13c3635acfc796b8e2d883388f6aa35f5dc8fe0d
                     else:
                         context["goal_explanation"] = (
                             f"To generate {currency_symbol}{revenue_goal:.2f} in revenue, "
@@ -132,6 +183,41 @@ def estimate_view(request):
                             f"leaving {currency_symbol}{profit:.2f} in profit."
                             )
 
+<<<<<<< HEAD
+                    total_revenue = price * units_needed
+                    profit = total_revenue - (total_ingredient_cost * units_needed)
+>>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
+
+                    menu_items_data.append({
+                        "name": item.name,
+                        "cost": total_ingredient_cost,
+                        "margin": margin_currency,
+                        "price": price,
+                        "units_needed": units_needed,
+<<<<<<< HEAD
+                        "revenue_acquired": revenue_acquired,
+                        "profit_acquired": profit_acquired,
+                        "margin_display": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
+=======
+                        "total_revenue": total_revenue,
+                        "profit": profit,
+>>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
+                    })
+
+
+                # Update context
+                context.update({
+                    "revenue_goal": revenue_goal,
+                    "profit_goal": profit_goal,
+                    "total_cost": total_cost,
+                    "profitability": profit,
+                    "profitability_percentage": (
+                        (profit / revenue_goal * 100) if revenue_goal and revenue_goal > 0 else Decimal(0)
+                    ),
+                    "ingredients_by_category": grouped_ingredients,
+                    "menu_items_data": menu_items_data,
+                })
+=======
                 context["revenue_goal"] = revenue_goal
                 context["profit_goal"] = profit_goal
                 context["total_cost"] = total_cost
@@ -146,6 +232,7 @@ def estimate_view(request):
                     "total_cost": float(total_cost),
                     "profitability": float(context["profitability"] or 0),
                 }
+>>>>>>> 13c3635acfc796b8e2d883388f6aa35f5dc8fe0d
 
             except (InvalidOperation, Exception) as e:
                 context["error"] = f"Error in calculation: {e}"
@@ -165,6 +252,23 @@ def estimate_view(request):
 ###########################################################################################################################################################
 ###########################################################################################################################################################
 ###########################################################################################################################################################
+
+from reports.models import Order
+
+def order_history_view(request):
+    orders = Order.objects.all().order_by('-order_date')  
+    context = {
+        "orders": orders,
+    }
+
+    return render(request, "reports/order_history.html", context)
+
+
+
+
+
+
+
 
 
 def sales_view(request):
@@ -231,3 +335,65 @@ def sales_view(request):
     }
 
     return render(request, "reports/sales.html", context)
+
+
+###########################################################################################################################################################
+###########################################################################################################################################################
+###########################################################################################################################################################
+
+
+def customer_list(request):
+    customers = Customer.objects.all()
+    return render(request, "customers/customer_list.html", {"customers": customers})
+
+def customer_detail(request, customer_id):
+    customer = get_object_or_404(Customer, id=customer_id)
+    return render(request, "customers/customer_detail.html", {"customer": customer})
+
+def customer_create(request):
+    if request.method == "POST":
+        name = request.POST.get("name")
+        phone = request.POST.get("phone")
+        email = request.POST.get("email")
+        address = request.POST.get("address")
+        allergens = request.POST.get("allergens")
+        notes = request.POST.get("notes")
+
+        if not name:
+            messages.error(request, "Customer name is required.")
+        else:
+            customer = Customer.objects.create(
+                name=name,
+                phone=phone,
+                email=email,
+                address=address,
+                allergens=allergens,
+                notes=notes,
+            )
+            messages.success(request, "Customer created successfully.")
+            return redirect("customer_list")
+
+    return render(request, "customers/customer_create.html")
+
+def customer_edit(request, customer_id):
+    customer = get_object_or_404(Customer, id=customer_id)
+    if request.method == "POST":
+        customer.name = request.POST.get("name", customer.name)
+        customer.phone = request.POST.get("phone", customer.phone)
+        customer.email = request.POST.get("email", customer.email)
+        customer.address = request.POST.get("address", customer.address)
+        customer.allergens = request.POST.get("allergens", customer.allergens)
+        customer.notes = request.POST.get("notes", customer.notes)
+        customer.save()
+        messages.success(request, "Customer updated successfully.")
+        return redirect("customer_detail", customer_id=customer.id)
+
+    return render(request, "customers/customer_edit.html", {"customer": customer})
+
+def customer_delete(request, customer_id):
+    customer = get_object_or_404(Customer, id=customer_id)
+    if request.method == "POST":
+        customer.delete()
+        messages.success(request, "Customer deleted successfully.")
+        return redirect("customer_list")
+    return render(request, "customers/customer_delete.html", {"customer": customer})

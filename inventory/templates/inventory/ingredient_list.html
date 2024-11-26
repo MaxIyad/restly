@@ -33,7 +33,7 @@
                 <th>Unit Cost</th>
                 <th>Total Cost</th>
                 <th>Threshold</th>
-                <th>Estimated Usage</th>
+                <th>Allergens</th>
                 <th>Status</th>
             </tr>
         </thead>
@@ -59,7 +59,13 @@
                 </td>
                 
                 <td>{{ ingredient.converted_threshold }}</td>
-                <td>{{ ingredient.estimated_usage|default:"-" }}</td>
+                <td>
+                    {% if ingredient.allergens.exists %}
+                        {{ ingredient.allergens.all|join:", " }}
+                    {% else %}
+                        <span class="text-muted">None</span>
+                    {% endif %}
+                </td>
                 <td>
                     {% if ingredient.is_below_threshold %}
                         <span class="badge bg-danger">Below Threshold</span>

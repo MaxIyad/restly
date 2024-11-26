@@ -11,6 +11,11 @@ class Category(models.Model):
     name = models.CharField(max_length=100, unique=True, default="global")
     slug = models.SlugField(max_length=100, unique=True, blank=True)
     order = models.PositiveIntegerField(default=1)
+    is_prepped = models.BooleanField(default=False, help_text="Is this category for prepped ingredients?")
+    parent_category = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="child_categories", help_text="Parent category for prepped ingredients."
+    )
 
     class Meta:
         ordering = ['order'] 
@@ -36,6 +41,14 @@ class Category(models.Model):
 
     def __str__(self):
         
+        return self.name
+    
+
+
+class Allergen(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
         return self.name
 
 # Ingredient model
@@ -63,6 +76,7 @@ class Ingredient(models.Model):
     history = HistoricalRecords()
     order = models.PositiveIntegerField(default=1)
     change_source = models.CharField(max_length=50, blank=True, null=True)
+    allergens = models.ManyToManyField(Allergen, related_name="ingredients", blank=True)
 
     class Meta:
         ordering = ['order']
@@ -143,3 +157,34 @@ class Ingredient(models.Model):
 
         converted_qty = base_qty / conversion_factor
         return f"{converted_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)}{higher_unit}"
+
+
+class PreppedIngredient(models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, limit_choices_to={'is_prepped': True})
+    parent_ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name="prepped_ingredients")
+    quantity = models.FloatField()  # Quantity available
+    prep_quantity = models.FloatField()  # Quantity used to prep one unit of this ingredient
+    unit_type = models.CharField(max_length=10, choices=Ingredient.UNIT_TYPES)
+
+    history = HistoricalRecords()
+
+    def save(self, *args, **kwargs):
+        # Automatically subtract from the parent ingredient
+        if self.pk:
+            old_instance = PreppedIngredient.objects.get(pk=self.pk)
+            difference = self.quantity - old_instance.quantity
+        else:
+            difference = self.quantity
+
+        if difference != 0:
+            self.parent_ingredient.quantity -= difference * self.prep_quantity
+            if self.parent_ingredient.quantity < 0:
+                raise ValidationError(f"Not enough {self.parent_ingredient.name} to create this prepped ingredient.")
+            self.parent_ingredient.save()
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.category.name})"

@@ -1,9 +1,9 @@
 # inventory/views.py:
 
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Ingredient, Category
+from .models import Ingredient, Category, Allergen
 from settings.models import Settings 
-from .forms import IngredientForm, CategoryForm
+from .forms import IngredientForm, CategoryForm, AllergenForm, PreppedIngredientForm
 from django import forms
 from django.forms import modelform_factory
 from django.contrib import messages 
@@ -474,6 +474,22 @@ def ingredient_details(request, category_slug, slug):
     )
     history = ingredient.history.all().order_by('-history_date')
 
+    AllergenFormSet = modelform_factory(
+        Ingredient,
+        fields=['allergens'],
+        widgets={'allergens': forms.CheckboxSelectMultiple},
+    )
+    allergen_form = AllergenFormSet(instance=ingredient)
+
+    if request.method == "POST":
+        allergen_form = AllergenFormSet(request.POST, instance=ingredient)
+        if allergen_form.is_valid():
+            allergen_form.save()
+            messages.success(request, "Allergens updated successfully!")
+            return redirect('ingredient_details', category_slug=category_slug, slug=slug)
+        else:
+            messages.error(request, "Error updating allergens. Please try again.")
+
     # Pre-process history for the template
     processed_history = []
     for record in history:
@@ -504,5 +520,75 @@ def ingredient_details(request, category_slug, slug):
     context = {
         'ingredient': ingredient,
         'history': history,
+        'allergen_form': allergen_form,
     }
     return render(request, 'inventory/ingredient_details.html', context)
+
+
+
+
+
+def allergen_add(request):
+    if request.method == 'POST':
+        form = AllergenForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Allergen added successfully!")
+            return redirect('allergen_add') 
+        else:
+            messages.error(request, "Error adding allergen. Please correct the errors.")
+    else:
+        form = AllergenForm()
+
+    allergens = Allergen.objects.all().order_by('name')  
+
+    context = {
+        'form': form,
+        'allergens': allergens,
+    }
+    return render(request, 'inventory/allergen_add.html', context)
+
+def allergen_details(request, allergen_id):
+    allergen = get_object_or_404(Allergen, id=allergen_id)
+    ingredients = allergen.ingredients.all().select_related('category')
+
+    context = {
+        'allergen': allergen,
+        'ingredients': ingredients,
+    }
+    return render(request, 'inventory/allergen_details.html', context)
+
+
+def allergen_delete(request, allergen_id):
+    allergen = get_object_or_404(Allergen, id=allergen_id)
+    if request.method == 'POST':
+        allergen.delete()
+        messages.success(request, "Allergen deleted successfully!")
+        return redirect('allergen_add')
+    
+
+
+
+
+
+def prepped_ingredient_add(request):
+    if request.method == 'POST':
+        form = PreppedIngredientForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Prepped ingredient added successfully!")
+            return redirect('inventory')
+        else:
+            messages.error(request, "Error adding prepped ingredient. Please correct the errors below.")
+    else:
+        form = PreppedIngredientForm()
+
+    return render(request, 'inventory/prepped_ingredient_add.html', {'form': form})
+
+
+def prepped_ingredient_list(request):
+    prepped_ingredients = PreppedIngredient.objects.select_related('parent_ingredient', 'category').all()
+    context = {
+        'prepped_ingredients': prepped_ingredients,
+    }
+    return render(request, 'inventory/prepped_ingredient_list.html', context)
