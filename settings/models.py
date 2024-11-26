@@ -1,3 +1,4 @@
+# settings.models
 from django.db import models
 
 class Settings(models.Model):
@@ -9,6 +10,14 @@ class Settings(models.Model):
             ('GBP', '£'),
         ],
         default='EUR'
+    )
+    theme = models.CharField(
+        max_length=10,
+        choices=[
+            ('light', 'Light Theme'),
+            ('dark', 'Dark Theme'),
+        ],
+        default='light'
     )
 
     def __str__(self):

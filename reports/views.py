@@ -16,8 +16,6 @@ from .models import Order
 
 
 
-
-
 def estimate_view(request):
 
     active_menu_items = MenuItem.objects.filter(
@@ -27,7 +25,6 @@ def estimate_view(request):
 
     context = {
         "ingredients_by_category": {},
-        "menu_items_data": [],
         "revenue_goal": None,
         "profit_goal": None,
         "total_cost": None,
@@ -35,6 +32,8 @@ def estimate_view(request):
         "profitability_percentage": None,
         "success": None,
         "error": None,
+        "ingredient_distribution": [],
+        "profitability_data": {},
         "goal_explanation": "",
         "settings": settings_instance,
     }
@@ -55,11 +54,11 @@ def estimate_view(request):
     grouped_ingredients = {category.name: [] for category in categories}
 
     if request.method == "POST":
-        mode = request.POST.get("mode", "").strip()
+        mode = request.POST.get("mode")
 
         if mode == "revenue_to_ingredients":
             try:
-                # Parse input
+                # Validate input
                 revenue_goal_input = request.POST.get("revenue_goal", "").strip()
                 profit_goal_input = request.POST.get("profit_goal", "").strip()
 
@@ -77,6 +76,7 @@ def estimate_view(request):
                     iteration += 1
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 
                     if profit_goal is not None:
@@ -84,6 +84,9 @@ def estimate_view(request):
                     if profit_goal is not None and revenue_goal is None:
                         # Revenue goal is derived from profit goal
 >>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
+=======
+                    if profit_goal is not None:
+>>>>>>> 13c3635acfc796b8e2d883388f6aa35f5dc8fe0d
                         revenue_goal = profit_goal + total_cost
 
                     new_total_cost = Decimal(0)
@@ -127,23 +130,13 @@ def estimate_view(request):
                         break
                     total_cost = new_total_cost
 
-                # Goal explanation
-                currency_symbol = settings_instance.get_currency_type_display()
-                profit = revenue_goal - total_cost
+                if revenue_goal is not None:
+                    profit = revenue_goal - total_cost
 
-                if profit_goal is not None:
-                    context["goal_explanation"] = (
-                        f"To achieve <span class='highlight-montery-goal-text'>{currency_symbol}{profit_goal:.2f}</span> in profit, "
-                        f"you’ll spend {currency_symbol}{total_cost:.2f} on costs, "
-                        f"resulting in {currency_symbol}{revenue_goal:.2f} as revenue."
-                    )
-                else:
-                    context["goal_explanation"] = (
-                        f"To generate {currency_symbol}{revenue_goal:.2f} in revenue, "
-                        f"you’ll spend {currency_symbol}{total_cost:.2f} on costs, "
-                        f"leaving {currency_symbol}{profit:.2f} in profit."
-                    )
+                    # Fetch currency type from settings
+                    currency_symbol = settings_instance.get_currency_type_display()
 
+<<<<<<< HEAD
                 # Calculate menu item data
                 menu_items_data = []
                 for item in active_menu_items:
@@ -175,9 +168,22 @@ def estimate_view(request):
                         units_needed = (revenue_goal / price).quantize(Decimal("1"), rounding="ROUND_UP")
                     elif profit_goal and margin_currency > 0:
                         units_needed = (profit_goal / margin_currency).quantize(Decimal("1"), rounding="ROUND_UP")
+=======
+                    if profit_goal is not None:
+                        context["goal_explanation"] = (
+                            f"To achieve <span class='highlight-montery-goal-text'>{currency_symbol}{profit_goal:.2f}</span> in profit, "
+                            f"{currency_symbol}{total_cost:.2f} will be spent on costs, "
+                            f"resulting in {currency_symbol}{revenue_goal:.2f} as revenue."
+                        )
+>>>>>>> 13c3635acfc796b8e2d883388f6aa35f5dc8fe0d
                     else:
-                        units_needed = 0
+                        context["goal_explanation"] = (
+                            f"To generate {currency_symbol}{revenue_goal:.2f} in revenue, "
+                            f"{currency_symbol}{total_cost:.2f} will be spent on costs, "
+                            f"leaving {currency_symbol}{profit:.2f} in profit."
+                            )
 
+<<<<<<< HEAD
                     total_revenue = price * units_needed
                     profit = total_revenue - (total_ingredient_cost * units_needed)
 >>>>>>> 7c333c8714fcdb16de4e0922cff771b8754a8493
@@ -211,19 +217,33 @@ def estimate_view(request):
                     "ingredients_by_category": grouped_ingredients,
                     "menu_items_data": menu_items_data,
                 })
+=======
+                context["revenue_goal"] = revenue_goal
+                context["profit_goal"] = profit_goal
+                context["total_cost"] = total_cost
+                context["profitability"] = revenue_goal - total_cost if revenue_goal else None
+                context["profitability_percentage"] = (
+                    (context["profitability"] / revenue_goal * 100)
+                    if revenue_goal and revenue_goal > 0
+                    else Decimal(0)
+                )
+                context["profitability_data"] = {
+                    "revenue_goal": float(revenue_goal or 0),
+                    "total_cost": float(total_cost),
+                    "profitability": float(context["profitability"] or 0),
+                }
+>>>>>>> 13c3635acfc796b8e2d883388f6aa35f5dc8fe0d
 
             except (InvalidOperation, Exception) as e:
                 context["error"] = f"Error in calculation: {e}"
+
+    context["ingredients_by_category"] = grouped_ingredients
 
     return render(request, "reports/estimate.html", context)
 
 
 
-
-
-
-
-
+# Left off: the caluclations for message and the three lines under the goal entry feild are fucked.
 
 
 

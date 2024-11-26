@@ -1,15 +1,15 @@
-
+<!-- settings.html -->
 <h2>Settings</h2>
 
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
-
     <button type="submit" class="btn btn-primary">Save Settings</button>
 </form>
+
 {% if settings %}
     <p>Current currency type: {{ settings.get_currency_type_display }}</p>
+    <p>Current theme: {{ settings.get_theme_display }}</p>
 {% else %}
- <p>:P</p>
+    <p>No settings configured</p>
 {% endif %}
-
