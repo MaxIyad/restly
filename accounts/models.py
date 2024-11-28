@@ -27,34 +27,34 @@ class Customer(models.Model):
 
 # ---------------------------------------------------------------------------------------------------------------------------- #
 class CustomUserManager(BaseUserManager):
-    def create_user(self, username, pin, **extra_fields):
+    def create_user(self, username, email, pin, password=None, **extra_fields):
+        if " " in username:
+            raise ValueError("The username cannot contain spaces.")
         if not username:
             raise ValueError("The Username field is required.")
+        if not email:
+            raise ValueError("The Email field is required.")
         if not pin:
             raise ValueError("The PIN field is required.")
-        user = self.model(username=username, **extra_fields)
-        user.set_password(pin)  # Use set_password to hash the PIN
+        user = self.model(username=username, email=email, pin=pin, **extra_fields)
+        if password:
+            user.set_password(password)  # Hash the password
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, username, pin, **extra_fields):
+    def create_superuser(self, username, email, pin, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        return self.create_user(username, email, pin, password, **extra_fields)
 
-        if extra_fields.get("is_staff") is not True:
-            raise ValueError("Superuser must have is_staff=True.")
-        if extra_fields.get("is_superuser") is not True:
-            raise ValueError("Superuser must have is_superuser=True.")
-
-        return self.create_user(username, pin, **extra_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    username = models.CharField(max_length=150, unique=True)
-    
-    pin = models.CharField(max_length=4)  # PIN field
+    username = models.CharField(max_length=150, unique=True)    
+    pin = models.CharField(max_length=20, null=False, blank=False)  
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     allowed_urls = models.JSONField(default=list, blank=True) 
+    denied_urls = models.JSONField(default=list, blank=True)
     full_name = models.CharField(max_length=255, null=True, blank=True, verbose_name="Full Name")
     nick_name = models.CharField(max_length=100, null=True, blank=True, verbose_name="Nick Name")
     hourly_wage = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Hourly Wage")
@@ -64,11 +64,20 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     join_date = models.DateField(default=now, verbose_name="Join Date")
     role = models.CharField(max_length=50, choices=[("Staff", "Staff"), ("Manager", "Manager"), ("Admin", "Admin")], default="Staff")
     email = models.EmailField(unique=True, null=True, blank=True)
+    plain_text_pin = models.CharField(max_length=20, blank=True, null=True)
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = []  
+    REQUIRED_FIELDS = ["email", "pin"]  
+
+    def save(self, *args, **kwargs):
+        # Ensure the plain_text_pin matches the hashed password (synchronization logic)
+        if not self.pin:
+            raise ValueError("The PIN field is required.")
+        if self.plain_text_pin:
+            self.set_password(self.plain_text_pin)
+        super().save(*args, **kwargs)
 
     def get_currency_symbol(self):
         settings_instance = Settings.objects.first()
@@ -76,7 +85,17 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+    
+    def clean(self):
+        super().clean() 
+        if " " in self.username:
+            raise ValueError("The username cannot contain spaces.")
+        if not self.pin:
+            raise ValueError("PIN is required.")
 
+    def save(self, *args, **kwargs):
+        self.clean()  # Ensure validation
+        super().save(*args, **kwargs)
 
 
 class LoginAttempt(models.Model):

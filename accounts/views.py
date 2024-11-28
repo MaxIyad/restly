@@ -16,16 +16,24 @@ def signup_view(request):
     if request.method == "POST":
         form = SignupForm(request.POST)
         if form.is_valid():
-            user = CustomUser(username=form.cleaned_data["username"])
-            user.set_password(form.cleaned_data["pin"])
+            user = CustomUser(
+                username=form.cleaned_data["username"],
+                email=form.cleaned_data["email"],
+                pin=form.cleaned_data["pin"],  # Save the PIN
+            )
+            user.set_password(form.cleaned_data["password"])  # Hash the password
             user.save()
-            messages.success(request, "Account created successfully. You are now logged in.")
-            login(request, user)
+            # Explicitly set the backend for login to avoid ambiguity
+            backend = get_backends()[0]
+            user.backend = f"{backend.__module__}.{backend.__class__.__name__}"
+            login(request, user, backend=user.backend)
+            messages.success(request, "Account created successfully.")
             return redirect("profile")
     else:
         form = SignupForm()
 
     return render(request, "accounts/signup.html", {"form": form})
+
 
 
 
@@ -41,14 +49,29 @@ def get_client_ip(request):
 
 #### Login ####
 def login_view(request):
-    ip_address = get_client_ip(request)
-
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data["username"]
-            pin = form.cleaned_data["pin"]
+            password = form.cleaned_data["password"]
 
+            user = authenticate(request, username=username, password=password)
+            if not user:
+                messages.error(request, "Invalid username or password.")
+                return render(request, "accounts/login.html", {"form": form})
+
+            # Login the user
+            login(request, user)
+            messages.success(request, "Login successful!")
+            return redirect("profile")
+    else:
+        form = LoginForm()
+
+    return render(request, "accounts/login.html", {"form": form})
+
+
+            
+''' PIN login (not anymore - changed backends.py)
             # Check if the user exists
             try:
                 user = CustomUser.objects.get(username=username)
@@ -92,7 +115,7 @@ def login_view(request):
     else:
         form = LoginForm()
 
-    return render(request, "accounts/login.html", {"form": form})
+    return render(request, "accounts/login.html", {"form": form})'''
 
 
 #### Logout ####
@@ -160,8 +183,35 @@ def manage_permissions_view(request, user_id):
             allowed_urls = request.POST.getlist("allowed_urls") 
             denied_urls = request.POST.getlist("denied_urls")   
             user.allowed_urls = allowed_urls
+            user.denied_urls = denied_urls
             user.save()
             messages.success(request, f"Permissions updated for {user.username}.")
+        
+        elif "update_pin" in request.POST:
+            new_pin = request.POST.get("new_pin")
+            confirm_new_pin = request.POST.get("confirm_new_pin")
+
+            if new_pin != confirm_new_pin:
+                messages.error(request, "The new PINs do not match.")
+            elif len(new_pin) < 4 or len(new_pin) > 20:
+                messages.error(request, "The new PIN must be between 4 and 20 characters.")
+            else:
+                user.plain_text_pin = new_pin  # Save the plaintext PIN
+                user.pin = new_pin # Hash the pin
+                user.save()
+                messages.success(request, f"PIN for {user.username} has been updated.")
+                
+        elif "reset_password" in request.POST:
+            new_password = request.POST.get("new_password")
+            confirm_password = request.POST.get("confirm_password")
+            if new_password != confirm_password:
+                messages.error(request, "Passwords do not match.")
+            elif len(new_password) < 8:
+                messages.error(request, "Password must be at least 8 characters.")
+            else:
+                user.set_password(new_password)
+                user.save()
+                messages.success(request, f"Password reset for {user.username}.")
 
         elif "activate_account" in request.POST:
             user.is_active = True
@@ -218,6 +268,7 @@ def manage_permissions_view(request, user_id):
         "user": user,
         "available_urls": available_urls,
         "allowed_urls": user.allowed_urls,
+        "denied_urls": user.denied_urls,
     }
     return render(request, "accounts/manage_permissions.html", context)
 

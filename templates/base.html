@@ -58,6 +58,9 @@
                 <a href="{% url 'profile' %}" class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
                     <i class="bi bi-person-circle"></i> Profile
                 </a>
+                <a href="{% url 'customer_list' %}" class="nav-link {% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">
+                    <i class="bi bi-person-circle"></i> Customers
+                </a>
             </li>
         </ul>
         <a href="{% url 'settings' %}" class="nav-link text-muted mt-auto">

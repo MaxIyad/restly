@@ -55,6 +55,42 @@
         <button type="submit" name="update_details" class="btn btn-primary mt-3">Update Details</button>
     </form>
 
+    <!-- Change Password -->
+    <form method="POST" class="mb-4">
+        {% csrf_token %}
+        <h4>Reset Password</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <label for="new_password" class="form-label">New Password</label>
+                <input type="password" name="new_password" id="new_password" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label for="confirm_password" class="form-label">Confirm New Password</label>
+                <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+            </div>
+        </div>
+        <button type="submit" name="reset_password" class="btn btn-primary mt-3">Reset Password</button>
+    </form>
+    
+    <!-- Change PIN -->
+
+    <form method="POST" class="mb-4">
+        {% csrf_token %}
+        <h4>Manage PIN</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <label for="current_pin_display" class="form-label">Current PIN</label>
+                <input type="text" id="current_pin_display" class="form-control" value="{{ user.pin }}" readonly>
+            </div>
+            <div class="col-md-6">
+                <label for="new_pin" class="form-label">New PIN</label>
+                <input type="password" name="new_pin" id="new_pin" class="form-control">
+            </div>
+        </div>
+        <button type="submit" name="update_pin" class="btn btn-primary mt-3">Update PIN</button>
+    </form>
+    
+
     <!-- Manage Permissions -->
     <form method="POST" id="permissions-form">
         {% csrf_token %}

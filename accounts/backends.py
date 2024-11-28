@@ -4,10 +4,13 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class PINAuthBackend(BaseBackend):
-    def authenticate(self, request, username=None, pin=None, **kwargs):
+    """
+    Custom authentication backend to authenticate using a username and Password.
+    """
+    def authenticate(self, request, username=None, password=None, **kwargs):
         try:
             user = User.objects.get(username=username)
-            if user.check_password(pin): 
+            if password and user.password == password:
                 return user
         except User.DoesNotExist:
             return None
