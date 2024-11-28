@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .views import login_view, logout_view, profile_view, signup_view, manage_permissions_view, access_denied_view, login_attempts_view
+from .views import login_view, logout_view, profile_view, signup_view, manage_permissions_view, access_denied_view, login_attempts_view, create_user_view
 from . import views
 
 urlpatterns = [
@@ -11,6 +11,8 @@ urlpatterns = [
     path("manage-permissions/<int:user_id>/", manage_permissions_view, name="manage_permissions"),
     path("access_denied/", access_denied_view, name="access_denied"),
     path("login-attempts/", login_attempts_view, name="login_attempts"),
+    path("create-user/", create_user_view, name="create_user"),
+
 
     ####
 

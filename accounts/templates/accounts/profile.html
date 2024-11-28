@@ -29,6 +29,12 @@
 
     {% if all_users %}
     <h3 class="mt-4">All Accounts</h3>
+    {% if user.is_superuser %}
+    <div class="mb-3">
+        <a href="{% url 'signup' %}" class="btn btn-success">Create New User</a>
+        <a href="{% url 'login_attempts' %}" class="btn btn-secondary">Login Attemps Log</a>
+    </div>
+    {% endif %}
     <table class="table table-bordered mt-3">
         <thead>
             <tr>

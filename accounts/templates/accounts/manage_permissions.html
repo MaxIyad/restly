@@ -6,6 +6,17 @@
 <div class="container my-4">
     <h2>Manage Permissions and Details for {{ user.username }}</h2>
 
+    <!-- Delete Account -->
+<form method="POST" class="mb-4">
+    {% csrf_token %}
+    <h4>Delete Account</h4>
+    <p>Warning: This action cannot be undone.</p>
+    <button type="submit" name="delete_account" class="btn btn-danger mt-3" 
+        {% if user.id == request.user.id %}disabled{% endif %}>Delete Account</button>
+</form>
+
+
+
     <!-- User Details -->
     <form method="POST" class="mb-4">
         {% csrf_token %}

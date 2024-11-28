@@ -4,9 +4,13 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import SignupForm, LoginForm
 from django.urls import reverse
-from .models import LoginAttempt, Customer
+from .models import Customer
 from django.core.exceptions import SuspiciousOperation
 from django.contrib.auth.hashers import check_password, make_password
+from datetime import datetime
+
+
+from axes.models import AccessLog
 
 
 
@@ -56,12 +60,27 @@ def login_view(request):
             password = form.cleaned_data["password"]
 
             user = authenticate(request, username=username, password=password)
+            ip_address = get_client_ip(request)
+
             if not user:
+                # Log reason into AccessLog
+                AccessLog.objects.create(
+                    username=username,
+                    ip_address=ip_address,
+                    attempt_time=datetime.now(),
+                    reason="Invalid username or password",
+                )
                 messages.error(request, "Invalid username or password.")
                 return render(request, "accounts/login.html", {"form": form})
 
-            # Login the user
+            # Login successful
             login(request, user)
+            AccessLog.objects.create(
+                username=username,
+                ip_address=ip_address,
+                attempt_time=datetime.now(),
+                reason="Login successful",
+            )
             messages.success(request, "Login successful!")
             return redirect("profile")
     else:
@@ -71,51 +90,7 @@ def login_view(request):
 
 
             
-''' PIN login (not anymore - changed backends.py)
-            # Check if the user exists
-            try:
-                user = CustomUser.objects.get(username=username)
-            except CustomUser.DoesNotExist:
-                # Log failed attempt due to invalid username
-                LoginAttempt.objects.create(
-                    username=username,
-                    ip_address=ip_address,
-                    success=False,
-                    reason="Invalid username"
-                )
-                messages.error(request, "Invalid username.")
-                return render(request, "accounts/login.html", {"form": form})
 
-            # Check if the PIN matches
-            if not check_password(pin, user.password):
-                # Log failed attempt due to incorrect PIN
-                LoginAttempt.objects.create(
-                    username=username,
-                    ip_address=ip_address,
-                    success=False,
-                    reason="Incorrect PIN"
-                )
-                messages.error(request, "Incorrect PIN.")
-                return render(request, "accounts/login.html", {"form": form})
-
-            # If all checks pass, log the user in
-            # Set the backend explicitly
-            backend = get_backends()[0]  # Use the first configured backend
-            user.backend = f"{backend.__module__}.{backend.__class__.__name__}"
-
-            login(request, user)
-            LoginAttempt.objects.create(
-                username=username,
-                ip_address=ip_address,
-                success=True,
-                reason="Login successful"
-            )
-            messages.success(request, "Login successful!")
-            return redirect("profile")
-    else:
-        form = LoginForm()
-
-    return render(request, "accounts/login.html", {"form": form})'''
 
 
 #### Logout ####
@@ -145,8 +120,8 @@ def profile_view(request):
             messages.error(request, "The current PIN is incorrect.")
         elif new_pin != confirm_new_pin:
             messages.error(request, "The new PINs do not match.")
-        elif len(new_pin) != 4 or not new_pin.isdigit():
-            messages.error(request, "The new PIN must be exactly 4 digits.")
+        elif len(new_pin) < 4 or not new_pin.isdigit():
+            messages.error(request, "The new PIN must be between 4 and 20 digits.")
         else:
             user.set_password(new_pin)  
             user.save()
@@ -200,7 +175,7 @@ def manage_permissions_view(request, user_id):
                 user.pin = new_pin # Hash the pin
                 user.save()
                 messages.success(request, f"PIN for {user.username} has been updated.")
-                
+
         elif "reset_password" in request.POST:
             new_password = request.POST.get("new_password")
             confirm_password = request.POST.get("confirm_password")
@@ -273,6 +248,42 @@ def manage_permissions_view(request, user_id):
     return render(request, "accounts/manage_permissions.html", context)
 
 
+@login_required
+def create_user_view(request):
+    if not request.user.is_superuser:
+        return redirect("access_denied")
+
+    if request.method == "POST":
+        form = SignupForm(request.POST)
+        if form.is_valid():
+            # Extract form data
+            username = form.cleaned_data["username"]
+            email = form.cleaned_data["email"]
+            password = form.cleaned_data["password"]
+            pin = form.cleaned_data["pin"]
+            is_superuser = request.POST.get("is_superuser", "off") == "on"
+
+            # Create the user
+            new_user = CustomUser.objects.create_user(
+                username=username,
+                email=email,
+                pin=pin,
+                password=password,
+                is_staff=is_superuser,
+                is_superuser=is_superuser,
+            )
+            messages.success(
+                request,
+                f"User '{new_user.username}' created successfully. {'Superuser privileges granted.' if is_superuser else ''}",
+            )
+            return redirect("profile")
+    else:
+        form = SignupForm()
+
+    context = {"form": form}
+    return render(request, "accounts/create_user.html", context)
+
+
 
 
 
@@ -283,13 +294,17 @@ def access_denied_view(request):
 
 
 
-from django.contrib.admin.views.decorators import staff_member_required
-
-@staff_member_required
+@login_required
 def login_attempts_view(request):
-    attempts = LoginAttempt.objects.all().order_by("-timestamp")
-    return render(request, "accounts/login_attempts.html", {"attempts": attempts})
+    if not request.user.is_superuser:
+        return redirect("access_denied")
+    
+    attempts = AccessLog.objects.all().order_by("-attempt_time")
 
+    context = {
+        "attempts": attempts,  # Pass the queryset to the template
+    }
+    return render(request, "accounts/login_attempts.html", context) 
 
 
 

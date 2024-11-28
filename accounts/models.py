@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 from django.utils.timezone import now
 from settings.models import Settings
+from axes.models import AccessLog
+
 
 
 
@@ -20,6 +22,13 @@ class Customer(models.Model):
         return self.name
 
 
+
+class CustomAccessLog(AccessLog):
+    reason = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Custom Access Log"
+        verbose_name_plural = "Custom Access Logs"
 
 
 
@@ -98,13 +107,3 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         super().save(*args, **kwargs)
 
 
-class LoginAttempt(models.Model):
-    username = models.CharField(max_length=150)
-    ip_address = models.GenericIPAddressField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    success = models.BooleanField()
-    reason = models.CharField(max_length=255, blank=True, null=True)
-
-    def __str__(self):
-        status = "Success" if self.success else "Failed"
-        return f"{self.timestamp} - {self.username} ({status}): {self.reason}"

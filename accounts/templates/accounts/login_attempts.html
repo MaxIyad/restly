@@ -1,29 +1,35 @@
-<table class="table">
-    <thead>
-        <tr>
-            <th>Username</th>
-            <th>IP Address</th>
-            <th>Timestamp</th>
-            <th>Status</th>
-            <th>Reason</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for attempt in attempts %}
-        <tr>
-            <td>{{ attempt.username }}</td>
-            <td>{{ attempt.ip_address }}</td>
-            <td>{{ attempt.timestamp }}</td>
-            <td>
-                {% if attempt.success %}
-                    Success
-                {% else %}
-                    Failed
-                {% endif %}
-            </td>
-            
-            <td>{{ attempt.reason }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% extends "base.html" %}
+
+{% block title %}Login Attempts{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h2>Login Attempts</h2>
+    <table class="table table-bordered mt-3">
+        <thead>
+            <tr>
+                <th>Attempt Time</th>
+                <th>Username</th>
+                <th>IP</th>
+                <th>Reason</th>
+                <th>Path</th>
+                <th>Locked</th>
+                <th>User Agent (browser & machine)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for attempt in attempts %}
+            <tr>
+                <td>{{ attempt.attempt_time }}</td>
+                <td>{{ attempt.username }}</td>
+                <td>{{ attempt.ip_address }}</td>
+                <td>{{ attempt.reason }}</td>
+                <td>{{ attempt.path_info }}</td>
+                <td>{{ attempt.logout_time }}</td>
+                <td>{{ attempt.user_agent }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
