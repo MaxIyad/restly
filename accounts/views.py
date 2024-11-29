@@ -2,15 +2,17 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import get_user_model, login, logout, authenticate, update_session_auth_hash, get_backends
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils.timezone import make_aware
 from .forms import SignupForm, LoginForm
 from django.urls import reverse
 from .models import CustomAccessLog, Customer
 from django.core.exceptions import SuspiciousOperation
 from django.contrib.auth.hashers import check_password, make_password
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from axes.models import AccessLog
-
+from django.http import HttpResponse
+import csv
 
 
 CustomUser = get_user_model()
@@ -98,19 +100,72 @@ def login_view(request):
 
 
 
-
 @login_required
 def login_attempts_view(request):
     if not request.user.is_superuser:
         return redirect("access_denied")
-    
-    attempts = CustomAccessLog.objects.all().order_by("-custom_attempt_time") 
-    paginator = Paginator(attempts, 10) 
-    page_number = request.GET.get('page')
+
+    # Get filtering options from the request
+    username = request.GET.get("username", "").strip()
+    ip_address = request.GET.get("ip_address", "").strip()
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+    reason = request.GET.get("reason", "").strip()
+
+    # Base queryset
+    attempts = CustomAccessLog.objects.all()
+
+    # Apply filters
+    if username:
+        attempts = attempts.filter(custom_username__icontains=username)
+    if ip_address:
+        attempts = attempts.filter(custom_ip_address__icontains=ip_address)
+    if start_date:
+        try:
+            start_date_time = make_aware(datetime.strptime(start_date, "%Y-%m-%d"))
+            attempts = attempts.filter(custom_attempt_time__gte=start_date_time)
+        except ValueError:
+            pass  # Handle invalid date format gracefully
+    if end_date:
+        try:
+            # Add 23:59:59 to the end date
+            end_date_time = make_aware(datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1, seconds=-1))
+            attempts = attempts.filter(custom_attempt_time__lte=end_date_time)
+        except ValueError:
+            pass  # Handle invalid date format gracefully
+    if reason:
+        attempts = attempts.filter(reason__icontains=reason)
+
+    # Handle export functionality
+    if "export" in request.GET:
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="login_attempts.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["Attempt Time", "Username", "IP", "Reason", "Path", "User Agent"])
+        for attempt in attempts:
+            writer.writerow([
+                attempt.custom_attempt_time,
+                attempt.custom_username,
+                attempt.custom_ip_address,
+                attempt.reason,
+                attempt.custom_path_info,
+                attempt.custom_user_agent,
+            ])
+        return response
+
+    # Paginate the results
+    paginator = Paginator(attempts.order_by("-custom_attempt_time"), 10)
+    page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    return render(request, "accounts/login_attempts.html", {"page_obj": page_obj})
-
+    return render(request, "accounts/login_attempts.html", {
+        "page_obj": page_obj,
+        "username": username,
+        "ip_address": ip_address,
+        "start_date": start_date,
+        "end_date": end_date,
+        "reason": reason,
+    })
 
             
 
@@ -172,18 +227,34 @@ def profile_view(request):
 @login_required
 def manage_permissions_view(request, user_id):
     if not request.user.is_superuser:
-        return redirect("access_denied")  # Redirect if not superuser
-
+        return redirect("access_denied")
+    
     user = get_object_or_404(CustomUser, id=user_id)
 
     if request.method == "POST":
         if "update_permissions" in request.POST:
-            allowed_urls = request.POST.getlist("allowed_urls") 
-            denied_urls = request.POST.getlist("denied_urls")   
-            user.allowed_urls = allowed_urls
-            user.denied_urls = denied_urls
+            # Extract updated lists of allowed and denied URLs
+            new_allowed_urls = set(request.POST.getlist("allowed_urls"))
+            new_denied_urls = set(request.POST.getlist("denied_urls"))
+
+            # Compute the effective changes
+            current_allowed_urls = set(user.allowed_urls)
+            current_denied_urls = set(user.denied_urls)
+
+            # Finalize new states
+            user.allowed_urls = list(new_allowed_urls)
+            user.denied_urls = list(new_denied_urls - new_allowed_urls)  # Ensure no overlap
             user.save()
+
             messages.success(request, f"Permissions updated for {user.username}.")
+        elif "toggle_restrictions" in request.POST:
+            enforce_restrictions = "enforce_url_restrictions" in request.POST
+            user.enforce_url_restrictions = enforce_restrictions
+            user.save()
+            state = "enabled" if enforce_restrictions else "disabled"
+            messages.success(request, f"URL restrictions {state} for {user.username}.")     
+            
+            return redirect("manage_permissions", user_id=user_id)
         
         elif "update_pin" in request.POST:
             new_pin = request.POST.get("new_pin")
@@ -194,7 +265,6 @@ def manage_permissions_view(request, user_id):
             elif len(new_pin) < 4 or len(new_pin) > 20:
                 messages.error(request, "The new PIN must be between 4 and 20 characters.")
             else:
-                user.plain_text_pin = new_pin  # Save the plaintext PIN
                 user.pin = new_pin # Hash the pin
                 user.save()
                 messages.success(request, f"PIN for {user.username} has been updated.")

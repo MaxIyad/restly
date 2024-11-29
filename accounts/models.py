@@ -78,7 +78,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     join_date = models.DateField(default=now, verbose_name="Join Date")
     role = models.CharField(max_length=50, choices=[("Staff", "Staff"), ("Manager", "Manager"), ("Admin", "Admin")], default="Staff")
     email = models.EmailField(unique=True, null=True, blank=True)
-    plain_text_pin = models.CharField(max_length=20, blank=True, null=True)
+    enforce_url_restrictions = models.BooleanField(
+        default=True,
+        verbose_name="Enforce URL Restrictions"
+    )
 
     objects = CustomUserManager()
 
@@ -86,11 +89,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ["email", "pin"]  
 
     def save(self, *args, **kwargs):
-        # Ensure the plain_text_pin matches the hashed password (synchronization logic)
         if not self.pin:
             raise ValueError("The PIN field is required.")
-        if self.plain_text_pin:
-            self.set_password(self.plain_text_pin)
         super().save(*args, **kwargs)
 
     def get_currency_symbol(self):
@@ -103,9 +103,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def clean(self):
         super().clean() 
         if " " in self.username:
-            raise ValueError("The username cannot contain spaces.")
-        if not self.pin:
-            raise ValueError("PIN is required.")
+            raise ValueError("The username cannot contain spaces.")        
 
     def save(self, *args, **kwargs):
         self.clean()  # Ensure validation

@@ -77,6 +77,7 @@ class Ingredient(models.Model):
     order = models.PositiveIntegerField(default=1)
     change_source = models.CharField(max_length=50, blank=True, null=True)
     allergens = models.ManyToManyField(Allergen, related_name="ingredients", blank=True)
+    visible = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['order']

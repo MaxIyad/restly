@@ -85,24 +85,37 @@
     
     <!-- Change PIN -->
 
-    <form method="POST" class="mb-4">
+    <h3 class="mt-4">Change PIN</h3>
+    <form method="POST">
         {% csrf_token %}
-        <h4>Manage PIN</h4>
-        <div class="row">
-            <div class="col-md-6">
-                <label for="current_pin_display" class="form-label">Current PIN</label>
-                <input type="text" id="current_pin_display" class="form-control" value="{{ user.pin }}" readonly>
-            </div>
-            <div class="col-md-6">
-                <label for="new_pin" class="form-label">New PIN</label>
-                <input type="password" name="new_pin" id="new_pin" class="form-control">
-            </div>
+        <div class="mb-3">
+            <label for="new_pin" class="form-label">New PIN</label>
+            <input type="password" name="new_pin" id="new_pin" class="form-control" required>
         </div>
-        <button type="submit" name="update_pin" class="btn btn-primary mt-3">Update PIN</button>
+        <div class="mb-3">
+            <label for="confirm_new_pin" class="form-label">Confirm New PIN</label>
+            <input type="password" name="confirm_new_pin" id="confirm_new_pin" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Update PIN</button>
     </form>
     
 
     <!-- Manage Permissions -->
+     <!-- URL Restrictions Toggle -->
+<form method="POST" class="mb-4">
+    {% csrf_token %}
+    <h4>Toggle URL Restrictions</h4>
+    <div class="form-check">
+        <input type="checkbox" name="enforce_url_restrictions" id="enforce_url_restrictions" 
+               class="form-check-input" 
+               {% if user.enforce_url_restrictions %}checked{% endif %}>
+        <label for="enforce_url_restrictions" class="form-check-label">
+            Enforce URL Restrictions
+        </label>
+    </div>
+    <button type="submit" name="toggle_restrictions" class="btn btn-primary mt-2">Update</button>
+</form>
+
     <form method="POST" id="permissions-form">
         {% csrf_token %}
         <h4>Manage Permissions</h4>
@@ -151,13 +164,18 @@
 
         function moveOptions(source, target) {
             Array.from(source.selectedOptions).forEach(option => {
+                option.selected = false; // Deselect before moving
                 target.appendChild(option);
             });
         }
 
+        // Before submitting, ensure only the relevant options are selected
         document.getElementById("permissions-form").addEventListener("submit", function () {
-            Array.from(deniedUrls.options).forEach(option => option.selected = true);
+            // Select all options in the boxes before form submission
+            Array.from(allowedUrls.options).forEach(option => (option.selected = true));
+            Array.from(deniedUrls.options).forEach(option => (option.selected = true));
         });
     });
 </script>
+
 {% endblock %}

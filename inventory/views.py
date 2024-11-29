@@ -27,7 +27,10 @@ from django.shortcuts import render
 def ingredient_list(request):
     # Get all categories and associated ingredients ordered by their `order` field
     categories = Category.objects.prefetch_related(
-        models.Prefetch('ingredient_set', queryset=Ingredient.objects.order_by('order'))
+        models.Prefetch(
+            "ingredient_set",
+            queryset=Ingredient.objects.filter(visible=True).order_by("order")
+        )
     )
     settings_instance = Settings.objects.first()
 
@@ -150,8 +153,18 @@ def take_inventory(request):
 def order_inventory(request):
     
 
-    if request.method == 'POST':      
+    if request.method == 'POST':
+        # Get all ingredient IDs in the POST request
+        ingredient_ids = [int(key.split('-')[-1]) for key in request.POST.keys() if key.startswith("visible-")]
 
+        # Update visibility for all ingredients
+        for ingredient in Ingredient.objects.all():
+            ingredient.visible = ingredient.id in ingredient_ids  # Mark as visible if checkbox exists
+            ingredient.save()
+
+        messages.success(request, "Ingredient visibility updated successfully!")
+
+        # Handle other updates (e.g., categories, names, etc.)
         error_messages = []  # Collect error messages for invalid updates
         valid_updates = []  # Collect objects for bulk saving after validation
 

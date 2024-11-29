@@ -73,6 +73,14 @@
                         </select>
                     </td>
                     <td>
+                        <div class="form-check">
+                            <input type="checkbox" name="visible-{{ ingredient.id }}" id="visible-{{ ingredient.id }}"
+                                   class="form-check-input" {% if ingredient.visible %}checked{% endif %}>
+                            <label for="visible-{{ ingredient.id }}" class="form-check-label">Visible</label>
+                        </div>
+                    </td>
+                    
+                    <td>
                         <button type="button" class="btn btn-danger btn-sm delete-button" data-id="{{ ingredient.id }}">
                             <i class="bi bi-trash"></i> Delete
                         </button>
