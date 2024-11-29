@@ -4,24 +4,52 @@
 
 {% block content %}
 <div class="container my-4">
-    <h2>Manage Permissions and Details for {{ user.username }}</h2>
+    <h2 class="mb-4">Manage Permissions and Details for <strong>{{ user.username }}</strong></h2>
 
-    <!-- Delete Account -->
-<form method="POST" class="mb-4">
-    {% csrf_token %}
-    <h4>Delete Account</h4>
-    <p>Warning: This action cannot be undone.</p>
-    <button type="submit" name="delete_account" class="btn btn-danger mt-3" 
-        {% if user.id == request.user.id %}disabled{% endif %}>Delete Account</button>
-</form>
+    <!-- Last Login Information -->
+    <p><strong>Last Login:</strong> {{ user.last_login|date:"M d, Y H:i:s" }}</p>
 
+    <!-- Delete Account Section -->
+    <form method="POST" class="mb-5 border p-4 bg-light rounded shadow-sm">
+        {% csrf_token %}
+        <h4 class="text-danger">Delete Account</h4>
+        <p class="mb-2">Warning: This action cannot be undone. Please proceed with caution.</p>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal"
+            {% if user.id == request.user.id %}disabled{% endif %}>
+            <i class="bi bi-trash-fill"></i> Delete Account
+        </button>
+    </form>
 
+    <!-- Delete Account Confirmation Modal -->
+    <div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteAccountModalLabel">Confirm Account Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete the account for <strong>{{ user.username }}</strong>? 
+                    This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <button type="submit" name="delete_account" class="btn btn-danger">
+                            <i class="bi bi-trash-fill"></i> Confirm Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- User Details -->
-    <form method="POST" class="mb-4">
+    <!-- Update User Details -->
+    <form method="POST" class="mb-5 border p-4 bg-light rounded shadow-sm">
         {% csrf_token %}
         <h4>Update Details</h4>
-        <div class="row">
+        <div class="row g-3">
             <div class="col-md-6">
                 <label for="full_name" class="form-label">Full Name</label>
                 <input type="text" name="full_name" id="full_name" class="form-control" value="{{ user.full_name }}">
@@ -38,8 +66,6 @@
                 <label for="phone_number" class="form-label">Phone Number</label>
                 <input type="text" name="phone_number" id="phone_number" class="form-control" value="{{ user.phone_number }}">
             </div>
-        </div>
-        <div class="row mt-3">
             <div class="col-md-4">
                 <label for="hourly_wage" class="form-label">Hourly Wage ({{ user.get_currency_symbol }})</label>
                 <input type="number" step="0.01" name="hourly_wage" id="hourly_wage" class="form-control" value="{{ user.hourly_wage }}" required>
@@ -56,84 +82,52 @@
                     <option value="Admin" {% if user.role == "Admin" %}selected{% endif %}>Admin</option>
                 </select>
             </div>
-        </div>
-        <div class="row mt-3">
             <div class="col-md-12">
                 <label for="address" class="form-label">Address</label>
                 <textarea name="address" id="address" class="form-control" rows="3">{{ user.address }}</textarea>
             </div>
         </div>
-        <button type="submit" name="update_details" class="btn btn-primary mt-3">Update Details</button>
+        <button type="submit" name="update_details" class="btn btn-primary mt-4">
+            <i class="bi bi-save"></i> Update Details
+        </button>
     </form>
 
-    <!-- Change Password -->
-    <form method="POST" class="mb-4">
+    <form method="POST" class="mb-4 border p-4 bg-light rounded shadow-sm">
         {% csrf_token %}
-        <h4>Reset Password</h4>
-        <div class="row">
-            <div class="col-md-6">
-                <label for="new_password" class="form-label">New Password</label>
-                <input type="password" name="new_password" id="new_password" class="form-control" required>
-            </div>
-            <div class="col-md-6">
-                <label for="confirm_password" class="form-label">Confirm New Password</label>
-                <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
-            </div>
+        <h4>Toggle URL Restrictions</h4>
+        <div class="form-check form-switch">
+            <input type="checkbox" name="enforce_url_restrictions" id="enforce_url_restrictions" 
+                   class="form-check-input" 
+                   {% if user.enforce_url_restrictions %}checked{% endif %}>
+            <label for="enforce_url_restrictions" class="form-check-label">
+                Enforce URL Restrictions
+            </label>
         </div>
-        <button type="submit" name="reset_password" class="btn btn-primary mt-3">Reset Password</button>
+        <button type="submit" name="toggle_restrictions" class="btn btn-primary mt-3">
+            <i class="bi bi-toggle-on"></i> Update Restrictions
+        </button>
     </form>
-    
-    <!-- Change PIN -->
-
-    <h3 class="mt-4">Change PIN</h3>
-    <form method="POST">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label for="new_pin" class="form-label">New PIN</label>
-            <input type="password" name="new_pin" id="new_pin" class="form-control" required>
-        </div>
-        <div class="mb-3">
-            <label for="confirm_new_pin" class="form-label">Confirm New PIN</label>
-            <input type="password" name="confirm_new_pin" id="confirm_new_pin" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Update PIN</button>
-    </form>
-    
 
     <!-- Manage Permissions -->
-     <!-- URL Restrictions Toggle -->
-<form method="POST" class="mb-4">
-    {% csrf_token %}
-    <h4>Toggle URL Restrictions</h4>
-    <div class="form-check">
-        <input type="checkbox" name="enforce_url_restrictions" id="enforce_url_restrictions" 
-               class="form-check-input" 
-               {% if user.enforce_url_restrictions %}checked{% endif %}>
-        <label for="enforce_url_restrictions" class="form-check-label">
-            Enforce URL Restrictions
-        </label>
-    </div>
-    <button type="submit" name="toggle_restrictions" class="btn btn-primary mt-2">Update</button>
-</form>
-
-    <form method="POST" id="permissions-form">
+    <form method="POST" id="permissions-form" class="border p-4 bg-light rounded shadow-sm">
         {% csrf_token %}
         <h4>Manage Permissions</h4>
-        <div class="row">
+        <div class="row g-3">
             <div class="col-md-5">
-                <h5>Allowed URLs</h5>
+                <label for="allowed_urls" class="form-label">Allowed URLs</label>
                 <select id="allowed_urls" name="allowed_urls" multiple class="form-control" size="10">
                     {% for url in allowed_urls %}
                     <option value="{{ url }}">{{ url }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2 d-flex flex-column align-items-center justify-content-center">
+            <div class="col-md-2 d-flex align-items-center flex-column justify-content-center gap-3">
+                <!-- Added spacing between arrows -->
                 <button type="button" id="move_to_denied" class="btn btn-outline-danger mb-2">→</button>
                 <button type="button" id="move_to_allowed" class="btn btn-outline-success">←</button>
             </div>
             <div class="col-md-5">
-                <h5>Denied URLs</h5>
+                <label for="denied_urls" class="form-label">Denied URLs</label>
                 <select id="denied_urls" name="denied_urls" multiple class="form-control" size="10">
                     {% for url in available_urls %}
                     {% if url not in allowed_urls %}
@@ -143,7 +137,9 @@
                 </select>
             </div>
         </div>
-        <button type="submit" name="update_permissions" class="btn btn-primary mt-3">Update Permissions</button>
+        <button type="submit" name="update_permissions" class="btn btn-primary mt-4">
+            <i class="bi bi-shield-check"></i> Update Permissions
+        </button>
     </form>
 </div>
 
@@ -169,13 +165,10 @@
             });
         }
 
-        // Before submitting, ensure only the relevant options are selected
         document.getElementById("permissions-form").addEventListener("submit", function () {
-            // Select all options in the boxes before form submission
             Array.from(allowedUrls.options).forEach(option => (option.selected = true));
             Array.from(deniedUrls.options).forEach(option => (option.selected = true));
         });
     });
 </script>
-
 {% endblock %}
