@@ -13,23 +13,33 @@
                 <th>IP</th>
                 <th>Reason</th>
                 <th>Path</th>
-                <th>Locked</th>
                 <th>User Agent (browser & machine)</th>
             </tr>
         </thead>
         <tbody>
-            {% for attempt in attempts %}
+            {% for attempt in page_obj.object_list %}
             <tr>
-                <td>{{ attempt.attempt_time }}</td>
-                <td>{{ attempt.username }}</td>
-                <td>{{ attempt.ip_address }}</td>
+                <td>{{ attempt.custom_attempt_time }}</td>
+                <td>{{ attempt.custom_username }}</td>
+                <td>{{ attempt.custom_ip_address }}</td>
                 <td>{{ attempt.reason }}</td>
-                <td>{{ attempt.path_info }}</td>
-                <td>{{ attempt.logout_time }}</td>
-                <td>{{ attempt.user_agent }}</td>
+                <td>{{ attempt.custom_path_info }}</td>
+                <td>{{ attempt.custom_user_agent }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <nav aria-label="Login attempts pagination">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+            {% endif %}
+            <li class="page-item disabled"><a class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</a></li>
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
 </div>
 {% endblock %}

@@ -23,16 +23,21 @@ class Customer(models.Model):
 
 
 
+
+from axes.models import AccessLog
+
 class CustomAccessLog(AccessLog):
+    custom_username = models.CharField(max_length=150)
+    custom_ip_address = models.GenericIPAddressField()
+    custom_attempt_time = models.DateTimeField(auto_now_add=True)
     reason = models.CharField(max_length=255, blank=True, null=True)
+    custom_path_info = models.TextField(null=True, blank=True)
+    custom_user_agent = models.TextField(null=True, blank=True)
+    success = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Custom Access Log"
         verbose_name_plural = "Custom Access Logs"
-
-
-
-
 
 # ---------------------------------------------------------------------------------------------------------------------------- #
 class CustomUserManager(BaseUserManager):

@@ -4,12 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import SignupForm, LoginForm
 from django.urls import reverse
-from .models import Customer
+from .models import CustomAccessLog, Customer
 from django.core.exceptions import SuspiciousOperation
 from django.contrib.auth.hashers import check_password, make_password
 from datetime import datetime
-
-
+from django.core.paginator import Paginator
 from axes.models import AccessLog
 
 
@@ -57,29 +56,38 @@ def login_view(request):
         form = LoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data["username"]
-            password = form.cleaned_data["password"]
+            password = form.cleaned_data.get("password", "")
+            ip_address = get_client_ip(request)
+            path_info = request.path
+            user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
             user = authenticate(request, username=username, password=password)
             ip_address = get_client_ip(request)
 
             if not user:
                 # Log reason into AccessLog
-                AccessLog.objects.create(
-                    username=username,
-                    ip_address=ip_address,
-                    attempt_time=datetime.now(),
+                CustomAccessLog.objects.create(
+                    custom_username=username,
+                    custom_ip_address=ip_address,
+                    custom_attempt_time=datetime.now(),
                     reason="Invalid username or password",
+                    custom_path_info=path_info,
+                    custom_user_agent=user_agent,
+                    success=False,
                 )
                 messages.error(request, "Invalid username or password.")
                 return render(request, "accounts/login.html", {"form": form})
 
             # Login successful
             login(request, user)
-            AccessLog.objects.create(
-                username=username,
-                ip_address=ip_address,
-                attempt_time=datetime.now(),
+            CustomAccessLog.objects.create(
+                custom_username=username,
+                custom_ip_address=ip_address,
+                custom_attempt_time=datetime.now(),
                 reason="Login successful",
+                custom_path_info=path_info,
+                custom_user_agent=user_agent,
+                success=False,
             )
             messages.success(request, "Login successful!")
             return redirect("profile")
@@ -87,6 +95,21 @@ def login_view(request):
         form = LoginForm()
 
     return render(request, "accounts/login.html", {"form": form})
+
+
+
+
+@login_required
+def login_attempts_view(request):
+    if not request.user.is_superuser:
+        return redirect("access_denied")
+    
+    attempts = CustomAccessLog.objects.all().order_by("-custom_attempt_time") 
+    paginator = Paginator(attempts, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "accounts/login_attempts.html", {"page_obj": page_obj})
 
 
             
@@ -222,7 +245,7 @@ def manage_permissions_view(request, user_id):
 
             if new_pin != confirm_new_pin:
                 messages.error(request, "The new PINs do not match.")
-            elif len(new_pin) != 4 or not new_pin.isdigit():
+            elif len(new_pin) < 4 or not new_pin.isdigit():
                 messages.error(request, "The new PIN must be exactly 4 digits.")
             else:
                 user.password = make_password(new_pin)  # Hash the new PIN
@@ -291,20 +314,6 @@ def create_user_view(request):
 
 def access_denied_view(request):
     return render(request, "accounts/access_denied.html")
-
-
-
-@login_required
-def login_attempts_view(request):
-    if not request.user.is_superuser:
-        return redirect("access_denied")
-    
-    attempts = AccessLog.objects.all().order_by("-attempt_time")
-
-    context = {
-        "attempts": attempts,  # Pass the queryset to the template
-    }
-    return render(request, "accounts/login_attempts.html", context) 
 
 
 
