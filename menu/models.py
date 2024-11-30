@@ -12,7 +12,7 @@ class Menu(models.Model):
     is_active = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
-        if not self.slug or Menu.objects.filter(name=self.name).exclude(id=self.id).exists():
+        if not self.slug:  # Regenerate slug if not set
             base_slug = slugify(self.name)
             slug = base_slug
             counter = 1
@@ -25,6 +25,7 @@ class Menu(models.Model):
             Menu.objects.filter(is_active=True).update(is_active=False)
 
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return self.name

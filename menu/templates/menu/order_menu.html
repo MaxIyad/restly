@@ -6,15 +6,21 @@ Order Menu for {{ menu.name|title }}
 
 {% block content %}
 <div class="container my-4">
+    <form method="post" action="{% url 'order_menu' menu.slug %}">
+        {% csrf_token %}
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-primary">Order Menu for {{ menu.name|title }}</h1>
+        <div class="d-flex align-items-center">
+            <label for="menu-name" class="form-label me-3">Menu Name:</label>
+            <input type="text" id="menu-name" name="menu-name" value="{{ menu.name }}" 
+                   class="form-control w-auto" placeholder="Menu Name">
+        </div>
         <a href="{% url 'menu_detail' menu.slug %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left-circle"></i> Back to Menu
         </a>
     </div>
 
-    <form method="post" action="{% url 'order_menu' menu.slug %}">
-        {% csrf_token %}
+
+
         {% for category in categories %}
         <div class="card mb-4 shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center bg-light">

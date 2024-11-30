@@ -422,6 +422,17 @@ def order_menu(request, menu_slug):
 
     if request.method == 'POST':
 
+        menu_name = request.POST.get('menu-name')
+        if menu_name and menu_name.strip() != menu.name:
+            try:
+                menu.name = menu_name.strip()
+                menu.slug = None  # Reset slug so it gets regenerated in the save method
+                menu.full_clean()  # Validate the new name
+                menu.save()
+                messages.success(request, "Menu name updated successfully!")
+            except Exception as e:
+                error_messages.append(f"Error updating menu name: {e}")
+
         # Handle item deletion
         if 'delete_item_id' in request.POST:
             try:
