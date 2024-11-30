@@ -10,6 +10,7 @@ from django.db.models import Prefetch
 from settings.models import Settings
 from django.db import models
 from reports.models import Order
+from django.db import transaction
 
 from django.http import JsonResponse
 from inventory.models import Category
@@ -372,6 +373,42 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
     return redirect('menu_detail', menu_slug=menu_slug)
 
 
+
+
+def duplicate_menu(request, menu_id):
+    """
+    Duplicate a menu along with its categories and menu items.
+    """
+    original_menu = get_object_or_404(Menu, id=menu_id)
+
+    with transaction.atomic():
+        # Duplicate the menu
+        duplicated_menu = Menu.objects.create(
+            name=f"{original_menu.name} (Copy)",
+            is_active=False  # Default to inactive for the duplicate
+        )
+
+        # Duplicate categories and their menu items
+        for category in original_menu.categories.all():
+            duplicated_category = MenuCategory.objects.create(
+                name=category.name,
+                menu=duplicated_menu,
+                order=category.order,
+                is_active=category.is_active,
+            )
+
+            for item in category.items.all():
+                MenuItem.objects.create(
+                    name=item.name,
+                    category=duplicated_category,
+                    description=item.description,
+                    cost=item.cost,
+                    order=item.order,
+                    is_active=item.is_active,
+                )
+
+    messages.success(request, f"Menu '{original_menu.name}' duplicated successfully!")
+    return redirect('menu_list')
 
 
 

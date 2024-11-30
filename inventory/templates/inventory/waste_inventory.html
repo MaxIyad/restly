@@ -1,0 +1,60 @@
+<!-- waste_inventory.html -->
+
+{% extends 'base.html' %}
+{% load humanize %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="text-danger">Waste Inventory</h1>
+    <a href="{% url 'inventory' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left-circle"></i> Back to Inventory
+    </a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    {% for category in categories %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+            <h2 class="mb-0 text-danger">Category: {{ category.name }}</h2>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Quantity Wasted</th>
+                        <th>Reason</th>
+                        <th>Unit</th>
+                        <th>Current Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ingredient in category.ingredient_set.all %}
+                    <tr>
+                        <td>{{ ingredient.name }}</td>
+                        <td>
+                            {% with ingredient_forms|get_form:ingredient.id as form %}
+                                {{ form.quantity }}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% with ingredient_forms|get_form:ingredient.id as form %}
+                                {{ form.waste_reason }}
+                            {% endwith %}
+                        </td>
+                        <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
+                        <td>{{ ingredient.converted_quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-danger">
+        <i class="bi bi-save"></i> Record Waste
+    </button>
+</form>
+{% endblock %}

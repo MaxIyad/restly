@@ -605,3 +605,59 @@ def prepped_ingredient_list(request):
         'prepped_ingredients': prepped_ingredients,
     }
     return render(request, 'inventory/prepped_ingredient_list.html', context)
+
+
+
+
+def waste_inventory(request):
+    categories = Category.objects.prefetch_related('ingredient_set').all()
+
+    # Create a form factory for updating the 'quantity' and 'waste_reason' fields
+    InventoryForm = modelform_factory(
+        Ingredient,
+        fields=['quantity', 'waste_reason'],
+        widgets={
+            'quantity': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control'}),
+            'waste_reason': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Reason for wastage'}),
+        },
+    )
+
+    ingredient_forms = {}
+
+    if request.method == 'POST':
+        updated_count = 0
+        for ingredient in Ingredient.objects.all():
+            InventoryForm.base_fields['quantity'].required = False
+            InventoryForm.base_fields['waste_reason'].required = False
+
+            form = InventoryForm(request.POST, instance=ingredient, prefix=f"ingredient-{ingredient.id}")
+            ingredient_forms[ingredient.id] = form
+
+            if form.is_valid():
+                with transaction.atomic():
+                    ingredient.refresh_from_db()
+                    if form.cleaned_data['quantity'] is not None:
+                        wasted_quantity = form.cleaned_data['quantity']
+                        ingredient.quantity = ingredient.quantity - wasted_quantity
+                        ingredient.waste_reason = form.cleaned_data['waste_reason']
+                        ingredient.save()
+                        update_change_reason(ingredient, "Waste")
+                        updated_count += 1
+
+        if updated_count > 0:
+            messages.success(request, f"Waste recorded successfully! {updated_count} ingredient{'s' if updated_count > 1 else ''} updated.")
+        else:
+            messages.info(request, "No changes were made to the inventory.")
+
+        return redirect('inventory')
+
+    for ingredient in Ingredient.objects.all():
+        InventoryForm.base_fields['quantity'].required = False
+        InventoryForm.base_fields['waste_reason'].required = False
+        ingredient_forms[ingredient.id] = InventoryForm(instance=None, prefix=f"ingredient-{ingredient.id}")
+
+    context = {
+        'categories': categories,
+        'ingredient_forms': ingredient_forms,
+    }
+    return render(request, 'inventory/waste_inventory.html', context)

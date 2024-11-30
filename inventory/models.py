@@ -78,6 +78,7 @@ class Ingredient(models.Model):
     change_source = models.CharField(max_length=50, blank=True, null=True)
     allergens = models.ManyToManyField(Allergen, related_name="ingredients", blank=True)
     visible = models.BooleanField(default=True)
+    waste_reason = models.TextField(null=True, blank=True, help_text="Reason for wastage (if applicable)")
 
     class Meta:
         ordering = ['order']

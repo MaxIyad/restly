@@ -57,20 +57,26 @@ Menus
                     </div>
                 </a>
                 <div class="card-footer text-center d-flex justify-content-between">
-                    
                     <!-- Toggle Active Form -->
                     <form method="post" class="d-inline">
                         {% csrf_token %}
                         <input type="hidden" name="menu_id" value="{{ menu.id }}">
-                        <input type="hidden" name="action" value="toggle_active">
                         <label class="form-check-label me-2">Active</label>
-                        <input type="checkbox" onchange="this.form.submit()" {% if menu.is_active %}checked{% endif %} class="form-check-input">                        
+                        <input type="checkbox" onchange="this.form.submit()" {% if menu.is_active %}checked{% endif %} class="form-check-input">                         
+                    </form>
+                    <!-- Duplicate Menu Button -->
+                    <form method="post" action="{% url 'duplicate_menu' menu.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning btn-sm">
+                            <i class="bi bi-files"></i> Duplicate
+                        </button>
                     </form>
                     <!-- Delete Menu Button -->
                     <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteMenuModal-{{ menu.id }}">
                         <i class="bi bi-trash"></i> Delete
                     </button>
                 </div>
+                
             </div>
         </div>
         {% empty %}
