@@ -1,9 +1,10 @@
 # inventory/views.py:
 
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Ingredient, Category, Allergen
+from .models import Ingredient, Category, Allergen, Unit
+from django.forms.models import inlineformset_factory
 from settings.models import Settings 
-from .forms import IngredientForm, CategoryForm, AllergenForm, PreppedIngredientForm
+from .forms import IngredientForm, CategoryForm, AllergenForm, PreppedIngredientForm, UnitForm
 from django import forms
 from django.forms import modelform_factory
 from django.contrib import messages 
@@ -61,28 +62,31 @@ def ingredient_list(request):
 
 
 def row_add(request):
-    # Use a formset to handle multiple rows
-    IngredientFormSet = modelformset_factory(
-        Ingredient,
-        form=IngredientForm,
-        extra=1,  # Allow for one empty form initially
-        can_delete=False  # Allow rows to be removed
-    )
+    IngredientFormSet = modelformset_factory(Ingredient, form=IngredientForm, extra=1, can_delete=False)
+    UnitInlineFormSet = inlineformset_factory(Ingredient, Unit, form=UnitForm, extra=1, can_delete=True)
 
     if request.method == 'POST':
         formset = IngredientFormSet(request.POST, queryset=Ingredient.objects.none())
         if formset.is_valid():
-            # Save all rows to the database
-            formset.save()
-            messages.success(request, "Ingredients added successfully!")
+            ingredients = formset.save()
+            for ingredient in ingredients:
+                unit_formset = UnitInlineFormSet(request.POST, instance=ingredient)
+                if unit_formset.is_valid():
+                    unit_formset.save()
+            messages.success(request, "Ingredients and units added successfully!")
             return redirect('inventory')
         else:
             messages.error(request, "There was an error saving the ingredients. Please try again.")
     else:
-        # Initialize with no rows
         formset = IngredientFormSet(queryset=Ingredient.objects.none())
 
-    return render(request, 'inventory/row_add.html', {'formset': formset})
+    return render(request, 'inventory/row_add.html', {'formset': formset, 'unit_formset': UnitInlineFormSet})
+
+
+
+
+
+
 
 
 
@@ -101,8 +105,33 @@ def category_add(request):
     return render(request, 'inventory/category_add.html', {'form': form})
 
 
-
 def take_inventory(request):
+    categories = Category.objects.prefetch_related('ingredient_set__units').all()
+    
+    if request.method == 'POST':
+        updated_count = 0
+        with transaction.atomic():
+            for ingredient in Ingredient.objects.prefetch_related('units'):
+                for unit in ingredient.units.all():
+                    quantity_key = f"unit_quantity_{unit.id}"
+                    if quantity_key in request.POST and request.POST[quantity_key]:
+                        try:
+                            unit_quantity = float(request.POST[quantity_key])
+                            unit.quantity = unit_quantity  # Update unit's quantity
+                            unit.save()
+                            updated_count += 1
+                        except ValueError:
+                            messages.error(request, f"Invalid quantity for {unit.name}.")
+            messages.success(request, f"Inventory updated for {updated_count} units.")
+
+        return redirect('inventory')
+
+    context = {
+        'categories': categories,
+    }
+    return render(request, 'inventory/take_inventory.html', context)
+
+'''def take_inventory(request):
     categories = Category.objects.prefetch_related('ingredient_set').all()
 
     # Create a form factory for updating the 'quantity' field
@@ -148,7 +177,9 @@ def take_inventory(request):
         'categories': categories,
         'ingredient_forms': ingredient_forms,  # Pass the forms to the template
     }
-    return render(request, 'inventory/take_inventory.html', context)
+    return render(request, 'inventory/take_inventory.html', context)'''
+
+
 
 def order_inventory(request):
     

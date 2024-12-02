@@ -1,6 +1,3 @@
-<!-- row_add.html -->
-
-
 {% extends 'base.html' %}
 
 {% block title %}
@@ -23,16 +20,26 @@ Add Ingredients
     <div id="rows-container">
         <!-- Render all forms in the formset -->
         {% for form in formset %}
-        <div class="ingredient-row card mb-3 shadow-sm p-3">
-            <div class="card-body">
-                
-                {{ form.as_p }}
-            </div>
-            <div class="card-footer text-end">
-                <button type="button" class="btn btn-danger btn-sm remove-row">Delete Row</button>
-            </div>
+<div class="ingredient-row card mb-3 shadow-sm p-3">
+    <div class="card-body">
+        {{ form.as_p }}
+        <div class="unit-section">
+            <h5 class="mt-3">Units</h5>
+            {{ unit_formset.management_form }} <!-- Include the management form for units -->
+            {% for unit_form in unit_formset.forms %}
+                <div class="unit-row d-flex align-items-center">
+                    {{ unit_form.as_p }}
+                    <button type="button" class="btn btn-danger btn-sm remove-unit ms-2">Remove Unit</button>
+                </div>
+            {% endfor %}
+            <button type="button" class="btn btn-secondary btn-sm add-unit">Add Unit</button>
         </div>
-        {% endfor %}
+    </div>
+    <div class="card-footer text-end">
+        <button type="button" class="btn btn-danger btn-sm remove-row">Delete Row</button>
+    </div>
+</div>
+{% endfor %}
     </div>
     <div class="d-flex justify-content-between mt-4">
         <button type="button" id="add-row" class="btn btn-secondary">
@@ -47,48 +54,48 @@ Add Ingredients
 <a href="{% url 'inventory' %}" class="btn btn-link mt-4">Back to Inventory List</a>
 
 <script>
-    // Get the initial form HTML to duplicate for new rows
-    const initialRowHtml = `
-        <div class="ingredient-row card mb-3 shadow-sm p-3">
-            <div class="card-body">
-                {{ formset.empty_form.as_p|escapejs }}
-            </div>
-            <div class="card-footer text-end">
-                <button type="button" class="btn btn-danger btn-sm remove-row">Delete Row</button>
-            </div>
-        </div>
-    `;
+    document.addEventListener('DOMContentLoaded', () => {
+    const maxUnits = 3;
 
-    // Add event listener to the "Add Row" button
-    document.getElementById('add-row').addEventListener('click', () => {
-        const container = document.getElementById('rows-container');
-        const totalForms = document.getElementById('id_form-TOTAL_FORMS'); // Total forms input
-        const newRow = document.createElement('div');
-        newRow.className = 'ingredient-row card mb-3 shadow-sm p-3';
-
-        // Update the new row HTML with the correct index
-        const currentIndex = parseInt(totalForms.value, 10);
-        newRow.innerHTML = initialRowHtml.replace(/__prefix__/g, currentIndex);
-        container.appendChild(newRow);
-
-        // Increment the TOTAL_FORMS value
-        totalForms.value = currentIndex + 1;
-
-        // Attach event listener to the "Delete Row" button
-        newRow.querySelector('.remove-row').addEventListener('click', function () {
-            newRow.remove();
-            totalForms.value = parseInt(totalForms.value, 10) - 1;
-        });
-    });
-
-    // Add event listeners to existing "Delete Row" buttons
-    document.querySelectorAll('.remove-row').forEach(button => {
+    // Add functionality for "Add Unit" button
+    document.querySelectorAll('.add-unit').forEach(button => {
         button.addEventListener('click', function () {
-            const row = button.closest('.ingredient-row');
-            row.remove();
-            const totalForms = document.getElementById('id_form-TOTAL_FORMS');
-            totalForms.value = parseInt(totalForms.value, 10) - 1;
+            const unitSection = this.closest('.unit-section');
+            const unitFields = unitSection.querySelector('.unit-fields');
+            const currentUnits = unitFields.children.length;
+
+            if (currentUnits >= maxUnits) {
+                alert('You can add a maximum of 3 units.');
+                return;
+            }
+
+            const newUnitRow = document.createElement('div');
+            newUnitRow.className = 'unit-row d-flex align-items-center';
+            newUnitRow.innerHTML = `
+                <input type="text" name="unit-name-${currentUnits}" class="form-control w-auto" placeholder="Unit Name">
+                <input type="number" name="unit-multiplier-${currentUnits}" class="form-control w-auto ms-2" placeholder="Multiplier">
+                <button type="button" class="btn btn-danger btn-sm remove-unit ms-2">Remove Unit</button>
+            `;
+
+            unitFields.appendChild(newUnitRow);
+
+            // Add remove functionality for the new unit
+            newUnitRow.querySelector('.remove-unit').addEventListener('click', () => {
+                newUnitRow.remove();
+            });
         });
     });
+
+    // Add remove functionality for existing units
+    document.querySelectorAll('.remove-unit').forEach(button => {
+        button.addEventListener('click', function () {
+            this.parentElement.remove();
+        });
+    });
+});
+
+
+    // Add event listeners to existing rows for units
+    document.querySelectorAll('.ingredient-row').forEach(attachUnitButtons);
 </script>
 {% endblock %}

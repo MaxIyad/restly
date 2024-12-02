@@ -109,8 +109,16 @@ class Ingredient(models.Model):
         if Ingredient.objects.filter(name__iexact=self.name, category=self.category).exclude(id=self.id).exists():
             raise ValidationError(f"The name '{self.name}' is already in use in the category '{self.category.name}'.")
 
+    def total_quantity(self):
+        """
+        Calculate the total inventory quantity by summing base quantity
+        and quantities from associated units.
+        """
+        unit_total = sum(unit.quantity * unit.multiplier for unit in self.units.all())
+        return self.quantity + unit_total
+
     def __str__(self):
-        return self.name.title()
+        return f"{self.name.title()} - Total: {self.total_quantity()} {self.unit_type}"
 
     @property
     def converted_quantity(self):
@@ -159,6 +167,17 @@ class Ingredient(models.Model):
 
         converted_qty = base_qty / conversion_factor
         return f"{converted_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)}{higher_unit}"
+
+
+class Unit(models.Model):
+    ingredient = models.ForeignKey('Ingredient', related_name='units', on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)  # e.g., Bag, Bucket
+    multiplier = models.FloatField()  # Conversion multiplier to base unit (e.g., 25kg, 10kg)
+    quantity = models.FloatField(default=0)
+
+    def __str__(self):
+        return f"{self.name} ({self.multiplier} {self.ingredient.unit_type})"
+
 
 
 class PreppedIngredient(models.Model):

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Ingredient, Category, Allergen, PreppedIngredient
+from .models import Ingredient, Category, Allergen, PreppedIngredient, Unit
 
 class IngredientForm(forms.ModelForm):
 
@@ -39,6 +39,15 @@ class IngredientForm(forms.ModelForm):
 
         return cleaned_data
 
+class UnitForm(forms.ModelForm):
+    class Meta:
+        model = Unit
+        fields = ['name', 'multiplier']
+        labels = {
+            'name': 'Unit Name',
+            'multiplier': 'Multiplier',
+        }
+
 
 class CategoryForm(forms.ModelForm):
     class Meta:
@@ -62,6 +71,8 @@ class AllergenForm(forms.ModelForm):
 
 
 
+
+
 class PreppedIngredientForm(forms.ModelForm):
     class Meta:
         model = PreppedIngredient
@@ -75,3 +86,7 @@ class PreppedIngredientForm(forms.ModelForm):
             'quantity': 'Available Quantity',
             'prep_quantity': 'Quantity Required Per Unit',
         }
+
+
+
+

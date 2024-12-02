@@ -15,11 +15,11 @@
     <div class="row g-3">
         <div class="col-md-4">
             <label for="start_date" class="form-label">Start Date</label>
-            <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date }}" min="1997-01-01">
+            <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date }}" min="1997-01-01" max="2222-12-31">
         </div>
         <div class="col-md-4">
             <label for="end_date" class="form-label">End Date</label>
-            <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date }}" min="1997-01-01">
+            <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date }}" min="1997-01-01" max="2222-12-31">
         </div>
         <div class="col-md-4 align-self-end">
             <button type="submit" class="btn btn-primary w-100">Filter</button>

@@ -45,8 +45,8 @@
                         {{ ingredient.name }}
                     </a>                    
                 </td>
-                <td>{{ ingredient.converted_quantity }}</td>
-                <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
+                <td>{{ ingredient.total_quantity }}</td>
+                <td>{{ ingredient.unit_type }}</td>
                 <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:2|intcomma }}</td>
                 <td>
                     {% if ingredient.total_cost < 0 %}
