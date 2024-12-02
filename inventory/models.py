@@ -115,7 +115,8 @@ class Ingredient(models.Model):
         and quantities from associated units.
         """
         unit_total = sum(unit.quantity * unit.multiplier for unit in self.units.all())
-        return self.quantity + unit_total
+        total = self.quantity + unit_total
+        return self._convert_unit(total)
 
     def __str__(self):
         return f"{self.name.title()} - Total: {self.total_quantity()} {self.unit_type}"
@@ -137,17 +138,19 @@ class Ingredient(models.Model):
         return self.quantity < self.threshold
 
     def _convert_unit(self, value):
-        """Utility method to convert a value (quantity or threshold) based on the unit type."""
+        """
+        Convert a value (quantity or threshold) based on the unit type.
+        """
         metric_conversion_factors = {
-            'g': Decimal('1000'),       # 1000 grams = 1 kg
-            'ml': Decimal('1000'),      # 1000 milliliters = 1 liter
-            'cm': Decimal('100'),       # 100 cm = 1 m
+            'g': Decimal('1000'),  # 1000 grams = 1 kg
+            'ml': Decimal('1000'),  # 1000 milliliters = 1 liter
+            'cm': Decimal('100'),  # 100 cm = 1 m
         }
 
         imperial_conversion_factors = {
-            'oz': Decimal('16'),        # 16 ounces = 1 pound
-            'fl_oz': Decimal('128'),    # 128 fluid ounces = 1 gallon
-            'in': Decimal('12'),        # 12 inches = 1 foot
+            'oz': Decimal('16'),  # 16 ounces = 1 pound
+            'fl_oz': Decimal('128'),  # 128 fluid ounces = 1 gallon
+            'in': Decimal('12'),  # 12 inches = 1 foot
         }
 
         if self.unit_type in metric_conversion_factors:
@@ -160,13 +163,13 @@ class Ingredient(models.Model):
             conversion_factor = Decimal('1')
             higher_unit = self.unit_type
 
-        base_qty = Decimal(value) * Decimal(self.unit_multiplier)
-
+        # Convert value to the higher unit
+        base_qty = Decimal(value)
         if base_qty < conversion_factor:
-            return f"{base_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)}{self.unit_type}"
+            return f"{base_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)} {self.unit_type}"
 
         converted_qty = base_qty / conversion_factor
-        return f"{converted_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)}{higher_unit}"
+        return f"{converted_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)} {higher_unit}"
 
 
 class Unit(models.Model):
