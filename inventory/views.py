@@ -63,24 +63,57 @@ def ingredient_list(request):
 
 def row_add(request):
     IngredientFormSet = modelformset_factory(Ingredient, form=IngredientForm, extra=1, can_delete=False)
-    UnitInlineFormSet = inlineformset_factory(Ingredient, Unit, form=UnitForm, extra=1, can_delete=True)
 
     if request.method == 'POST':
         formset = IngredientFormSet(request.POST, queryset=Ingredient.objects.none())
+        unit_formsets = []
+
         if formset.is_valid():
-            ingredients = formset.save()
-            for ingredient in ingredients:
-                unit_formset = UnitInlineFormSet(request.POST, instance=ingredient)
-                if unit_formset.is_valid():
-                    unit_formset.save()
-            messages.success(request, "Ingredients and units added successfully!")
-            return redirect('inventory')
-        else:
-            messages.error(request, "There was an error saving the ingredients. Please try again.")
+            ingredients = formset.save(commit=False)
+            all_valid = True
+            for i, ingredient in enumerate(ingredients):
+                # Create three unit forms for each ingredient
+                unit_form_1 = UnitForm(request.POST, prefix=f"unit-{i}-1")
+                unit_form_2 = UnitForm(request.POST, prefix=f"unit-{i}-2")
+                unit_form_3 = UnitForm(request.POST, prefix=f"unit-{i}-3")
+                unit_formsets.append([unit_form_1, unit_form_2, unit_form_3])
+
+                # Validate at least one unit form
+                if not any(
+                    unit_form.cleaned_data
+                    for unit_form in [unit_form_1, unit_form_2, unit_form_3]
+                    if unit_form.is_valid() and (unit_form.cleaned_data.get('name') or unit_form.cleaned_data.get('multiplier'))
+                ):
+                    all_valid = False
+                    formset._non_form_errors = "At least one unit must be filled for each ingredient."
+
+                if not all(unit_form.is_valid() for unit_form in [unit_form_1, unit_form_2, unit_form_3]):
+                    all_valid = False
+
+            if all_valid:
+                for i, ingredient in enumerate(ingredients):
+                    ingredient.save()
+                    for unit_form in unit_formsets[i]:
+                        unit_instance = unit_form.save(commit=False)
+                        unit_instance.ingredient = ingredient
+                        unit_instance.save()
+                messages.success(request, "Ingredients and units added successfully!")
+                return redirect('inventory')
+
+        messages.error(request, "There was an error saving the ingredients. Please try again.")
     else:
         formset = IngredientFormSet(queryset=Ingredient.objects.none())
+        unit_formsets = [
+            [UnitForm(prefix=f"unit-{i}-1"), UnitForm(prefix=f"unit-{i}-2"), UnitForm(prefix=f"unit-{i}-3")]
+            for i in range(formset.total_form_count())
+        ]
 
-    return render(request, 'inventory/row_add.html', {'formset': formset, 'unit_formset': UnitInlineFormSet})
+    return render(request, 'inventory/row_add.html', {
+        'formset': formset,
+        'unit_formsets': unit_formsets,
+    })
+
+
 
 
 

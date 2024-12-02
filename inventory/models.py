@@ -65,7 +65,7 @@ class Ingredient(models.Model):
 
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
-    quantity = models.FloatField()  # Quantity in stock
+    quantity = models.FloatField(default=0)  # Quantity in stock
     threshold = models.FloatField(default=0)  # Minimum threshold for inventory
     category = models.ForeignKey('Category', on_delete=models.CASCADE)
     unit_type = models.CharField(max_length=10, choices=UNIT_TYPES)

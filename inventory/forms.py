@@ -12,18 +12,17 @@ class IngredientForm(forms.ModelForm):
 
     class Meta:
         model = Ingredient
-        fields = ['name', 'quantity', 'category', 'unit_type', 'unit_multiplier', 'unit_cost', 'threshold', 'allergens']
+        fields = ['name', 'category', 'unit_type', 'unit_multiplier', 'unit_cost', 'threshold', 'allergens']
         widgets = {
             'category': forms.Select(),
             'unit_type': forms.Select(),
         }
         labels = {
             'name': 'Ingredient Name',
-            'quantity': 'Quantity',
             'category': 'Category',
             'unit_type': 'Unit Type',
-            'unit_multiplier': 'Unit Multiplier',
-            'unit_cost': 'Unit Cost',
+            'unit_multiplier': 'Delivery Unit Amount',
+            'unit_cost': 'Delivery Unit Cost',
             'threshold': 'Threshold (Quantity)',
         }
 
@@ -47,6 +46,17 @@ class UnitForm(forms.ModelForm):
             'name': 'Unit Name',
             'multiplier': 'Multiplier',
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        name = cleaned_data.get('name')
+        multiplier = cleaned_data.get('multiplier')
+
+        if not name and not multiplier:
+            return cleaned_data  # Allow empty forms but let view enforce "at least one required"
+        if not name or not multiplier:
+            raise forms.ValidationError("Both name and multiplier are required if one is filled.")
+        return cleaned_data
 
 
 class CategoryForm(forms.ModelForm):
