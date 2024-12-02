@@ -24,13 +24,17 @@ Add Ingredients
                 {{ form.as_p }}
                 <div class="unit-section">
                     <h5 class="mt-3">Units</h5>
-                    {% for unit_form in unit_formsets|slice:":3" %}
-                    {% for unit in unit_form %}
-                    <div class="unit-row d-flex align-items-center">
-                        {{ unit.as_p }}
+                    <div class="unit-forms">
+                        {% for unit_form in unit_formsets|slice:":3" %}
+                        {% for unit in unit_form %}
+                        <div class="unit-row d-flex align-items-center">
+                            {{ unit.as_p }}
+                            <button type="button" class="btn btn-danger btn-sm ms-2 delete-unit">Delete Unit</button>
+                        </div>
+                        {% endfor %}
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                    {% endfor %}
+                    <button type="button" class="btn btn-secondary add-unit mt-2">Add Unit</button>
                 </div>
             </div>
             <div class="card-footer text-end">
@@ -52,15 +56,15 @@ Add Ingredients
 <a href="{% url 'inventory' %}" class="btn btn-link mt-4">Back to Inventory List</a>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-    const maxUnits = 3;
+document.addEventListener('DOMContentLoaded', () => {
+    const maxUnits = 3; // Maximum units per ingredient row
 
-    // Add functionality for "Add Unit" button
+    // Add new unit row
     document.querySelectorAll('.add-unit').forEach(button => {
         button.addEventListener('click', function () {
             const unitSection = this.closest('.unit-section');
-            const unitFields = unitSection.querySelector('.unit-fields');
-            const currentUnits = unitFields.children.length;
+            const unitForms = unitSection.querySelector('.unit-forms');
+            const currentUnits = unitForms.querySelectorAll('.unit-row').length;
 
             if (currentUnits >= maxUnits) {
                 alert('You can add a maximum of 3 units.');
@@ -72,28 +76,55 @@ Add Ingredients
             newUnitRow.innerHTML = `
                 <input type="text" name="unit-name-${currentUnits}" class="form-control w-auto" placeholder="Unit Name">
                 <input type="number" name="unit-multiplier-${currentUnits}" class="form-control w-auto ms-2" placeholder="Multiplier">
-                <button type="button" class="btn btn-danger btn-sm remove-unit ms-2">Remove Unit</button>
+                <button type="button" class="btn btn-danger btn-sm ms-2 delete-unit">Delete Unit</button>
             `;
 
-            unitFields.appendChild(newUnitRow);
+            unitForms.appendChild(newUnitRow);
 
-            // Add remove functionality for the new unit
-            newUnitRow.querySelector('.remove-unit').addEventListener('click', () => {
+            // Attach delete functionality to the new "Delete Unit" button
+            newUnitRow.querySelector('.delete-unit').addEventListener('click', () => {
                 newUnitRow.remove();
             });
         });
     });
 
-    // Add remove functionality for existing units
-    document.querySelectorAll('.remove-unit').forEach(button => {
+    // Delete unit row
+    document.querySelectorAll('.delete-unit').forEach(button => {
         button.addEventListener('click', function () {
-            this.parentElement.remove();
+            this.closest('.unit-row').remove();
         });
     });
+
+    // Delete ingredient row
+    document.querySelectorAll('.remove-row').forEach(button => {
+        button.addEventListener('click', function () {
+            this.closest('.ingredient-row').remove();
+        });
+    });
+
+    // Add new ingredient row
+    document.getElementById('add-row').addEventListener('click', () => {
+        const rowsContainer = document.getElementById('rows-container');
+        const newRow = rowsContainer.firstElementChild.cloneNode(true);
+
+        // Clear inputs in the new row
+        newRow.querySelectorAll('input').forEach(input => {
+            input.value = '';
+        });
+
+        // Attach delete functionality for units and rows in the new row
+        newRow.querySelectorAll('.delete-unit').forEach(button => {
+            button.addEventListener('click', function () {
+                this.closest('.unit-row').remove();
+            });
+        });
+
+        newRow.querySelector('.remove-row').addEventListener('click', function () {
+            newRow.remove();
+        });
+
+        rowsContainer.appendChild(newRow);
+    });
 });
-
-
-    // Add event listeners to existing rows for units
-    document.querySelectorAll('.ingredient-row').forEach(attachUnitButtons);
 </script>
 {% endblock %}
