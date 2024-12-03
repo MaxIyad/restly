@@ -74,8 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const newUnitRow = document.createElement('div');
             newUnitRow.className = 'unit-row d-flex align-items-center';
             newUnitRow.innerHTML = `
-    <input type="text" name="unit-name-${currentUnits}" class="form-control w-auto" placeholder="Optional Unit Name">
-    <input type="number" name="unit-multiplier-${currentUnits}" class="form-control w-auto ms-2" placeholder="Optional Multiplier">
+    <input type="text" name="unit-name-${currentUnits}" class="form-control w-auto" >
+    <input type="number" name="unit-multiplier-${currentUnits}" class="form-control w-auto ms-2" >
     <button type="button" class="btn btn-danger btn-sm ms-2 delete-unit">Delete Unit</button>
 `;
 

@@ -46,10 +46,7 @@ class UnitForm(forms.ModelForm):
             'name': 'Unit Name',
             'multiplier': 'Multiplier',
         }
-        widgets = {
-            'name': forms.TextInput(attrs={'placeholder': 'Optional Unit Name'}),
-            'multiplier': forms.NumberInput(attrs={'placeholder': 'Optional Multiplier'}),
-        }
+        
 
     def clean(self):
         cleaned_data = super().clean()

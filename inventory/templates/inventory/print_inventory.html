@@ -1,5 +1,3 @@
-<!-- print_inventory.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,19 +18,24 @@
         }
         th, td {
             border: 1px dotted black;
-            padding: 2px ;
+            padding: 4px;
             text-align: left;
             word-wrap: break-word;
         }
         th {
             background-color: #fff;
         }
+        td.unit-cell {
+            text-align: right; /* Align text to the right */
+        }
         h2 {
-            margin: 2px 0 2px;
+            margin: 10px 0;
             font-size: 14px;
         }
-              
-        
+        small {
+            display: block;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -45,20 +48,27 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>New Quantity</th>
-                <th>Unit</th>
-                <th>Current Quantity</th>
-                <th>Unit Cost</th>
+                <th>Unit 1</th>
+                <th>Unit 2</th>
+                <th>Unit 3</th>
             </tr>
         </thead>
         <tbody>
             {% for ingredient in category.ingredient_set.all %}
             <tr>
-                <td>{{ ingredient.name|title }}</td>
-                <td></td> <!-- Underline placeholder? -->
-                <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
-                <td>{{ ingredient.converted_quantity }}</td>
-                <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:2|intcomma }}</td>
+                <td>
+                    {{ ingredient.name|title }}
+                    <br>
+                    <small>Current: {{ ingredient.converted_quantity }}</small>
+                </td>
+                {% for unit in ingredient.units.all %}
+                    <td class="unit-cell">
+                        <small>
+                            <strong>{{ unit.name }}</strong>
+                            ({{ unit.multiplier }} {{ ingredient.unit_type }})
+                        </small>
+                    </td>
+                {% endfor %}
             </tr>
             {% endfor %}
         </tbody>

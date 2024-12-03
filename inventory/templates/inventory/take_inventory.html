@@ -23,33 +23,41 @@
             <h2 class="mb-0 text-primary">Category: {{ category.name }}</h2>
         </div>
         <div class="card-body">
-            <table class="table table-striped align-middle">
+            <table class="table table-bordered align-middle">
                 <thead class="table-light">
                     <tr>
                         <th>Ingredient</th>
-                        <th>Unit Name</th>
-                        <th>Multiplier</th>
                         <th>Current Quantity</th>
-                        <th>Input Quantity</th>
+                        <th>Unit 1</th>
+                        <th>Unit 2</th>
+                        <th>Unit 3</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for ingredient in category.ingredient_set.all %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'ingredient_details' category.slug ingredient.slug %}">
+                                {{ ingredient.name }}
+                            </a>
+                        </td>
+                        <td>{{ ingredient.quantity|floatformat:2 }}</td>
                         {% for unit in ingredient.units.all %}
-                        <tr>
-                            <td rowspan="{{ ingredient.units.count }}">
-                                <a href="{% url 'ingredient_details' category.slug ingredient.slug %}">
-                                    {{ ingredient.name }}
-                                </a>
-                            </td>
-                            <td>{{ unit.name }}</td>
-                            <td>{{ unit.multiplier }} {{ ingredient.unit_type }}</td>
-                            <td>{{ unit.quantity|floatformat:2 }}</td>
                             <td>
-                                <input type="number" name="unit_quantity_{{ unit.id }}" class="form-control" step="0.01" placeholder="Enter Quantity">
+                                <div class="mb-2">
+                                    <strong>{{ unit.name }}</strong> 
+                                    <small>({{ unit.multiplier }} {{ ingredient.unit_type }})</small>
+                                </div>
+                                <input
+                                    type="number"
+                                    name="unit_quantity_{{ unit.id }}"
+                                    class="form-control"
+                                    step="0.01"
+                                    placeholder="{{ unit.quantity }}">
                             </td>
-                        </tr>
                         {% endfor %}
+                            <td></td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>

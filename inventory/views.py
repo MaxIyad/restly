@@ -157,7 +157,7 @@ def take_inventory(request):
                             updated_count += 1
                         except ValueError:
                             messages.error(request, f"Invalid quantity for {unit.name}.")
-            messages.success(request, f"Inventory updated for {updated_count} units.")
+        messages.success(request, f"Inventory updated for {updated_count} units.")
 
         return redirect('inventory')
 
@@ -165,6 +165,9 @@ def take_inventory(request):
         'categories': categories,
     }
     return render(request, 'inventory/take_inventory.html', context)
+
+
+
 
 '''def take_inventory(request):
     categories = Category.objects.prefetch_related('ingredient_set').all()
