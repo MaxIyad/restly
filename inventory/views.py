@@ -78,29 +78,31 @@ def row_add(request):
                 unit_form_3 = UnitForm(request.POST, prefix=f"unit-{i}-3")
                 unit_formsets.append([unit_form_1, unit_form_2, unit_form_3])
 
-                # Validate at least one unit form
-                if not any(
-                    unit_form.cleaned_data
-                    for unit_form in [unit_form_1, unit_form_2, unit_form_3]
-                    if unit_form.is_valid() and (unit_form.cleaned_data.get('name') or unit_form.cleaned_data.get('multiplier'))
-                ):
+                # Validate unit forms and check if at least one unit is valid
+                unit_valid = False
+                for unit_form in [unit_form_1, unit_form_2, unit_form_3]:
+                    if unit_form.is_valid():
+                        if unit_form.cleaned_data.get('name') or unit_form.cleaned_data.get('multiplier'):
+                            unit_valid = True
+
+                if not unit_valid:
                     all_valid = False
                     formset._non_form_errors = "At least one unit must be filled for each ingredient."
-
-                if not all(unit_form.is_valid() for unit_form in [unit_form_1, unit_form_2, unit_form_3]):
-                    all_valid = False
+                    break  # Stop further processing if validation fails
 
             if all_valid:
                 for i, ingredient in enumerate(ingredients):
                     ingredient.save()
                     for unit_form in unit_formsets[i]:
-                        unit_instance = unit_form.save(commit=False)
-                        unit_instance.ingredient = ingredient
-                        unit_instance.save()
+                        if unit_form.is_valid() and (unit_form.cleaned_data.get('name') or unit_form.cleaned_data.get('multiplier')):
+                            unit_instance = unit_form.save(commit=False)
+                            unit_instance.ingredient = ingredient
+                            unit_instance.save()
                 messages.success(request, "Ingredients and units added successfully!")
                 return redirect('inventory')
 
         messages.error(request, "There was an error saving the ingredients. Please try again.")
+
     else:
         formset = IngredientFormSet(queryset=Ingredient.objects.none())
         unit_formsets = [

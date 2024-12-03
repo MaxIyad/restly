@@ -22,7 +22,7 @@ class IngredientForm(forms.ModelForm):
             'category': 'Category',
             'unit_type': 'Unit Type',
             'unit_multiplier': 'Delivery Unit Amount',
-            'unit_cost': 'Delivery Unit Cost',
+            'unit_cost': 'DeliveryUnit Cost',
             'threshold': 'Threshold (Quantity)',
         }
 
@@ -46,17 +46,28 @@ class UnitForm(forms.ModelForm):
             'name': 'Unit Name',
             'multiplier': 'Multiplier',
         }
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'Optional Unit Name'}),
+            'multiplier': forms.NumberInput(attrs={'placeholder': 'Optional Multiplier'}),
+        }
 
     def clean(self):
         cleaned_data = super().clean()
         name = cleaned_data.get('name')
         multiplier = cleaned_data.get('multiplier')
-
+        
+        # Allow the form to be valid if both fields are empty
         if not name and not multiplier:
-            return cleaned_data  # Allow empty forms but let view enforce "at least one required"
-        if not name or not multiplier:
-            raise forms.ValidationError("Both name and multiplier are required if one is filled.")
+            return cleaned_data  # Valid empty form
+        
+        # Ensure both fields are filled if one is provided
+        if (name and not multiplier) or (multiplier and not name):
+            raise forms.ValidationError(
+                "Both 'name' and 'multiplier' are required if one is provided."
+            )
+        
         return cleaned_data
+
 
 
 class CategoryForm(forms.ModelForm):
