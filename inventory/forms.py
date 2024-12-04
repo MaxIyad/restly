@@ -2,7 +2,6 @@ from django import forms
 from .models import Ingredient, Category, Allergen, PreppedIngredient, Unit
 
 class IngredientForm(forms.ModelForm):
-
     allergens = forms.ModelMultipleChoiceField(
         queryset=Allergen.objects.all(),
         widget=forms.CheckboxSelectMultiple,
@@ -32,8 +31,9 @@ class IngredientForm(forms.ModelForm):
         category = cleaned_data.get('category')
 
         if name and category:
-            # Check if an ingredient with the same name exists in the category
-            if Ingredient.objects.filter(name__iexact=name, category=category).exists():
+            # Exclude the current instance from the check
+            existing_ingredient = Ingredient.objects.filter(name__iexact=name, category=category).exclude(id=self.instance.id)
+            if existing_ingredient.exists():
                 raise forms.ValidationError(f"An ingredient named '{name}' already exists in the '{category}' category.")
 
         return cleaned_data
@@ -104,6 +104,8 @@ class PreppedIngredientForm(forms.ModelForm):
             'quantity': 'Available Quantity',
             'prep_quantity': 'Quantity Required Per Unit',
         }
+
+
 
 
 

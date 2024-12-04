@@ -539,62 +539,53 @@ def export_history(request, file_format):
     return export_data(df, file_format, f"Filtered_{change_type}_History")
 
 
+
+
 def ingredient_details(request, category_slug, slug):
     category = get_object_or_404(Category, slug=category_slug)
-    ingredient = get_object_or_404(
-        Ingredient,
-        category=category,
-        slug=slug
-    )
-    history = ingredient.history.all().order_by('-history_date')
+    ingredient = get_object_or_404(Ingredient, category=category, slug=slug)
 
-    AllergenFormSet = modelform_factory(
-        Ingredient,
-        fields=['allergens'],
-        widgets={'allergens': forms.CheckboxSelectMultiple},
-    )
-    allergen_form = AllergenFormSet(instance=ingredient)
+    # Check the number of existing units
+    existing_unit_count = ingredient.units.count()
 
+    # Create the UnitFormSet with extra=0 if there are 3 units
+    UnitFormSet = modelformset_factory(Unit, form=UnitForm, extra=0 if existing_unit_count >= 3 else 1, can_delete=True)
+    unit_formset = UnitFormSet(queryset=ingredient.units.all(), prefix="units")
+
+    # Process POST request
+    ingredient_form = IngredientForm(instance=ingredient)
     if request.method == "POST":
-        allergen_form = AllergenFormSet(request.POST, instance=ingredient)
-        if allergen_form.is_valid():
-            allergen_form.save()
-            messages.success(request, "Allergens updated successfully!")
-            return redirect('ingredient_details', category_slug=category_slug, slug=slug)
+        ingredient_form = IngredientForm(request.POST, instance=ingredient)
+        unit_formset = UnitFormSet(request.POST, queryset=ingredient.units.all(), prefix="units")
+
+        if ingredient_form.is_valid() and unit_formset.is_valid():
+            with transaction.atomic():
+                # Save ingredient
+                ingredient = ingredient_form.save()
+
+                # Save units
+                units = unit_formset.save(commit=False)
+                for unit in units:
+                    unit.ingredient = ingredient
+                    unit.save()
+                # Handle deleted units
+                for unit in unit_formset.deleted_objects:
+                    unit.delete()
+
+                messages.success(request, f"{ingredient.name.title()} updated successfully!")
+                return redirect('ingredient_details', category_slug=category_slug, slug=ingredient.slug)
+
         else:
-            messages.error(request, "Error updating allergens. Please try again.")
+            messages.error(request, "Please correct the errors below.")
 
-    # Pre-process history for the template
-    processed_history = []
-    for record in history:
-        change_type = "Changed"
-        if record.history_type == '+':
-            change_type = "Added"
-        elif record.history_type == '-':
-            change_type = "Removed"
-        elif record.history_change_reason == "Inventory":
-            change_type = "Quantity: Inventory"
-        elif record.history_change_reason == "Delivery":
-            change_type = "Quantity: Delivery"
-        elif record.history_change_reason == "Order":
-            change_type = "Order"
-        elif record.history_change_reason in ["Unit Multiplier", "Unit Type"]:
-            change_type = "Unit"
-
-        processed_history.append({
-            "date": record.history_date,
-            "change_type": change_type,
-            "order": record.order,
-            "quantity": record.quantity,
-            "unit_type": record.unit_type,
-            "unit_multiplier": record.unit_multiplier,
-            "user": "admin",  # Placeholder for user
-        })
+    # Fetch ingredient's history
+    history = ingredient.history.all().order_by('-history_date')
 
     context = {
         'ingredient': ingredient,
+        'ingredient_form': ingredient_form,
+        'unit_formset': unit_formset,
         'history': history,
-        'allergen_form': allergen_form,
     }
     return render(request, 'inventory/ingredient_details.html', context)
 
