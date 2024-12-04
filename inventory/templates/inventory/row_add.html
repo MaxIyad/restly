@@ -5,57 +5,113 @@ Add Ingredients
 {% endblock %}
 
 {% block content %}
-<h1 class="mb-4 text-primary">Add Ingredients</h1>
-<h1 class="mb-4 text-primary">Add Ingredients</h1>
+<div class="container mt-4">
+    <h1 class="mb-4 text-primary">Add Ingredients</h1>
 
-<!-- Display global form errors -->
-{% if formset.non_form_errors %}
-<div class="alert alert-danger">
-    {{ formset.non_form_errors }}
-</div>
-{% endif %}
+    <!-- Display global form errors -->
+    {% if formset.non_form_errors %}
+    <div class="alert alert-danger">
+        {{ formset.non_form_errors }}
+    </div>
+    {% endif %}
 
-<form id="ingredient-form" method="post">
-    {% csrf_token %}
-    {{ formset.management_form }}
-    <div id="rows-container">
-        {% for form in formset %}
-        <div class="ingredient-row card mb-3 shadow-sm p-3">
-            <div class="card-body">
-                {{ form.as_p }}
-                <div class="unit-section">
-                    <h5 class="mt-3">Units</h5>
-                    <div class="unit-forms" data-ingredient-index="{{ forloop.counter0 }}">
-                        {% for unit_form in unit_formsets|slice:":3" %}
-                        {% for unit in unit_form %}
-                        <div class="unit-row d-flex align-items-center">
-                            {{ unit.as_p }}
-                            <button type="button" class="btn btn-danger btn-sm ms-2 delete-unit">Delete Unit</button>
+    <form id="ingredient-form" method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <div id="rows-container">
+            {% for form in formset %}
+            <div class="ingredient-row card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5>Ingredient {{ forloop.counter }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form.name.label_tag }}
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors }}</div>
+                            {% endif %}
                         </div>
-                        {% endfor %}
-                        {% endfor %}
+                        <div class="col-md-6">
+                            {{ form.category.label_tag }}
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                            <div class="text-danger">{{ form.category.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.unit_type.label_tag }}
+                            {{ form.unit_type }}
+                            {% if form.unit_type.errors %}
+                            <div class="text-danger">{{ form.unit_type.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.unit_multiplier.label_tag }}
+                            {{ form.unit_multiplier }}
+                            {% if form.unit_multiplier.errors %}
+                            <div class="text-danger">{{ form.unit_multiplier.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.unit_cost.label_tag }}
+                            {{ form.unit_cost }}
+                            {% if form.unit_cost.errors %}
+                            <div class="text-danger">{{ form.unit_cost.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.threshold.label_tag }}
+                            {{ form.threshold }}
+                            {% if form.threshold.errors %}
+                            <div class="text-danger">{{ form.threshold.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            {{ form.allergens.label_tag }}
+                            {{ form.allergens }}
+                            {% if form.allergens.errors %}
+                            <div class="text-danger">{{ form.allergens.errors }}</div>
+                            {% endif %}
+                        </div>
                     </div>
-                    <input type="hidden" name="unit-TOTAL_FORMS-{{ forloop.counter0 }}" value="3">
-                    <button type="button" class="btn btn-secondary add-unit mt-2">Add Unit</button>
+
+                    <!-- Units Section -->
+                    <div class="unit-section mt-4">
+                        <h5>Units</h5>
+                        <div class="unit-forms" data-ingredient-index="{{ forloop.counter0 }}">
+                            {% for unit_form in unit_formsets|slice:":3" %}
+                            {% for unit in unit_form %}
+                            <div class="unit-row d-flex align-items-center mb-2">
+                                {{ unit.as_p }}
+                            </div>
+                            {% endfor %}
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="unit-TOTAL_FORMS-{{ forloop.counter0 }}" value="3">
+                        <button type="button" class="btn btn-secondary add-unit mt-2">Add Unit</button>
+                    </div>
                 </div>
             </div>
-            <div class="card-footer text-end"></div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
-    <button type="submit" class="btn btn-primary">Save All</button>
-</form>
+
+        <div class="text-end mt-4">
+            <button type="submit" class="btn btn-primary">Save All</button>
+            <a href="{% url 'inventory' %}" class="btn btn-outline-secondary">Back to Inventory List</a>
+        </div>
+    </form>
+</div>
 
 <!-- Hidden template for a new unit form -->
 <template id="unit-row-template">
-    <div class="unit-row d-flex align-items-center">
+    <div class="unit-row d-flex align-items-center mb-2">
         {{ unit_form_empty.as_p }}
-        <button type="button" class="btn btn-danger btn-sm ms-2 delete-unit">Delete Unit</button>
+        <button type="button" class="btn btn-danger btn-sm ms-2 delete-unit">Delete</button>
     </div>
 </template>
-
-
-<a href="{% url 'inventory' %}" class="btn btn-link mt-4">Back to Inventory List</a>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -108,8 +164,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-
-
-
 </script>
 {% endblock %}
