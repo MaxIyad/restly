@@ -6,7 +6,6 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 
-# Category model for ingredient filtering
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True, default="global")
     slug = models.SlugField(max_length=100, unique=True, blank=True)
@@ -51,7 +50,6 @@ class Allergen(models.Model):
     def __str__(self):
         return self.name
 
-# Ingredient model
 class Ingredient(models.Model):
     UNIT_TYPES = [
         ('g', 'gram'),
@@ -65,13 +63,13 @@ class Ingredient(models.Model):
 
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
-    quantity = models.FloatField(default=0)  # Quantity in stock
+    quantity = models.FloatField(default=0)  # Quantity in stock (multiplied by delivery_unit_multiplier)
     threshold = models.FloatField(default=0)  # Minimum threshold for inventory
     category = models.ForeignKey('Category', on_delete=models.CASCADE)
     unit_type = models.CharField(max_length=10, choices=UNIT_TYPES)
-    unit_multiplier = models.FloatField()  # Multiplier for unit type
-    unit_cost = models.FloatField()  # Cost per unit
-    estimated_usage = models.FloatField(null=True, blank=True)  # Optional, estimated usage per day
+    unit_multiplier = models.FloatField()  # Multiplier for unit_type
+    unit_cost = models.FloatField()  # Cost per unit (delivery)
+    estimated_usage = models.FloatField(null=True, blank=True) # ENSURE OPTIONAL. Literally fucks everything otherwise.. idk why yet
     total_cost = models.DecimalField(max_digits=12, decimal_places=6, editable=False)
     history = HistoricalRecords()
     order = models.PositiveIntegerField(default=1)
@@ -174,15 +172,15 @@ class Ingredient(models.Model):
 
 class Unit(models.Model):
     ingredient = models.ForeignKey('Ingredient', related_name='units', on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)  # e.g., Bag, Bucket
-    multiplier = models.FloatField()  # Conversion multiplier to base unit (e.g., 25kg, 10kg)
+    name = models.CharField(max_length=255)  # e.g., Bag, Bucket, Bowl, Patty, ur mum
+    multiplier = models.FloatField()  # Conversion multiplier to base unit (e.g., 25kg, 10L)
     quantity = models.FloatField(default=0)
 
     def __str__(self):
         return f"{self.name} ({self.multiplier} {self.ingredient.unit_type})"
 
 
-
+# Currently unused. ###############################################################################################
 class PreppedIngredient(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)

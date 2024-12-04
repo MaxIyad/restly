@@ -22,7 +22,7 @@ class IngredientForm(forms.ModelForm):
             'category': 'Category',
             'unit_type': 'Unit Type',
             'unit_multiplier': 'Delivery Unit Amount',
-            'unit_cost': 'DeliveryUnit Cost',
+            'unit_cost': 'Delivery Unit Cost',
             'threshold': 'Threshold (Quantity)',
         }
 
