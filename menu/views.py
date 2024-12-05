@@ -65,6 +65,9 @@ def menu_detail(request, menu_slug):
     categories = menu.categories.prefetch_related("items")
     settings_instance = Settings.objects.first()
 
+    primary_items = {cat.id: cat.items.filter(is_secondary=False) for cat in categories}
+    secondary_items = {cat.id: cat.items.filter(is_secondary=True) for cat in categories}
+
     category_form = MenuCategoryForm()
     item_form = MenuItemForm()
 
@@ -124,11 +127,18 @@ def menu_detail(request, menu_slug):
             else:
                 messages.error(request, "Failed to add menu item. Please check the form.")
 
+
+    for category in categories:
+        category.primary_items = category.items.filter(is_secondary=False)
+        category.secondary_items = category.items.filter(is_secondary=True)           
+
     context = {
         'menu': menu,
         'categories': categories,
         'category_form': category_form,
         'menu_item_form': item_form,
+        'primary_items': primary_items,
+        'secondary_items': secondary_items,
         'settings': settings_instance,
     }
     return render(request, 'menu/menu_detail.html', context)

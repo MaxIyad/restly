@@ -60,53 +60,30 @@
                 </div>
             </div>
             <div class="card-body">
-                {% if category.items.all %}
-                <ul class="list-group">
-                    {% for item in category.items.all %}
-                    <a href="{% url 'menu_item_detail' menu.slug category.slug item.slug %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            <!-- Active Checkbox -->
-                            <form method="post" class="me-3">
-                                {% csrf_token %}
-                                <input type="hidden" name="toggle_item_id" value="{{ item.id }}">
-                                <div class="form-check form-switch">
-                                    <input type="checkbox" class="form-check-input" onchange="this.form.submit()"
-                                           id="item-active-{{ item.id }}"
-                                           {% if item.is_active %}checked{% endif %}>
-                                    <label class="form-check-label visually-hidden" for="item-active-{{ item.id }}">
-                                        Active
-                                    </label>
-                                </div>
-                            </form>
-                            <!-- Item Name and Description -->
-                            <div>
-                                <strong>{{ item.name|title }}</strong>
-                                {% if item.description %}
-                                <p class="mb-1 text-muted">{{ item.description }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <!-- Item Cost -->
-                            <span class="badge bg-primary me-3">{{ settings.get_currency_type_display }}{{ item.cost|floatformat:2 }}</span>
-                            <!-- Simulate Order Button -->
-                            {% if item.is_active %}
-                            <form method="post" action="{% url 'simulate_order' menu.slug category.slug item.slug %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-cart"></i> Simulate Order
-                                </button>
-                            </form>
-                            {% else %}
-                            <button class="btn btn-secondary btn-sm" disabled>Inactive</button>
-                            {% endif %}
-                        </div>
-                    </a>
+                <h3>Primary Items</h3>
+                <ul>
+                    {% for primary_item in category.primary_items %}
+                    <li>
+                        <a href="{% url 'menu_item_detail' menu.slug category.slug primary_item.slug %}" class="text-decoration-none">
+                            {{ primary_item.name }} - {{ settings.get_currency_type_display }}{{ primary_item.cost }}
+                        </a>
+                    </li>
+                    {% empty %}
+                    <li>No primary items</li>
                     {% endfor %}
                 </ul>
-                {% else %}
-                <p class="text-muted mb-0">No items available in this category.</p>
-                {% endif %}
+                <h3>Secondary Items</h3>
+                <ul>
+                    {% for secondary_item in category.secondary_items %}
+                    <li>
+                        <a href="{% url 'menu_item_detail' menu.slug category.slug secondary_item.slug %}" class="text-decoration-none">
+                            {{ secondary_item.name }} - {{ settings.get_currency_type_display }}{{ secondary_item.cost }}
+                        </a>
+                    </li>
+                    {% empty %}
+                    <li>No secondary items</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
 
@@ -136,7 +113,7 @@
         </div>
         {% endfor %}
     {% else %}
-    <p class="text-muted text-center">No categories found for this menu.</p>
+        <p class="text-muted text-center">No categories found for this menu.</p>
     {% endif %}
 </div>
 {% endblock %}

@@ -71,6 +71,7 @@ class MenuItem(models.Model):
     cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # Sell price :D
     order = models.PositiveIntegerField(default=1)
     is_active = models.BooleanField(default=True)
+    is_secondary = models.BooleanField(default=False)
     
 
 
