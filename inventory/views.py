@@ -541,6 +541,12 @@ def export_history(request, file_format):
 
 
 
+
+
+
+
+
+
 def ingredient_details(request, category_slug, slug):
     category = get_object_or_404(Category, slug=category_slug)
     ingredient = get_object_or_404(Ingredient, category=category, slug=slug)
@@ -559,24 +565,34 @@ def ingredient_details(request, category_slug, slug):
         unit_formset = UnitFormSet(request.POST, queryset=ingredient.units.all(), prefix="units")
 
         if ingredient_form.is_valid() and unit_formset.is_valid():
-            with transaction.atomic():
-                # Save ingredient
-                ingredient = ingredient_form.save()
+            # Ensure at least one unit remains
+            remaining_units = [
+                form for form in unit_formset if form.cleaned_data.get('DELETE') is not True
+            ]
+            if len(remaining_units) == 0:
+                messages.error(request, "You must have at least one unit for this ingredient.")
+            else:
+                with transaction.atomic():
+                    # Save ingredient
+                    ingredient = ingredient_form.save()
 
-                # Save units
-                units = unit_formset.save(commit=False)
-                for unit in units:
-                    unit.ingredient = ingredient
-                    unit.save()
-                # Handle deleted units
-                for unit in unit_formset.deleted_objects:
-                    unit.delete()
+                    # Save units
+                    units = unit_formset.save(commit=False)
+                    for unit in units:
+                        unit.ingredient = ingredient
+                        unit.save()
+                    # Handle deleted units
+                    for unit in unit_formset.deleted_objects:
+                        unit.delete()
 
-                messages.success(request, f"{ingredient.name.title()} updated successfully!")
-                return redirect('ingredient_details', category_slug=category_slug, slug=ingredient.slug)
-
+                    messages.success(request, f"{ingredient.name.title()} updated successfully!")
+                    return redirect('ingredient_details', category_slug=category_slug, slug=ingredient.slug)
         else:
             messages.error(request, "Please correct the errors below.")
+
+    # Hide the DELETE checkbox for the first unit
+    if unit_formset.forms:
+        unit_formset.forms[0].fields['DELETE'].widget = forms.HiddenInput()
 
     # Fetch ingredient's history
     history = ingredient.history.all().order_by('-history_date')

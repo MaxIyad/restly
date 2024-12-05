@@ -31,26 +31,24 @@
             </div>
         </div>
 
-        <!-- Unit Update Formset -->
-{% if unit_formset %}
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-info text-white">
-        <h4 class="mb-0">Units</h4>
-    </div>
-    <div class="card-body">
-        {{ unit_formset.management_form }}
-        {% for form in unit_formset %}
-        <div class="card mb-3 p-3">
-            {{ form.as_p }}
-            {% if form.instance.pk %}
-            {% endif %}
+    <!-- Unit Update Formset -->
+    {% if unit_formset %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">Units</h4>
         </div>
-        {% endfor %}
-        {% if unit_formset.total_form_count < 3 %}       
-        {% endif %}
+        <div class="card-body">
+            {{ unit_formset.management_form }}
+            {% for form in unit_formset %}
+            <div class="card mb-3 p-3">
+                {{ form.as_p }}
+            </div>
+            {% endfor %}
+        </div>
     </div>
-</div>
-{% endif %}
+    {% endif %}
+    
+
 
         <button type="submit" class="btn btn-success">Save Changes</button>
     </form>
