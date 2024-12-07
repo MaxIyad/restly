@@ -252,8 +252,8 @@ def manage_permissions_view(request, user_id):
             user.enforce_url_restrictions = enforce_restrictions
             user.save()
             state = "enabled" if enforce_restrictions else "disabled"
-            messages.success(request, f"URL restrictions {state} for {user.username}.")     
-            
+            messages.success(request, f"URL restrictions {state} for {user.username}.")
+
             return redirect("manage_permissions", user_id=user_id)
         
         elif "update_pin" in request.POST:

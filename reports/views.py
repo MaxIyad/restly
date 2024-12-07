@@ -16,9 +16,6 @@ from .models import Order
 
 
 
-
-
-
 def estimate_view(request):
 
     active_menu_items = MenuItem.objects.filter(
