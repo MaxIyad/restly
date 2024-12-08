@@ -36,7 +36,7 @@ class RecipeIngredientForm(forms.ModelForm):
 class MenuForm(forms.ModelForm):
     class Meta:
         model = Menu
-        fields = ['name', 'is_secondary']  # Include the new field
+        fields = ['name', 'is_secondary'] 
         labels = {
             'name': 'Menu Name',
             'is_secondary': 'Is Secondary Menu?',
@@ -64,12 +64,11 @@ class MenuCategoryForm(forms.ModelForm):
 class MenuItemForm(forms.ModelForm):
     class Meta:
         model = MenuItem
-        fields = ['name', 'description', 'cost', 'is_secondary']
+        fields = ['name', 'description', 'cost']
         labels = {
             'name': 'Menu Item Name',
             'description': 'Description',
             'cost': 'Cost',
-            'is_secondary': 'Secondary Item',
         }
         widgets = {
             'cost': forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),  # Widget for cost input for menu_item_detail

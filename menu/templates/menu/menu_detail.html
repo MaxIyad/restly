@@ -60,28 +60,27 @@
                 </div>
             </div>
             <div class="card-body">
-                <h3>Primary Items</h3>
+                <h3>Menu Items</h3>
                 <ul>
-                    {% for primary_item in category.primary_items %}
-                    <li>
-                        <a href="{% url 'menu_item_detail' menu.slug category.slug primary_item.slug %}" class="text-decoration-none">
-                            {{ primary_item.name }} - {{ settings.get_currency_type_display }}{{ primary_item.cost }}
-                        </a>
+                    {% for item in category.items.all %}
+                    <li class="d-flex justify-content-between align-items-center mb-2">
+                        <span>
+                            <a href="{% url 'menu_item_detail' menu.slug category.slug item.slug %}" class="text-decoration-none">
+                                {{ item.name }} - {{ settings.get_currency_type_display }}{{ item.cost }}
+                            </a>
+                        </span>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="simulate_order">
+                            <input type="hidden" name="menu_item_slug" value="{{ item.slug }}">
+                            <input type="hidden" name="category_slug" value="{{ category.slug }}">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-bag-check"></i> Simulate Order
+                            </button>
+                        </form>
                     </li>
                     {% empty %}
-                    <li>No primary items</li>
-                    {% endfor %}
-                </ul>
-                <h3>Secondary Items</h3>
-                <ul>
-                    {% for secondary_item in category.secondary_items %}
-                    <li>
-                        <a href="{% url 'menu_item_detail' menu.slug category.slug secondary_item.slug %}" class="text-decoration-none">
-                            {{ secondary_item.name }} - {{ settings.get_currency_type_display }}{{ secondary_item.cost }}
-                        </a>
-                    </li>
-                    {% empty %}
-                    <li>No secondary items</li>
+                    <li>No menu items available</li>
                     {% endfor %}
                 </ul>
             </div>

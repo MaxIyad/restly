@@ -106,6 +106,11 @@ def menu_detail(request, menu_slug):
             messages.success(request, f"Menu item '{item.name}' deleted successfully!")
             return redirect("menu_detail", menu_slug=menu.slug)
         
+        elif request.POST.get("action") == "simulate_order":
+            menu_item_slug = request.POST.get("menu_item_slug")
+            category_slug = request.POST.get("category_slug")
+            return simulate_order(request, menu_slug, category_slug, menu_item_slug)
+        
         elif "add_category" in request.POST: 
             category_form = MenuCategoryForm(request.POST, menu=menu)
             if category_form.is_valid():
