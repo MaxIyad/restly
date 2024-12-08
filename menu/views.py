@@ -208,6 +208,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
     recipe_ingredients = menu_item.recipe_ingredients.select_related('ingredient', 'category')
     settings_instance = Settings.objects.first()
+    secondary_menus = Menu.objects.filter(is_secondary=True)
 
     total_ingredient_cost = sum(
         Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost) for ri in recipe_ingredients
@@ -258,6 +259,16 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
                         messages.error(request, f"Error updating quantity for {recipe_ingredient.ingredient.name}: {e}")
             messages.success(request, "Quantities updated successfully.")
             return redirect(request.path)
+        
+        elif "update_secondary_menu" in request.POST:
+            secondary_menu_id = request.POST.get("associated_secondary_menu")
+            if secondary_menu_id:
+                menu_item.associated_secondary_menu = get_object_or_404(Menu, id=secondary_menu_id, is_secondary=True)
+            else:
+                menu_item.associated_secondary_menu = None
+            menu_item.save()
+            messages.success(request, "Secondary menu updated successfully.")
+            return redirect('menu_item_detail', menu_slug=menu.slug, category_slug=category.slug, menu_item_slug=menu_item.slug)
 
         elif action == "update_cost":
             # Update cost and margin
@@ -283,6 +294,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         'total_ingredient_cost': total_ingredient_cost,
         'inventory_categories': inventory_categories,
         'settings': settings_instance,
+        'secondary_menus': secondary_menus,
         'ingredients': ingredients,
         'selected_category_id': int(selected_category_id) if selected_category_id else None,
         

@@ -78,6 +78,10 @@ class MenuItem(models.Model):
     order = models.PositiveIntegerField(default=1)
     is_active = models.BooleanField(default=True)
     is_secondary = models.BooleanField(default=False)
+    associated_secondary_menu = models.ForeignKey(
+        'Menu', on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'is_secondary': True},
+        help_text="Select a secondary menu associated with this item."
+    )
     
 
 
