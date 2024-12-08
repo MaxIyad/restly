@@ -10,6 +10,9 @@ class Menu(models.Model):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     is_active = models.BooleanField(default=False)
+    is_secondary = models.BooleanField(default=False)
+
+
 
     def save(self, *args, **kwargs):
         if not self.slug or Menu.objects.filter(name=self.name).exclude(id=self.id).exists():
@@ -23,6 +26,9 @@ class Menu(models.Model):
 
         if self.is_active:
             Menu.objects.filter(is_active=True).update(is_active=False)
+
+        if self.is_secondary:
+            self.is_active = True
 
         super().save(*args, **kwargs)
 

@@ -28,9 +28,12 @@ def menu_list(request):
         menu_id = request.POST.get('menu_id')
         if menu_id:
             menu = Menu.objects.get(id=menu_id)
-            menu.is_active = not menu.is_active 
-            menu.save()
-            messages.success(request, f"Menu '{menu.name}' is now active!")
+            if not menu.is_secondary:  # Only toggle activation for non-secondary menus
+                menu.is_active = not menu.is_active
+                menu.save()
+                messages.success(request, f"Menu '{menu.name}' is now {'active' if menu.is_active else 'inactive'}!")
+            else:
+                messages.warning(request, "Secondary menus are always active and cannot be toggled.")
             return redirect('menu_list')
         
         if "delete_menu_id" in request.POST:
@@ -387,7 +390,7 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
 
 def duplicate_menu(request, menu_id):
     """
-    Duplicate a menu along with its categories and menu items.
+    Duplicate a menu along with its categories and menu items. Keeps secondary menus secondary. 
     """
     original_menu = get_object_or_404(Menu, id=menu_id)
 
@@ -395,7 +398,8 @@ def duplicate_menu(request, menu_id):
         # Duplicate the menu
         duplicated_menu = Menu.objects.create(
             name=f"{original_menu.name} (Copy)",
-            is_active=False  # Default to inactive for the duplicate
+            is_active=False,  # Default to inactive for the duplicate
+            is_secondary=original_menu.is_secondary
         )
 
         # Duplicate categories and their menu items
@@ -415,6 +419,7 @@ def duplicate_menu(request, menu_id):
                     cost=item.cost,
                     order=item.order,
                     is_active=item.is_active,
+                    is_secondary=item.is_secondary,
                 )
 
     messages.success(request, f"Menu '{original_menu.name}' duplicated successfully!")
@@ -442,6 +447,17 @@ def order_menu(request, menu_slug):
                 messages.success(request, "Menu name updated successfully!")
             except Exception as e:
                 error_messages.append(f"Error updating menu name: {e}")
+
+        # Handle secondary toggle
+        is_secondary = request.POST.get('is_secondary') == 'on'
+        if menu.is_secondary != is_secondary:
+            menu.is_secondary = is_secondary
+            menu.is_active = True if is_secondary else menu.is_active  # Ensure secondary menus are always active
+            menu.save()
+            messages.success(
+                request, 
+                f"Menu '{menu.name}' is now {'Secondary' if is_secondary else 'Primary'}."
+            )
 
         # Handle item deletion
         if 'delete_item_id' in request.POST:

@@ -36,7 +36,14 @@ class RecipeIngredientForm(forms.ModelForm):
 class MenuForm(forms.ModelForm):
     class Meta:
         model = Menu
-        fields = ['name']
+        fields = ['name', 'is_secondary']  # Include the new field
+        labels = {
+            'name': 'Menu Name',
+            'is_secondary': 'Is Secondary Menu?',
+        }
+        widgets = {
+            'is_secondary': forms.CheckboxInput(attrs={"class": "form-check-input"}),  # Bootstrap-styled checkbox
+        }
 
 class MenuCategoryForm(forms.ModelForm):
     class Meta:

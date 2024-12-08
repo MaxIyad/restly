@@ -38,12 +38,15 @@ Menus
                     </div>
                 </div>
             </div>          
-            <div class="card shadow-sm h-100 menu-box {% if menu.is_active %}active{% endif %}">                
+            <div class="card shadow-sm h-100 menu-box {% if menu.is_active %}active{% endif %}">
                 <a href="{% url 'menu_detail' menu.slug %}" class="text-decoration-none">
                     <div class="card-header bg-primary text-white text-center">
                         <h3 class="menu-title">{{ menu.name }}</h3>
+                        {% if menu.is_secondary %}
+                        <span class="badge bg-secondary">Secondary</span>
+                        {% endif %}
                     </div>
-                    <div class="card-body">                        
+                    <div class="card-body">
                         <ul class="list-group list-group-flush">
                             <b>Categories:</b>
                             {% for category in menu.categories.all|slice:":3" %}
@@ -57,13 +60,21 @@ Menus
                     </div>
                 </a>
                 <div class="card-footer text-center d-flex justify-content-between">
-                    <!-- Toggle Active Form -->
+                    {% if not menu.is_secondary %}
+                    <!-- Toggle Active Form for Non-Secondary Menus -->
                     <form method="post" class="d-inline">
                         {% csrf_token %}
                         <input type="hidden" name="menu_id" value="{{ menu.id }}">
                         <label class="form-check-label me-2">Active</label>
-                        <input type="checkbox" onchange="this.form.submit()" {% if menu.is_active %}checked{% endif %} class="form-check-input">                         
+                        <input type="checkbox" onchange="this.form.submit()" {% if menu.is_active %}checked{% endif %} class="form-check-input">
                     </form>
+                    {% else %}
+                    <!-- Always Active Badge for Secondary Menus -->
+                    <div class="d-flex justify-content-center align-items-center">
+                        <span class="badge bg-success">Always Active</span>
+                    </div>
+                    
+                    {% endif %}
                     <!-- Duplicate Menu Button -->
                     <form method="post" action="{% url 'duplicate_menu' menu.id %}" class="d-inline">
                         {% csrf_token %}
@@ -76,6 +87,7 @@ Menus
                         <i class="bi bi-trash"></i> Delete
                     </button>
                 </div>
+                
                 
             </div>
         </div>
