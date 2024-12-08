@@ -151,7 +151,71 @@
          </form>
      </div>
  </div>
+
+ <!-- Secondary Menu Items -->
+ {% if secondary_categories %}
+ <div class="card shadow-sm mb-4">
+     <div class="card-header bg-light">
+         <h2 class="mb-0">Associated Secondary Items</h2>
+     </div>
+     <div class="card-body">
+         {% for category in secondary_categories %}
+         <h3 class="text-secondary">{{ category.name }}</h3>
+         <table class="table table-striped">
+             <thead>
+                 <tr>
+                     <th>Item Name</th>
+                     <th>Price</th>
+                     <th>Status</th>
+                     <th>Action</th>
+                 </tr>
+             </thead>
+             <tbody>
+                 {% for item in category.items.all %}
+                 <tr>
+                     <td>{{ item.name }}</td>
+                     <td>{{ settings.get_currency_type_display }}{{ item.cost }}</td>
+                     <td>
+                        {% if item.is_secondary_active %}
+                            Secondary Active
+                        {% else %}
+                            Secondary Inactive
+                        {% endif %}
+                    </td>
+                     <td>
+                        <form method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle_secondary_item">
+                            <input type="hidden" name="secondary_item_id" value="{{ item.id }}">
+                            <button type="submit" class="btn btn-sm {% if item.is_secondary_active %}btn-success{% else %}btn-danger{% endif %}">
+                                {% if item.is_secondary_active %}Deactivate{% else %}Activate{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                 </tr>
+                 {% endfor %}
+             </tbody>
+         </table>
+         {% endfor %}
+     </div>
+ </div>
  {% endif %}
+ {% endif %}
+
+ <div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <h2 class="mb-0">Associate Secondary Menu Items</h2>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ associated_form.as_p }}
+            <button type="submit" name="action" value="update_associations" class="btn btn-primary">
+                <i class="bi bi-save"></i> Update Associations
+            </button>
+        </form>
+    </div>
+</div>
     
     
     

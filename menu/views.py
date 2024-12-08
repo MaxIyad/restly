@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from .models import Menu, MenuItem, RecipeIngredient
 from inventory.models import Ingredient
-from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientForm, MenuItemForm
+from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientForm, MenuItemForm, MenuItemAssociationForm
 from django.contrib import messages
 from decimal import Decimal
 from django.db.models import Prefetch
@@ -209,6 +209,17 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     recipe_ingredients = menu_item.recipe_ingredients.select_related('ingredient', 'category')
     settings_instance = Settings.objects.first()
     secondary_menus = Menu.objects.filter(is_secondary=True)
+    associated_form = MenuItemAssociationForm(instance=menu_item)
+
+    # Gathers all secondary categories and their items, marking secondary menu item active states
+    secondary_categories = []
+    for secondary_menu in secondary_menus:
+        categories = secondary_menu.categories.prefetch_related('items')
+        for cat in categories:
+            for item in cat.items.all():
+                item.is_secondary_active = menu_item.associated_secondary_menu == secondary_menu and item.is_active
+            secondary_categories.append(cat)
+
 
     total_ingredient_cost = sum(
         Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost) for ri in recipe_ingredients
@@ -239,6 +250,13 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             messages.success(request, f"Ingredient '{ingredient.name}' added.")
             return redirect(request.path + f"?category_id={selected_category_id}")
         
+        elif action == "update_associations":
+            associated_form = MenuItemAssociationForm(request.POST, instance=menu_item)
+            if associated_form.is_valid():
+                associated_form.save()
+                messages.success(request, f"Associations for '{menu_item.name}' updated successfully.")
+                return redirect('menu_item_detail', menu_slug=menu.slug, category_slug=category.slug, menu_item_slug=menu_item.slug)
+       
         elif action == "remove_ingredient":
             recipe_ingredient_id = request.POST.get("ingredient_id")
             recipe_ingredient = get_object_or_404(RecipeIngredient, id=recipe_ingredient_id)
@@ -260,7 +278,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             messages.success(request, "Quantities updated successfully.")
             return redirect(request.path)
         
-        elif "update_secondary_menu" in request.POST:
+        elif action == "update_secondary_menu":
             secondary_menu_id = request.POST.get("associated_secondary_menu")
             if secondary_menu_id:
                 menu_item.associated_secondary_menu = get_object_or_404(Menu, id=secondary_menu_id, is_secondary=True)
@@ -269,6 +287,17 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             menu_item.save()
             messages.success(request, "Secondary menu updated successfully.")
             return redirect('menu_item_detail', menu_slug=menu.slug, category_slug=category.slug, menu_item_slug=menu_item.slug)
+        
+        elif action == "toggle_secondary_item":
+            secondary_item_id = request.POST.get("secondary_item_id")
+            secondary_item = get_object_or_404(MenuItem, id=secondary_item_id)
+            secondary_item.secondary_active = not secondary_item.secondary_active
+            secondary_item.save()
+            messages.success(request, f"Secondary item '{secondary_item.name}' status updated successfully.")
+            return redirect('menu_item_detail', menu_slug=menu.slug, category_slug=category.slug, menu_item_slug=menu_item.slug)
+
+
+
 
         elif action == "update_cost":
             # Update cost and margin
@@ -294,9 +323,11 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         'total_ingredient_cost': total_ingredient_cost,
         'inventory_categories': inventory_categories,
         'settings': settings_instance,
-        'secondary_menus': secondary_menus,
+        'secondary_menus': Menu.objects.filter(is_secondary=True),
         'ingredients': ingredients,
+        'secondary_categories': secondary_categories,
         'selected_category_id': int(selected_category_id) if selected_category_id else None,
+        'associated_form': associated_form,
         
     }
     return render(request, 'menu/menu_item_detail.html', context)

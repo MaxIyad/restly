@@ -75,3 +75,14 @@ class MenuItemForm(forms.ModelForm):
             'cost': forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),  # Widget for cost input for menu_item_detail
         }
 
+
+class MenuItemAssociationForm(forms.ModelForm):
+    associated_secondary_items = forms.ModelMultipleChoiceField(
+        queryset=MenuItem.objects.filter(is_secondary=True),
+        required=False,
+        widget=forms.CheckboxSelectMultiple
+    )
+
+    class Meta:
+        model = MenuItem
+        fields = ['associated_secondary_items']
