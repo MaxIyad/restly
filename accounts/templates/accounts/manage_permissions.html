@@ -20,6 +20,27 @@
         </button>
     </form>
 
+    <form method="POST" class="mb-4 border p-4 bg-light rounded shadow-sm">
+        {% csrf_token %}
+        <h4>Lock Account</h4>
+        <div class="mb-3">
+            <label for="lock_duration" class="form-label">Lock Duration (in hours)</label>
+            <input type="number" name="lock_duration" id="lock_duration" class="form-control" min="1" required>
+        </div>
+        <button type="submit" name="lock_account" class="btn btn-danger">
+            <i class="bi bi-lock"></i> Lock Account
+        </button>
+    </form>
+    
+    <form method="POST" class="mb-4 border p-4 bg-light rounded shadow-sm">
+        {% csrf_token %}
+        <h4>Unlock Account</h4>
+        <button type="submit" name="unlock_account" class="btn btn-success">
+            <i class="bi bi-unlock"></i> Unlock Account
+        </button>
+    </form>
+    
+
     <!-- Delete Account Confirmation Modal -->
     <div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

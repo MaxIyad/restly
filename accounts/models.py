@@ -77,6 +77,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     phone_number = models.CharField(max_length=15, null=True, blank=True, verbose_name="Phone Number")
     join_date = models.DateField(default=now, verbose_name="Join Date")
     role = models.CharField(max_length=50, choices=[("Staff", "Staff"), ("Manager", "Manager"), ("Admin", "Admin")], default="Staff")
+    is_locked = models.BooleanField(default=False, verbose_name="Is Locked")
+    lock_until = models.DateTimeField(null=True, blank=True, verbose_name="Lock Until")
     email = models.EmailField(unique=True, null=True, blank=True)
     enforce_url_restrictions = models.BooleanField(
         default=True,

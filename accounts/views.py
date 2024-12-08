@@ -13,6 +13,7 @@ from django.core.paginator import Paginator
 from axes.models import AccessLog
 from django.http import HttpResponse
 import csv
+from django.utils.timezone import now
 
 
 CustomUser = get_user_model()
@@ -61,10 +62,9 @@ def login_view(request):
             password = form.cleaned_data.get("password", "")
             ip_address = get_client_ip(request)
             path_info = request.path
-            user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+            user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
 
             user = authenticate(request, username=username, password=password)
-            ip_address = get_client_ip(request)
 
             if not user:
                 # Log reason into AccessLog
@@ -80,6 +80,23 @@ def login_view(request):
                 messages.error(request, "Invalid username or password.")
                 return render(request, "accounts/login.html", {"form": form})
 
+            # Check if account is locked
+            if user.is_locked:
+                if user.lock_until and now() > user.lock_until:
+                    # Unlock account if lock period has expired
+                    user.is_locked = False
+                    user.lock_until = None
+                    user.save()
+                else:
+                    # Deny login if still locked
+                    lock_message = (
+                        f"Account is locked until {user.lock_until.strftime('%Y-%m-%d %H:%M:%S')}."
+                        if user.lock_until
+                        else "Account is currently locked."
+                    )
+                    messages.error(request, lock_message)
+                    return render(request, "accounts/login.html", {"form": form})
+
             # Login successful
             login(request, user)
             CustomAccessLog.objects.create(
@@ -89,7 +106,7 @@ def login_view(request):
                 reason="Login successful",
                 custom_path_info=path_info,
                 custom_user_agent=user_agent,
-                success=False,
+                success=True,
             )
             messages.success(request, "Login successful!")
             return redirect("profile")
@@ -308,6 +325,23 @@ def manage_permissions_view(request, user_id):
             user.email = request.POST.get("email")
             user.save()
             messages.success(request, f"Details updated for {user.username}.")
+        
+        elif "lock_account" in request.POST:
+            lock_duration = int(request.POST.get("lock_duration", 0))  # In hours
+            if lock_duration > 0:
+                user.is_locked = True
+                user.lock_until = now() + timedelta(hours=lock_duration)
+                user.save()
+                messages.success(request, f"Account for {user.username} locked for {lock_duration} hours.")
+            else:
+                messages.error(request, "Invalid lock duration.")
+        
+        elif "unlock_account" in request.POST:
+            user.is_locked = False
+            user.lock_until = None
+            user.save()
+            messages.success(request, f"Account for {user.username} unlocked.")       
+      
 
         elif "update_pin" in request.POST:
             new_pin = request.POST.get("new_pin")
