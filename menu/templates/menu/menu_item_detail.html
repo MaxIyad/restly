@@ -262,29 +262,34 @@
 
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
     const costInput = document.getElementById("cost");
     const marginInput = document.getElementById("margin");
     const totalIngredientCost = parseFloat({{ total_ingredient_cost|floatformat:2 }});
 
+    const roundToPrecision = (value, precision) => {
+        const factor = Math.pow(10, precision);
+        return Math.round(value * factor) / factor;
+    };
+
     // Prepopulate margin on page load
     if (!isNaN(totalIngredientCost) && totalIngredientCost > 0) {
         const menuItemCost = parseFloat(costInput.value || 0);
-        marginInput.value = (((menuItemCost - totalIngredientCost) / totalIngredientCost) * 100).toFixed(2);
+        marginInput.value = roundToPrecision(((menuItemCost - totalIngredientCost) / totalIngredientCost) * 100, 3);
     }
 
     // Handle input changes
     costInput.addEventListener("input", function () {
         const cost = parseFloat(costInput.value);
         if (!isNaN(cost)) {
-            marginInput.value = (((cost - totalIngredientCost) / totalIngredientCost) * 100).toFixed(2);
+            marginInput.value = roundToPrecision(((cost - totalIngredientCost) / totalIngredientCost) * 100, 3);
         }
     });
 
     marginInput.addEventListener("input", function () {
         const margin = parseFloat(marginInput.value);
         if (!isNaN(margin)) {
-            costInput.value = (totalIngredientCost * (1 + margin / 100)).toFixed(2);
+            costInput.value = roundToPrecision(totalIngredientCost * (1 + margin / 100), 2);
         }
     });
 });

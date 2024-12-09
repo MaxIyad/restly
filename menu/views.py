@@ -239,9 +239,11 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
 
     menu_item_cost = Decimal(menu_item.cost or 0)
     if total_ingredient_cost > 0:
-        margin = ((menu_item_cost - total_ingredient_cost) / total_ingredient_cost) * 100
+        # Ensure margin is calculated as a Decimal, otherwise everything breaks
+        margin = Decimal((menu_item_cost - total_ingredient_cost) / total_ingredient_cost * 100)
     else:
-        margin = 0
+        margin = Decimal(0)
+
 
     margin = margin.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
 
@@ -355,11 +357,11 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
 
 
         elif action == "update_cost":
-            # Update cost and margin
+            # Round cost input to 2 decimal places before saving
             cost = request.POST.get("cost")
             try:
                 if cost is not None:
-                    cost = Decimal(cost)
+                    cost = Decimal(cost).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                     if cost < 0:
                         messages.error(request, "Cost cannot be negative.")
                     else:
