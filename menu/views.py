@@ -5,7 +5,7 @@ from .models import Menu, MenuItem, RecipeIngredient, MenuItemSecondaryAssociati
 from inventory.models import Ingredient
 from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientForm, MenuItemForm, MenuItemAssociationForm
 from django.contrib import messages
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import Prefetch
 from collections import defaultdict
 from settings.models import Settings
@@ -237,6 +237,14 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost) for ri in recipe_ingredients
     )
 
+    menu_item_cost = Decimal(menu_item.cost or 0)
+    if total_ingredient_cost > 0:
+        margin = ((menu_item_cost - total_ingredient_cost) / total_ingredient_cost) * 100
+    else:
+        margin = 0
+
+    margin = margin.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+
     secondary_items_by_category = defaultdict(list)
     for association in secondary_associations.select_related('secondary_item__category'):
         category_name = association.secondary_item.category.name
@@ -378,6 +386,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         'unassociated_secondary_items': unassociated_secondary_items,
         'secondary_associations': secondary_associations,
         'secondary_items_by_category': dict(secondary_items_by_category),
+        'margin': margin,
         
         
     }

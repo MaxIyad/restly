@@ -113,7 +113,7 @@
                 </div>
                 <div class="mb-3">
                     <label for="margin" class="form-label">Margin (%)</label>
-                    <input type="number" id="margin" name="margin" class="form-control" step="0.001" value="{{ margin }}">
+                    <input type="number" id="margin" name="margin" class="form-control" step="0.001" value="{{ margin }}" placeholder="{{ margin|floatformat:2 }}">
                 </div>
                 <p>Total Ingredient Cost: {{ settings.get_currency_type_display }}{{ total_ingredient_cost|floatformat:2 }}</p>
                 <button type="submit" name="action" value="update_cost" class="btn btn-success">
@@ -263,24 +263,33 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const costInput = document.getElementById("cost");
-        const marginInput = document.getElementById("margin");
-        const totalIngredientCost = parseFloat({{ total_ingredient_cost|floatformat:2 }});
-    
-        costInput.addEventListener("input", function () {
-            const cost = parseFloat(costInput.value);
-            if (!isNaN(cost)) {
-                marginInput.value = (((cost - totalIngredientCost) / totalIngredientCost) * 100).toFixed(2);
-            }
-        });
-    
-        marginInput.addEventListener("input", function () {
-            const margin = parseFloat(marginInput.value);
-            if (!isNaN(margin)) {
-                costInput.value = (totalIngredientCost * (1 + margin / 100)).toFixed(2);
-            }
-        });
+    const costInput = document.getElementById("cost");
+    const marginInput = document.getElementById("margin");
+    const totalIngredientCost = parseFloat({{ total_ingredient_cost|floatformat:2 }});
+
+    // Prepopulate margin on page load
+    if (!isNaN(totalIngredientCost) && totalIngredientCost > 0) {
+        const menuItemCost = parseFloat(costInput.value || 0);
+        marginInput.value = (((menuItemCost - totalIngredientCost) / totalIngredientCost) * 100).toFixed(2);
+    }
+
+    // Handle input changes
+    costInput.addEventListener("input", function () {
+        const cost = parseFloat(costInput.value);
+        if (!isNaN(cost)) {
+            marginInput.value = (((cost - totalIngredientCost) / totalIngredientCost) * 100).toFixed(2);
+        }
     });
+
+    marginInput.addEventListener("input", function () {
+        const margin = parseFloat(marginInput.value);
+        if (!isNaN(margin)) {
+            costInput.value = (totalIngredientCost * (1 + margin / 100)).toFixed(2);
+        }
+    });
+});
+
+    
     </script>
     
 {% endblock %}
