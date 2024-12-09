@@ -233,20 +233,9 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             secondary_categories.append(cat)
 
 
-    total_ingredient_cost = sum(
-    Decimal(ri.quantity) * (Decimal(ri.ingredient.unit_cost) / Decimal(ri.unit.multiplier) if ri.unit else Decimal(0))
-    for ri in recipe_ingredients
-)
-
-    menu_item_cost = Decimal(menu_item.cost or 0)
-    if total_ingredient_cost > 0:
-        # Ensure margin is calculated as a Decimal, otherwise everything breaks
-        margin = Decimal((menu_item_cost - total_ingredient_cost) / total_ingredient_cost * 100)
-    else:
-        margin = Decimal(0)
 
 
-    margin = margin.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+
 
     secondary_items_by_category = defaultdict(list)
     for association in secondary_associations.select_related('secondary_item__category'):
@@ -256,13 +245,30 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
 
     # Update the calculated price for each ingredient
     for recipe_ingredient in recipe_ingredients:
-    # Calculate the unit cost for the selected unit
-        if recipe_ingredient.unit:
-            unit_cost = Decimal(recipe_ingredient.ingredient.unit_cost) / Decimal(recipe_ingredient.unit.multiplier)
-            # Calculate the total cost for the ingredient
-            recipe_ingredient.calculated_price = Decimal(recipe_ingredient.quantity) * unit_cost
-        else:
-            recipe_ingredient.calculated_price = Decimal(0)
+            if recipe_ingredient.unit and recipe_ingredient.unit.multiplier:
+                # Delivery Unit Cost = unit_cost / delivery_unit_amount
+                delivery_unit_cost = Decimal(recipe_ingredient.ingredient.unit_cost) / Decimal(
+                    recipe_ingredient.ingredient.unit_multiplier
+                )
+
+                # Adjust cost for the recipe unit multiplier
+                unit_cost = delivery_unit_cost * Decimal(recipe_ingredient.unit.multiplier)
+
+                # Calculate the total ingredient cost
+                recipe_ingredient.calculated_price = Decimal(recipe_ingredient.quantity) * unit_cost
+            else:
+                recipe_ingredient.calculated_price = Decimal(0)
+
+    total_ingredient_cost = sum(ri.calculated_price for ri in recipe_ingredients)
+                
+
+    menu_item_cost = Decimal(menu_item.cost or 0)
+    if total_ingredient_cost > 0:
+        # Ensure margin is calculated as a Decimal, otherwise everything breaks
+        margin = Decimal((menu_item_cost - total_ingredient_cost) / total_ingredient_cost * 100)
+    else:
+        margin = Decimal(0)
+    margin = margin.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
 
     # Filter ingredients by category
     selected_category_id = request.GET.get('category_id')
@@ -310,35 +316,23 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
 
         elif action == "save_quantities":
             errors = []
-            try:
-                for recipe_ingredient in recipe_ingredients:
-                    # Get the updated unit and quantity from the form
-                    quantity_key = f"quantity-{recipe_ingredient.id}"
-                    unit_key = f"unit-{recipe_ingredient.id}"
-
-                    new_quantity = request.POST.get(quantity_key)
-                    selected_unit_id = request.POST.get(unit_key)
-
-                    try:
-                        # Update the `quantity` and `unit` for the recipe ingredient
-                        if new_quantity:
-                            recipe_ingredient.quantity = Decimal(new_quantity)
-                        if selected_unit_id:
-                            recipe_ingredient.unit = recipe_ingredient.ingredient.units.get(id=selected_unit_id)
-
-                        # Save the updated recipe ingredient
-                        recipe_ingredient.save()
-                    except Exception as e:
-                        errors.append(f"Error updating {recipe_ingredient.ingredient.name}: {e}")
-
-                if errors:
-                    messages.error(request, "Some ingredients could not be updated: " + ", ".join(errors))
-                else:
-                    messages.success(request, "Ingredient quantities and units updated successfully.")
-
-            except Exception as e:
-                messages.error(request, f"An error occurred while saving ingredient quantities: {e}")
-
+            for recipe_ingredient in recipe_ingredients:
+                quantity_key = f"quantity-{recipe_ingredient.id}"
+                unit_key = f"unit-{recipe_ingredient.id}"
+                new_quantity = request.POST.get(quantity_key)
+                selected_unit_id = request.POST.get(unit_key)
+                try:
+                    if new_quantity:
+                        recipe_ingredient.quantity = Decimal(new_quantity)
+                    if selected_unit_id:
+                        recipe_ingredient.unit = recipe_ingredient.ingredient.units.get(id=selected_unit_id)
+                    recipe_ingredient.save()
+                except Exception as e:
+                    errors.append(f"Error updating {recipe_ingredient.ingredient.name}: {e}")
+            if errors:
+                messages.error(request, "Errors updating ingredients: " + ", ".join(errors))
+            else:
+                messages.success(request, "Ingredient quantities and units updated.")
             return redirect(request.path)
 
             
@@ -392,17 +386,14 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
 
 
         elif action == "update_cost":
-            # Round cost input to 2 decimal places before saving
-            cost = request.POST.get("cost")
             try:
-                if cost is not None:
-                    cost = Decimal(cost).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                    if cost < 0:
-                        messages.error(request, "Cost cannot be negative.")
-                    else:
-                        menu_item.cost = cost
-                        menu_item.save()
-                        messages.success(request, f"Updated cost for {menu_item.name} successfully.")
+                cost = Decimal(request.POST.get("cost")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                if cost < 0:
+                    messages.error(request, "Cost cannot be negative.")
+                else:
+                    menu_item.cost = cost
+                    menu_item.save()
+                    messages.success(request, f"Updated cost for {menu_item.name}.")
             except Exception as e:
                 messages.error(request, f"Error updating cost: {e}")
             return redirect(request.path)
