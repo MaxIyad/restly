@@ -234,8 +234,9 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
 
 
     total_ingredient_cost = sum(
-        Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost) for ri in recipe_ingredients
-    )
+    Decimal(ri.quantity) * (Decimal(ri.ingredient.unit_cost) / Decimal(ri.unit.multiplier) if ri.unit else Decimal(0))
+    for ri in recipe_ingredients
+)
 
     menu_item_cost = Decimal(menu_item.cost or 0)
     if total_ingredient_cost > 0:
@@ -255,9 +256,13 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
 
     # Update the calculated price for each ingredient
     for recipe_ingredient in recipe_ingredients:
-        recipe_ingredient.calculated_price = (
-            Decimal(recipe_ingredient.quantity) * Decimal(recipe_ingredient.ingredient.unit_cost)
-        )
+    # Calculate the unit cost for the selected unit
+        if recipe_ingredient.unit:
+            unit_cost = Decimal(recipe_ingredient.ingredient.unit_cost) / Decimal(recipe_ingredient.unit.multiplier)
+            # Calculate the total cost for the ingredient
+            recipe_ingredient.calculated_price = Decimal(recipe_ingredient.quantity) * unit_cost
+        else:
+            recipe_ingredient.calculated_price = Decimal(0)
 
     # Filter ingredients by category
     selected_category_id = request.GET.get('category_id')
@@ -478,6 +483,7 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
     for recipe_ingredient in recipe_ingredients:
         ingredient = recipe_ingredient.ingredient
         category_to_deplete = recipe_ingredient.category
+        
 
         if category_to_deplete is None:
             warnings.append(f"Category for {ingredient.name} is not specified!")

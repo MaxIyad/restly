@@ -3,6 +3,7 @@ from .models import Menu, MenuItem, RecipeIngredient, MenuCategory
 from inventory.models import Unit
 from inventory.models import Ingredient, Category
 from django.core.exceptions import ValidationError
+from decimal import Decimal
 
 class RecipeIngredientForm(forms.ModelForm):
     ingredient_name = forms.ChoiceField(
@@ -33,6 +34,16 @@ class RecipeIngredientForm(forms.ModelForm):
         # Populate unit choices if an ingredient is available
         if self.instance and self.instance.ingredient:
             self.fields['unit'].queryset = self.instance.ingredient.units.all()
+    
+    def save(self, *args, **kwargs):
+        # Ensure calculated price is stored
+        if self.unit:
+            self.calculated_price = Decimal(self.quantity) * (
+                Decimal(self.ingredient.unit_cost) / Decimal(self.unit.multiplier)
+            )
+        else:
+            self.calculated_price = Decimal(0)
+        super().save(*args, **kwargs)
 
     class Meta:
         model = RecipeIngredient
