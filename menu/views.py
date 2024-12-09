@@ -7,6 +7,7 @@ from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientFor
 from django.contrib import messages
 from decimal import Decimal
 from django.db.models import Prefetch
+from collections import defaultdict
 from settings.models import Settings
 from django.db import models
 from reports.models import Order
@@ -213,6 +214,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     secondary_associations = MenuItemSecondaryAssociation.objects.filter(menu_item=menu_item)
 
 
+
     selected_secondary_menu_id = menu_item.associated_secondary_menu_id
     unassociated_secondary_items = MenuItem.objects.filter(
         is_secondary=True,
@@ -234,6 +236,12 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     total_ingredient_cost = sum(
         Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost) for ri in recipe_ingredients
     )
+
+    secondary_items_by_category = defaultdict(list)
+    for association in secondary_associations.select_related('secondary_item__category'):
+        category_name = association.secondary_item.category.name
+        secondary_items_by_category[category_name].append(association)
+
 
     # Update the calculated price for each ingredient
     for recipe_ingredient in recipe_ingredients:
@@ -306,7 +314,6 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             messages.success(request, f"Secondary item '{association.secondary_item.name}' status updated.")
             return redirect(request.path)
 
-
         elif action == "bulk_update":
             for association in secondary_associations:
                 checkbox_name = f"association_status_{association.secondary_item.id}"
@@ -368,6 +375,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         'associated_form': associated_form,
         'unassociated_secondary_items': unassociated_secondary_items,
         'secondary_associations': secondary_associations,
+        'secondary_items_by_category': dict(secondary_items_by_category),
         
         
     }
