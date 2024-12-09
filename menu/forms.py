@@ -1,5 +1,6 @@
 from django import forms
 from .models import Menu, MenuItem, RecipeIngredient, MenuCategory
+from inventory.models import Unit
 from inventory.models import Ingredient, Category
 from django.core.exceptions import ValidationError
 
@@ -13,6 +14,11 @@ class RecipeIngredientForm(forms.ModelForm):
         label="Deplete From Category",
         widget=forms.Select(attrs={"class": "form-control"})
     )
+    unit = forms.ModelChoiceField(
+        queryset=Unit.objects.none(),
+        label="Unit",
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -24,9 +30,13 @@ class RecipeIngredientForm(forms.ModelForm):
         # Categories will be populated dynamically in the view
         self.fields['category'].queryset = Category.objects.all()
 
+        # Populate unit choices if an ingredient is available
+        if self.instance and self.instance.ingredient:
+            self.fields['unit'].queryset = self.instance.ingredient.units.all()
+
     class Meta:
         model = RecipeIngredient
-        fields = ['ingredient_name', 'quantity', 'category']
+        fields = ['ingredient_name', 'quantity', 'category', 'unit']
         widgets = {
             'quantity': forms.NumberInput(attrs={"class": "form-control", "step": "0.000001"}),
         }

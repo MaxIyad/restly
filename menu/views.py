@@ -271,13 +271,22 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         if action == "add_ingredient":
             ingredient_id = request.POST.get("ingredient_id")
             ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+            
+            # Check if the ingredient has associated units
+            default_unit = ingredient.units.first()
+            if not default_unit:
+                messages.error(request, f"Cannot add ingredient '{ingredient.name}': No unit associated with this ingredient.")
+                return redirect(request.path + f"?category_id={selected_category_id}")
+
+            # Create a new RecipeIngredient with the default unit
             RecipeIngredient.objects.create(
                 menu_item=menu_item,
                 ingredient=ingredient,
                 category=ingredient.category,
+                unit=default_unit,
                 quantity=1.0  # Default quantity
             )
-            messages.success(request, f"Ingredient '{ingredient.name}' added.")
+            messages.success(request, f"Ingredient '{ingredient.name}' added with default unit '{default_unit.name}'.")
             return redirect(request.path + f"?category_id={selected_category_id}")
         
         elif action == "update_associations":
@@ -295,18 +304,39 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             return redirect(request.path)
 
         elif action == "save_quantities":
-            # Save ingredient quantities
-            for key, value in request.POST.items():
-                if key.startswith("quantity-"):
-                    recipe_ingredient_id = key.split("-")[1]
-                    recipe_ingredient = get_object_or_404(RecipeIngredient, id=recipe_ingredient_id)
+            errors = []
+            try:
+                for recipe_ingredient in recipe_ingredients:
+                    # Get the updated unit and quantity from the form
+                    quantity_key = f"quantity-{recipe_ingredient.id}"
+                    unit_key = f"unit-{recipe_ingredient.id}"
+
+                    new_quantity = request.POST.get(quantity_key)
+                    selected_unit_id = request.POST.get(unit_key)
+
                     try:
-                        recipe_ingredient.quantity = Decimal(value)
+                        # Update the `quantity` and `unit` for the recipe ingredient
+                        if new_quantity:
+                            recipe_ingredient.quantity = Decimal(new_quantity)
+                        if selected_unit_id:
+                            recipe_ingredient.unit = recipe_ingredient.ingredient.units.get(id=selected_unit_id)
+
+                        # Save the updated recipe ingredient
                         recipe_ingredient.save()
                     except Exception as e:
-                        messages.error(request, f"Error updating quantity for {recipe_ingredient.ingredient.name}: {e}")
-            messages.success(request, "Quantities updated successfully.")
+                        errors.append(f"Error updating {recipe_ingredient.ingredient.name}: {e}")
+
+                if errors:
+                    messages.error(request, "Some ingredients could not be updated: " + ", ".join(errors))
+                else:
+                    messages.success(request, "Ingredient quantities and units updated successfully.")
+
+            except Exception as e:
+                messages.error(request, f"An error occurred while saving ingredient quantities: {e}")
+
             return redirect(request.path)
+
+            
         
         
 

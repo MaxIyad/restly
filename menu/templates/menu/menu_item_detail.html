@@ -53,22 +53,22 @@
     </div>
 
     <!-- Recipe Ingredients Section -->
+    <!-- Recipe Ingredients Section -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light">
             <h2 class="mb-0">Recipe Ingredients</h2>
         </div>
         <div class="card-body">
-            <form method="post" id="save-quantities-form">
+            <form method="post" id="save-ingredient-cost-form">
                 {% csrf_token %}
-                <table class="table table-striped">
-                    <thead class="table-light">
+                <table class="table table-bordered">
+                    <thead>
                         <tr>
                             <th>Ingredient</th>
-                            <th>Quantity</th>
                             <th>Unit</th>
-                            <th>Price</th>
-                            <th>Deplete From</th>
-                            <th>Actions</th>
+                            <th>Quantity</th>
+                            <th>Cost per Unit</th>
+                            <th>Ingredient Cost</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -76,30 +76,42 @@
                         <tr>
                             <td>{{ recipe_ingredient.ingredient.name }}</td>
                             <td>
-                                <input type="number" name="quantity-{{ recipe_ingredient.id }}" class="form-control"
-                                       value="{{ recipe_ingredient.quantity }}" step="0.000001">
+                                <!-- Unit Dropdown -->
+                                <select name="unit-{{ recipe_ingredient.id }}" class="form-control">
+                                    {% for unit in recipe_ingredient.ingredient.units.all %}
+                                    <option value="{{ unit.id }}" {% if unit.id == recipe_ingredient.unit_id %}selected{% endif %}>
+                                        {{ unit.name }} ({{ unit.multiplier }} {{ recipe_ingredient.ingredient.unit_type }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </td>
-                            <td>{{ recipe_ingredient.ingredient.unit_multiplier }}{{ recipe_ingredient.ingredient.unit_type }}</td>
-                            <td>{{ settings.get_currency_type_display }}{{ recipe_ingredient.calculated_price|floatformat:2 }}</td>
-                            <td>{{ recipe_ingredient.category.name }}</td>
                             <td>
-                                <form method="post" style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="ingredient_id" value="{{ recipe_ingredient.id }}">
-                                    <input type="hidden" name="action" value="remove_ingredient">
-                                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                                </form>
+                                <input 
+                                    type="number" 
+                                    name="quantity-{{ recipe_ingredient.id }}" 
+                                    value="{{ recipe_ingredient.quantity }}" 
+                                    step="0.01" 
+                                    class="form-control">
+                            </td>
+                            <td>{{ settings.get_currency_type_display }}{{ recipe_ingredient.ingredient.unit_cost|floatformat:2 }}</td>
+                            <td>
+                                {{ settings.get_currency_type_display }}
+                                {{ recipe_ingredient.calculated_price|floatformat:2 }}
                             </td>
                         </tr>
+                        
                         {% endfor %}
                     </tbody>
                 </table>
-                <button type="submit" class="btn btn-primary mt-3" name="action" value="save_quantities">
-                    Save Quantities
+                <button type="submit" name="action" value="save_quantities" class="btn btn-primary">
+                    Save Changes
                 </button>
             </form>
+            
         </div>
     </div>
+
+
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light">
             <h2 class="mb-0">Update Cost and Margin</h2>

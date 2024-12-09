@@ -2,7 +2,8 @@
 from django.db import models
 from inventory.models import Ingredient, Category
 from django.utils.text import slugify
-
+from inventory.models import Unit
+from django.core.validators import MinValueValidator
 
 
 
@@ -118,8 +119,11 @@ class RecipeIngredient(models.Model):
     menu_item = models.ForeignKey(MenuItem, related_name="recipe_ingredients", on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     order = models.PositiveIntegerField(default=1)
-    quantity = models.FloatField(help_text="Quantity of the ingredient used in the recipe")
+    quantity = models.FloatField(validators=[MinValueValidator(0.0)])
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True, help_text="Category to deplete from")
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE)
+
+    
 
     
 
