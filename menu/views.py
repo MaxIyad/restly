@@ -306,6 +306,16 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             messages.success(request, f"Secondary item '{association.secondary_item.name}' status updated.")
             return redirect(request.path)
 
+
+        elif action == "bulk_update":
+            for association in secondary_associations:
+                checkbox_name = f"association_status_{association.secondary_item.id}"
+                association.is_active = checkbox_name in request.POST
+                association.save()
+
+            messages.success(request, "Secondary item statuses updated successfully.")
+            return redirect(request.path)
+        
         elif action == "update_secondary_menu":
             secondary_menu_id = request.POST.get("associated_secondary_menu")
             if secondary_menu_id:
