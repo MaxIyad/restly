@@ -1,7 +1,7 @@
 # menu/views.py:
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
-from .models import Menu, MenuItem, RecipeIngredient
+from .models import Menu, MenuItem, RecipeIngredient, MenuItemSecondaryAssociation
 from inventory.models import Ingredient
 from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientForm, MenuItemForm, MenuItemAssociationForm
 from django.contrib import messages
@@ -210,9 +210,13 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     settings_instance = Settings.objects.first()
     secondary_menus = Menu.objects.filter(is_secondary=True)
     associated_form = MenuItemAssociationForm(instance=menu_item)
+    secondary_associations = MenuItemSecondaryAssociation.objects.filter(menu_item=menu_item)
 
+
+    selected_secondary_menu_id = menu_item.associated_secondary_menu_id
     unassociated_secondary_items = MenuItem.objects.filter(
-        is_secondary=True
+        is_secondary=True,
+        category__menu_id=selected_secondary_menu_id
     ).exclude(
         id__in=menu_item.associated_secondary_items.values_list('id', flat=True)
     )
@@ -284,31 +288,42 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             messages.success(request, "Quantities updated successfully.")
             return redirect(request.path)
         
-        elif action == "update_secondary_menu":
-            secondary_menu_id = request.POST.get("associated_secondary_menu")
-            if secondary_menu_id:
-                menu_item.associated_secondary_menu = get_object_or_404(Menu, id=secondary_menu_id, is_secondary=True)
-            else:
-                menu_item.associated_secondary_menu = None
-            menu_item.save()
-            messages.success(request, "Secondary menu updated successfully.")
-            return redirect('menu_item_detail', menu_slug=menu.slug, category_slug=category.slug, menu_item_slug=menu_item.slug)
         
-        elif action == "toggle_secondary_item":
-            secondary_item_id = request.POST.get("secondary_item_id")
-            secondary_item = get_object_or_404(MenuItem, id=secondary_item_id)
-            secondary_item.secondary_active = not secondary_item.secondary_active
-            secondary_item.save()
-            messages.success(request, f"Secondary item '{secondary_item.name}' status updated successfully.")
-            return redirect('menu_item_detail', menu_slug=menu.slug, category_slug=category.slug, menu_item_slug=menu_item.slug)
 
         elif action == "add_association":
             item_ids = request.POST.getlist("associated_secondary_items")
             items_to_add = MenuItem.objects.filter(id__in=item_ids, is_secondary=True)
             menu_item.associated_secondary_items.add(*items_to_add)
-            messages.success(request, f"New associations added successfully.")
+            messages.success(request, "New associations added successfully.")
             return redirect('menu_item_detail', menu_slug=menu.slug, category_slug=category.slug, menu_item_slug=menu_item.slug)
 
+        
+        elif action == "toggle_secondary_item":
+            secondary_item_id = request.POST.get("secondary_item_id")
+            association = get_object_or_404(MenuItemSecondaryAssociation, menu_item=menu_item, secondary_item_id=secondary_item_id)
+            association.is_active = not association.is_active
+            association.save()
+            messages.success(request, f"Secondary item '{association.secondary_item.name}' status updated.")
+            return redirect(request.path)
+
+        elif action == "update_secondary_menu":
+            secondary_menu_id = request.POST.get("associated_secondary_menu")
+            if secondary_menu_id:
+                secondary_menu = get_object_or_404(Menu, id=secondary_menu_id, is_secondary=True)
+                menu_item.associated_secondary_menu = secondary_menu
+
+                # Update associations
+                secondary_items = MenuItem.objects.filter(category__menu=secondary_menu, is_secondary=True)
+                for item in secondary_items:
+                    MenuItemSecondaryAssociation.objects.get_or_create(menu_item=menu_item, secondary_item=item)
+
+            else:
+                menu_item.associated_secondary_menu = None
+                MenuItemSecondaryAssociation.objects.filter(menu_item=menu_item).delete()
+
+            menu_item.save()
+            messages.success(request, "Secondary menu and associated items updated.")
+            return redirect(request.path)
 
 
 
@@ -342,6 +357,8 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         'selected_category_id': int(selected_category_id) if selected_category_id else None,
         'associated_form': associated_form,
         'unassociated_secondary_items': unassociated_secondary_items,
+        'secondary_associations': secondary_associations,
+        
         
     }
     return render(request, 'menu/menu_item_detail.html', context)

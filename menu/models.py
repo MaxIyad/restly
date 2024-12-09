@@ -78,7 +78,7 @@ class MenuItem(models.Model):
     order = models.PositiveIntegerField(default=1)
     is_active = models.BooleanField(default=True)
     is_secondary = models.BooleanField(default=False)
-    secondary_active = models.BooleanField(default=False, help_text="Indicates if the item is secondary active.")
+    secondary_active = models.BooleanField(default=False)
     associated_secondary_menu = models.ForeignKey(
         'Menu', on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'is_secondary': True},
         help_text="Select a secondary menu associated with this item."
@@ -96,7 +96,7 @@ class MenuItem(models.Model):
 
         if self.category and self.category.menu and self.category.menu.is_secondary:
             self.is_secondary = True
-            
+
         if not self.slug or MenuItem.objects.filter(name=self.name, category=self.category).exclude(id=self.id).exists():
             base_slug = slugify(self.name)
             slug = f"{self.category.slug}-{base_slug}"  # Include category slug for uniqueness
@@ -128,3 +128,20 @@ class RecipeIngredient(models.Model):
 
     def __str__(self):
         return f"{self.ingredient.name} ({self.quantity}) for {self.menu_item.name}"
+
+
+
+class MenuItemSecondaryAssociation(models.Model):
+    menu_item = models.ForeignKey(
+        'MenuItem', on_delete=models.CASCADE, related_name='secondary_associations'
+    )
+    secondary_item = models.ForeignKey(
+        'MenuItem', on_delete=models.CASCADE, related_name='+'
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('menu_item', 'secondary_item')
+
+    def __str__(self):
+        return f"{self.menu_item.name} - {self.secondary_item.name} ({'Active' if self.is_active else 'Inactive'})"

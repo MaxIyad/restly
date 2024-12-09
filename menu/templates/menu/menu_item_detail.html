@@ -124,33 +124,6 @@
         </div>
     </div>
 
- <!-- Secondary Menu Association Section -->
- {% if not menu.is_secondary %}
- <div class="card shadow-sm mb-4">
-     <div class="card-header bg-light">
-         <h2 class="mb-0">Secondary Menu Association</h2>
-     </div>
-     <div class="card-body">
-         <form method="post">
-             {% csrf_token %}
-             <div class="mb-3">
-                 <label for="associated_secondary_menu" class="form-label">Select Secondary Menu</label>
-                 <select id="associated_secondary_menu" name="associated_secondary_menu" class="form-control">
-                     <option value="">-- None --</option>
-                     {% for secondary_menu in secondary_menus %}
-                     <option value="{{ secondary_menu.id }}" 
-                             {% if menu_item.associated_secondary_menu and menu_item.associated_secondary_menu.id == secondary_menu.id %}selected{% endif %}>
-                         {{ secondary_menu.name }}
-                     </option>
-                     {% endfor %}
-                 </select>
-             </div>
-             <button type="submit" name="update_secondary_menu" class="btn btn-primary">
-                 <i class="bi bi-save"></i> Update Secondary Menu
-             </button>
-         </form>
-     </div>
- </div>
 
  <!-- Secondary Menu Items -->
 <!-- Associate Secondary Menu Items -->
@@ -194,23 +167,68 @@
                 {% endfor %}
             </tbody>
         </table>
-        <form method="post" class="mt-3">
-            {% csrf_token %}
-            <label for="associated_items" class="form-label">Add New Associations</label>
-            <select id="associated_items" name="associated_secondary_items" class="form-select" multiple>
-                {% for item in unassociated_secondary_items %}
-                <option value="{{ item.id }}">{{ item.name }}</option>
-                {% endfor %}
-            </select>
-            
-            <button type="submit" name="action" value="add_association" class="btn btn-primary mt-3">
-                Add Selected Items
-            </button>
-        </form>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="associated_secondary_menu" class="form-label">Select Secondary Menu</label>
+                    <select id="associated_secondary_menu" name="associated_secondary_menu" class="form-control">
+                        <option value="">-- None --</option>
+                        {% for secondary_menu in secondary_menus %}
+                        <option value="{{ secondary_menu.id }}" 
+                            {% if menu_item.associated_secondary_menu and menu_item.associated_secondary_menu.id == secondary_menu.id %}selected{% endif %}>
+                            {{ secondary_menu.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" name="action" value="update_secondary_menu" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Update Secondary Menu
+                </button>
+            </form>
+        </div>
+        <div class="card-body">
+            <h3>Associated Secondary Menu Items</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for association in secondary_associations %}
+                    <tr>
+                        <td>{{ association.secondary_item.name }}</td>
+                        <td>
+                            {% if association.is_active %}
+                                Active
+                            {% else %}
+                                Inactive
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_secondary_item">
+                                <input type="hidden" name="secondary_item_id" value="{{ association.secondary_item.id }}">
+                                <button type="submit" class="btn btn-sm {% if association.is_active %}btn-success{% else %}btn-danger{% endif %}">
+                                    {% if association.is_active %}Deactivate{% else %}Activate{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        
+        
     </div>
 </div>
-{% endif %}
-    
+
     
     
 </div>
