@@ -253,6 +253,8 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     selected_category_id = request.GET.get('category_id')
     inventory_categories = Category.objects.all()
     ingredients = Ingredient.objects.filter(category_id=selected_category_id) if selected_category_id else []
+    # CAlcautes total cost (secondary menu item + Menu item sell price)
+
 
     if request.method == "POST":
         action = request.POST.get("action")

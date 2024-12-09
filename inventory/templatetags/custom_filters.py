@@ -22,3 +22,10 @@ def dict_get(dictionary, key):
     if isinstance(dictionary, dict):
         return dictionary.get(key, None)
     return None
+
+@register.filter
+def add_float(value, arg):
+    try:
+        return float(value) + float(arg)
+    except (ValueError, TypeError):
+        return value

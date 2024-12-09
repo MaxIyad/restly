@@ -64,12 +64,11 @@ class MenuCategoryForm(forms.ModelForm):
 class MenuItemForm(forms.ModelForm):
     class Meta:
         model = MenuItem
-        fields = ['name', 'description', 'cost', 'associated_secondary_menu']
+        fields = ['name', 'description', 'cost',]
         labels = {
             'name': 'Menu Item Name',
             'description': 'Description',
             'cost': 'Cost',
-            'associated_secondary_menu': 'Secondary Menu',
         }
         widgets = {
             'cost': forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),  # Widget for cost input for menu_item_detail

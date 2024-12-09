@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block title %}
     {{ menu_item.name }}
@@ -201,6 +202,7 @@
                             <tr>
                                 <th>Item Name</th>
                                 <th>Cost ({{ settings.get_currency_type_display }})</th>
+                                <th>Total Cost</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -210,6 +212,11 @@
                             <tr>
                                 <td>{{ association.secondary_item.name }}</td>
                                 <td>{{ settings.get_currency_type_display }}{{ association.secondary_item.cost|floatformat:2 }}</td>
+                                <td>
+                                    {{ settings.get_currency_type_display }}
+                                    {{ association.secondary_item.cost|add_float:menu_item.cost|floatformat:2 }}
+                                </td>
+                                
                                 <td>
                                     {% if association.is_active %}
                                         Active
