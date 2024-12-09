@@ -211,6 +211,12 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     secondary_menus = Menu.objects.filter(is_secondary=True)
     associated_form = MenuItemAssociationForm(instance=menu_item)
 
+    unassociated_secondary_items = MenuItem.objects.filter(
+        is_secondary=True
+    ).exclude(
+        id__in=menu_item.associated_secondary_items.values_list('id', flat=True)
+    )
+
     # Gathers all secondary categories and their items, marking secondary menu item active states
     secondary_categories = []
     for secondary_menu in secondary_menus:
@@ -296,6 +302,13 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             messages.success(request, f"Secondary item '{secondary_item.name}' status updated successfully.")
             return redirect('menu_item_detail', menu_slug=menu.slug, category_slug=category.slug, menu_item_slug=menu_item.slug)
 
+        elif action == "add_association":
+            item_ids = request.POST.getlist("associated_secondary_items")
+            items_to_add = MenuItem.objects.filter(id__in=item_ids, is_secondary=True)
+            menu_item.associated_secondary_items.add(*items_to_add)
+            messages.success(request, f"New associations added successfully.")
+            return redirect('menu_item_detail', menu_slug=menu.slug, category_slug=category.slug, menu_item_slug=menu_item.slug)
+
 
 
 
@@ -328,6 +341,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         'secondary_categories': secondary_categories,
         'selected_category_id': int(selected_category_id) if selected_category_id else None,
         'associated_form': associated_form,
+        'unassociated_secondary_items': unassociated_secondary_items,
         
     }
     return render(request, 'menu/menu_item_detail.html', context)
