@@ -1,9 +1,9 @@
 # menu/views.py:
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
-from .models import Menu, MenuItem, RecipeIngredient, MenuItemSecondaryAssociation
+from .models import Menu, MenuItem, RecipeIngredient, MenuItemSecondaryAssociation, MenuItemVariation
 from inventory.models import Ingredient
-from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientForm, MenuItemForm, MenuItemAssociationForm
+from .forms import MenuForm, MenuCategoryForm, MenuCategory, RecipeIngredientForm, MenuItemForm, MenuItemAssociationForm, MenuItemVariationForm
 from django.contrib import messages
 from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import Prefetch
@@ -212,6 +212,8 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     secondary_menus = Menu.objects.filter(is_secondary=True)
     associated_form = MenuItemAssociationForm(instance=menu_item)
     secondary_associations = MenuItemSecondaryAssociation.objects.filter(menu_item=menu_item)
+    variations = menu_item.variations.all()
+    variation_form = MenuItemVariationForm()
 
 
 
@@ -397,6 +399,25 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             except Exception as e:
                 messages.error(request, f"Error updating cost: {e}")
             return redirect(request.path)
+        
+        elif request.POST.get("action") == "add_variation":
+            variation_form = MenuItemVariationForm(request.POST)
+            if variation_form.is_valid():
+                variation = variation_form.save(commit=False)
+                variation.menu_item = menu_item
+                variation.save()
+                messages.success(request, f"Variation '{variation.name}' added successfully.")
+                return redirect(request.path)
+            else:
+                messages.error(request, "Failed to add variation. Please check the form.")
+        elif request.POST.get("action") == "delete_variation":
+            variation_id = request.POST.get("variation_id")
+            variation = get_object_or_404(MenuItemVariation, id=variation_id, menu_item=menu_item)
+            variation.delete()
+            messages.success(request, f"Variation '{variation.name}' deleted successfully.")
+            return redirect(request.path)
+        
+
 
     context = {
         'menu': menu,
@@ -415,11 +436,54 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
         'secondary_associations': secondary_associations,
         'secondary_items_by_category': dict(secondary_items_by_category),
         'margin': margin,
+        'variations': variations,
+        'variation_form': variation_form,
         
         
     }
     return render(request, 'menu/menu_item_detail.html', context)
 
+
+def variation_detail(request, menu_slug, category_slug, menu_item_slug, variation_slug):
+    menu = get_object_or_404(Menu, slug=menu_slug)
+    category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
+    menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
+    variation = get_object_or_404(MenuItemVariation, slug=variation_slug, menu_item=menu_item)
+
+    # Fetch recipe ingredients specific to this variation (if applicable)
+    recipe_ingredients = variation.menu_item.recipe_ingredients.select_related('ingredient', 'category')
+
+    # Settings and auxiliary data
+    settings_instance = Settings.objects.first()
+    total_ingredient_cost = sum(ri.calculated_price for ri in recipe_ingredients)
+
+    # Calculate margin
+    variation_cost = Decimal(variation.price or 0)
+    margin = Decimal(0)
+    if total_ingredient_cost > 0:
+        margin = Decimal((variation_cost - total_ingredient_cost) / total_ingredient_cost * 100).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "update_variation":
+            new_price = request.POST.get("price")
+            if new_price:
+                variation.price = Decimal(new_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                variation.save()
+                messages.success(request, f"Variation '{variation.name}' price updated successfully.")
+            return redirect(request.path)
+
+    context = {
+        'menu': menu,
+        'category': category,
+        'menu_item': menu_item,
+        'variation': variation,
+        'recipe_ingredients': recipe_ingredients,
+        'total_ingredient_cost': total_ingredient_cost,
+        'settings': settings_instance,
+        'margin': margin,
+    }
+    return render(request, 'menu/variation_detail.html', context)
 
 
 #################################################################################################################################################

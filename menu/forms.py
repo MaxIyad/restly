@@ -1,7 +1,6 @@
 from django import forms
-from .models import Menu, MenuItem, RecipeIngredient, MenuCategory
-from inventory.models import Unit
-from inventory.models import Ingredient, Category
+from .models import Menu, MenuItem, RecipeIngredient, MenuCategory, MenuItemVariation
+from inventory.models import Ingredient, Category, Unit
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 
@@ -50,6 +49,20 @@ class RecipeIngredientForm(forms.ModelForm):
         fields = ['ingredient_name', 'quantity', 'category', 'unit']
         widgets = {
             'quantity': forms.NumberInput(attrs={"class": "form-control", "step": "0.000001"}),
+        }
+
+
+class MenuItemVariationForm(forms.ModelForm):
+    class Meta:
+        model = MenuItemVariation
+        fields = ['name', 'price']
+        widgets = {
+            'name': forms.TextInput(attrs={"class": "form-control"}),
+            'price': forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+        }
+        labels = {
+            'name': 'Variation Name',
+            'price': 'Price',
         }
 
 ###################################################################################################

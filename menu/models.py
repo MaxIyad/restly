@@ -149,3 +149,23 @@ class MenuItemSecondaryAssociation(models.Model):
 
     def __str__(self):
         return f"{self.menu_item.name} - {self.secondary_item.name} ({'Active' if self.is_active else 'Inactive'})"
+    
+class MenuItemVariation(models.Model):
+    menu_item = models.ForeignKey(MenuItem, related_name="variations", on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.name)
+            slug = f"{self.menu_item.slug}-{base_slug}"
+            counter = 1
+            while MenuItemVariation.objects.filter(slug=slug).exclude(id=self.id).exists():
+                slug = f"{self.menu_item.slug}-{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} - {self.menu_item.name}"

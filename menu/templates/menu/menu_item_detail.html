@@ -14,6 +14,40 @@
         </a>
     </div>
 
+    <!-- Variations Section -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h2 class="mb-0">Menu Item Variations</h2>
+    </div>
+    <div class="card-body">
+        <!-- Display Existing Variations -->
+        <h3>Existing Variations</h3>
+        <ul class="list-group mb-4">
+            {% for variation in variations %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ variation.name }} - {{ settings.get_currency_type_display }}{{ variation.price }}
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_variation">
+                    <input type="hidden" name="variation_id" value="{{ variation.id }}">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Add Variation Form -->
+        <h3>Add New Variation</h3>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_variation">
+            {{ variation_form.as_p }}
+            <button type="submit" class="btn btn-success">Add Variation</button>
+        </form>
+    </div>
+</div>
+
+
     <!-- Add Recipe Ingredient Section -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white">
