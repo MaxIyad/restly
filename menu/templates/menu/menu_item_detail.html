@@ -25,7 +25,9 @@
         <ul class="list-group mb-4">
             {% for variation in variations %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                {{ variation.name }} - {{ settings.get_currency_type_display }}{{ variation.price }}
+                <a href="{% url 'variation_detail' menu.slug category.slug menu_item.slug variation.slug %}">
+                    {{ variation.name }} - {{ settings.get_currency_type_display }}{{ variation.price }}
+                </a>
                 <form method="post" style="display:inline;">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="delete_variation">
@@ -35,6 +37,7 @@
             </li>
             {% endfor %}
         </ul>
+        
 
         <!-- Add Variation Form -->
         <h3>Add New Variation</h3>

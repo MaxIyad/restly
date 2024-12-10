@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}
+    {{ variation.name }} Details
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-primary">{{ variation.name }}</h1>
+        <a href="{% url 'menu_item_detail' menu.slug category.slug menu_item.slug %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left-circle"></i> Back to {{ menu_item.name }}
+        </a>
+    </div>
+
+    <!-- Variation Information -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Variation Details</h2>
+        </div>
+        <div class="card-body">
+            <p><strong>Price:</strong> {{ settings.get_currency_type_display }}{{ variation.price }}</p>
+            <p><strong>Margin:</strong> {{ margin }}%</p>
+        </div>
+    </div>
+
+    <!-- Recipe Ingredients -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h2 class="mb-0">Recipe Ingredients</h2>
+        </div>
+        <div class="card-body">
+            <ul class="list-group">
+                {% for ingredient in recipe_ingredients %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ ingredient.ingredient.name }} - {{ ingredient.quantity }} {{ ingredient.unit.name }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Update Variation Price -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h2 class="mb-0">Update Price</h2>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="price" class="form-label">Price</label>
+                    <input type="number" id="price" name="price" class="form-control" step="0.01" min="0" value="{{ variation.price }}">
+                </div>
+                <button type="submit" name="action" value="update_variation" class="btn btn-success">
+                    <i class="bi bi-save"></i> Update Price
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

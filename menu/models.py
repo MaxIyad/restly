@@ -4,7 +4,7 @@ from inventory.models import Ingredient, Category
 from django.utils.text import slugify
 from inventory.models import Unit
 from django.core.validators import MinValueValidator
-
+from decimal import Decimal
 
 
 class Menu(models.Model):
@@ -122,8 +122,7 @@ class RecipeIngredient(models.Model):
     quantity = models.FloatField(validators=[MinValueValidator(0.0)])
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True, help_text="Category to deplete from")
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE)
-
-    
+  
 
     
 
@@ -132,6 +131,14 @@ class RecipeIngredient(models.Model):
 
     def __str__(self):
         return f"{self.ingredient.name} ({self.quantity}) for {self.menu_item.name}"
+    
+    @property
+    def calculated_price(self):
+        if self.unit and self.unit.multiplier:
+            delivery_unit_cost = Decimal(self.ingredient.unit_cost) / Decimal(self.ingredient.unit_multiplier)
+            unit_cost = delivery_unit_cost * Decimal(self.unit.multiplier)
+            return Decimal(self.quantity) * unit_cost
+        return Decimal(0)
 
 
 

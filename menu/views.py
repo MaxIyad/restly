@@ -247,30 +247,37 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
 
     # Update the calculated price for each ingredient
     for recipe_ingredient in recipe_ingredients:
-            if recipe_ingredient.unit and recipe_ingredient.unit.multiplier:
-                # Delivery Unit Cost = unit_cost / delivery_unit_amount
-                delivery_unit_cost = Decimal(recipe_ingredient.ingredient.unit_cost) / Decimal(
-                    recipe_ingredient.ingredient.unit_multiplier
-                )
+        if recipe_ingredient.unit and recipe_ingredient.unit.multiplier:
+            # Delivery Unit Cost = unit_cost / delivery_unit_amount
+            delivery_unit_cost = Decimal(recipe_ingredient.ingredient.unit_cost) / Decimal(
+                recipe_ingredient.ingredient.unit_multiplier
+            )
+            # Adjust cost for the recipe unit multiplier
+            unit_cost = delivery_unit_cost * Decimal(recipe_ingredient.unit.multiplier)
+            # Calculate the total ingredient cost
+            calculated_price = Decimal(recipe_ingredient.quantity) * unit_cost
+        else:
+            calculated_price = Decimal(0)
 
-                # Adjust cost for the recipe unit multiplier
-                unit_cost = delivery_unit_cost * Decimal(recipe_ingredient.unit.multiplier)
-
-                # Calculate the total ingredient cost
-                recipe_ingredient.calculated_price = Decimal(recipe_ingredient.quantity) * unit_cost
-            else:
-                recipe_ingredient.calculated_price = Decimal(0)
-
-    total_ingredient_cost = sum(ri.calculated_price for ri in recipe_ingredients)
+        # Use `calculated_price` as needed instead of assigning it
+        recipe_ingredient.calculated_price_value = calculated_price
                 
 
     menu_item_cost = Decimal(menu_item.cost or 0)
+    total_ingredient_cost = sum(
+        Decimal(recipe_ingredient.quantity) * (
+            (Decimal(recipe_ingredient.ingredient.unit_cost) / Decimal(recipe_ingredient.ingredient.unit_multiplier))
+            * Decimal(recipe_ingredient.unit.multiplier)
+        ) if recipe_ingredient.unit and recipe_ingredient.unit.multiplier else Decimal(0)
+        for recipe_ingredient in recipe_ingredients
+    )
+
+    menu_item_cost = Decimal(menu_item.cost or 0)
+    margin = Decimal(0)
     if total_ingredient_cost > 0:
-        # Ensure margin is calculated as a Decimal, otherwise everything breaks
-        margin = Decimal((menu_item_cost - total_ingredient_cost) / total_ingredient_cost * 100)
-    else:
-        margin = Decimal(0)
-    margin = margin.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+        margin = Decimal((menu_item_cost - total_ingredient_cost) / total_ingredient_cost * 100).quantize(
+            Decimal("0.001"), rounding=ROUND_HALF_UP
+        )
 
     # Filter ingredients by category
     selected_category_id = request.GET.get('category_id')
@@ -450,18 +457,19 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
     variation = get_object_or_404(MenuItemVariation, slug=variation_slug, menu_item=menu_item)
 
-    # Fetch recipe ingredients specific to this variation (if applicable)
-    recipe_ingredients = variation.menu_item.recipe_ingredients.select_related('ingredient', 'category')
+    # Fetch recipe ingredients for the parent menu item
+    recipe_ingredients = menu_item.recipe_ingredients.select_related('ingredient', 'category')
 
-    # Settings and auxiliary data
-    settings_instance = Settings.objects.first()
+    # Compute total ingredient cost using the property
     total_ingredient_cost = sum(ri.calculated_price for ri in recipe_ingredients)
 
     # Calculate margin
     variation_cost = Decimal(variation.price or 0)
     margin = Decimal(0)
     if total_ingredient_cost > 0:
-        margin = Decimal((variation_cost - total_ingredient_cost) / total_ingredient_cost * 100).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+        margin = Decimal((variation_cost - total_ingredient_cost) / total_ingredient_cost * 100).quantize(
+            Decimal("0.001"), rounding=ROUND_HALF_UP
+        )
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -480,10 +488,11 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
         'variation': variation,
         'recipe_ingredients': recipe_ingredients,
         'total_ingredient_cost': total_ingredient_cost,
-        'settings': settings_instance,
         'margin': margin,
     }
     return render(request, 'menu/variation_detail.html', context)
+
+
 
 
 #################################################################################################################################################
