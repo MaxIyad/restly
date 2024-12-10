@@ -7,6 +7,7 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 
 
+
 class Menu(models.Model):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
@@ -118,19 +119,29 @@ class MenuItem(models.Model):
 class RecipeIngredient(models.Model):
     menu_item = models.ForeignKey(MenuItem, related_name="recipe_ingredients", on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    variation = models.ForeignKey(
+            'MenuItemVariation',
+            related_name="recipe_ingredients",
+            on_delete=models.CASCADE,
+            null=True,
+            blank=True
+    )    
     order = models.PositiveIntegerField(default=1)
     quantity = models.FloatField(validators=[MinValueValidator(0.0)])
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True, help_text="Category to deplete from")
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE)
   
-
     
 
     class Meta:
         ordering = ['order'] 
 
     def __str__(self):
-        return f"{self.ingredient.name} ({self.quantity}) for {self.menu_item.name}"
+        if self.menu_item:
+            return f"{self.ingredient.name} ({self.quantity}) for {self.menu_item.name}"
+        elif self.variation:
+            return f"{self.ingredient.name} ({self.quantity}) for {self.variation.name}"
+
     
     @property
     def calculated_price(self):
