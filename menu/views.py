@@ -460,7 +460,7 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
     variation = get_object_or_404(MenuItemVariation, slug=variation_slug, menu_item=menu_item)
 
     # Fetch recipe ingredients for the variation
-    recipe_ingredients = variation.variation_recipe_ingredients.select_related('ingredient', 'category')
+    recipe_ingredients = variation.variation_recipe_ingredients.select_related('ingredient', 'category', 'unit')
 
     # Compute total ingredient cost using the property
     total_ingredient_cost = sum(ri.calculated_price for ri in recipe_ingredients)
@@ -473,21 +473,20 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
             Decimal("0.001"), rounding=ROUND_HALF_UP
         )
 
+    # Handle category and ingredient filtering
     selected_category_id = request.GET.get('category_id')
-    inventory_categories = Category.objects.all()
-    ingredients = Ingredient.objects.filter(category_id=selected_category_id) if selected_category_id else []
+    inventory_categories = Category.objects.all()  # Fetch all inventory categories
+    ingredients = []
+    if selected_category_id:
+        try:
+            selected_category_id = int(selected_category_id)
+            ingredients = Ingredient.objects.filter(category_id=selected_category_id)
+        except ValueError:
+            selected_category_id = None
 
     if request.method == "POST":
         action = request.POST.get("action")
-        if action == "update_variation":
-            new_price = request.POST.get("price")
-            if new_price:
-                variation.price = Decimal(new_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                variation.save()
-                messages.success(request, f"Variation '{variation.name}' price updated successfully.")
-            return redirect(request.path)
-
-        elif action == "add_ingredient":
+        if action == "add_ingredient":
             ingredient_id = request.POST.get("ingredient_id")
             ingredient = get_object_or_404(Ingredient, id=ingredient_id)
             default_unit = ingredient.units.first()
@@ -513,13 +512,32 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
             return redirect(request.path)
 
         elif action == "save_quantities":
-            for ingredient in recipe_ingredients:
-                quantity_key = f"quantity-{ingredient.id}"
+            errors = []
+            for recipe_ingredient in recipe_ingredients:
+                quantity_key = f"quantity-{recipe_ingredient.id}"
+                unit_key = f"unit-{recipe_ingredient.id}"
                 new_quantity = request.POST.get(quantity_key)
-                if new_quantity:
-                    ingredient.quantity = Decimal(new_quantity)
-                    ingredient.save()
-            messages.success(request, "Updated variation ingredients.")
+                selected_unit_id = request.POST.get(unit_key)
+                try:
+                    if new_quantity:
+                        recipe_ingredient.quantity = Decimal(new_quantity)
+                    if selected_unit_id:
+                        recipe_ingredient.unit = recipe_ingredient.ingredient.units.get(id=selected_unit_id)
+                    recipe_ingredient.save()
+                except Exception as e:
+                    errors.append(f"Error updating {recipe_ingredient.ingredient.name}: {e}")
+            if errors:
+                messages.error(request, "Errors updating ingredients: " + ", ".join(errors))
+            else:
+                messages.success(request, "Ingredient quantities and units updated.")
+            return redirect(request.path)
+
+        elif action == "update_variation":
+            new_price = request.POST.get("price")
+            if new_price:
+                variation.price = Decimal(new_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                variation.save()
+                messages.success(request, f"Variation '{variation.name}' price updated successfully.")
             return redirect(request.path)
 
     context = {
@@ -535,6 +553,7 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
         'selected_category_id': int(selected_category_id) if selected_category_id else None,
     }
     return render(request, 'menu/variation_detail.html', context)
+
 
 
 

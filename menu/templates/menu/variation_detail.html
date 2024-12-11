@@ -23,13 +23,51 @@
         </div>
     </div>
 
-    <!-- Recipe Ingredients -->
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light">
-            <h2 class="mb-0">Variation Recipe Ingredients</h2>
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Add Recipe Ingredient</h2>
         </div>
         <div class="card-body">
-            <form method="post">
+            <form method="get" id="category-filter-form">
+                <div class="mb-3">
+                    <label for="category-select" class="form-label">Inventory Category</label>
+                    <select id="category-select" name="category_id" class="form-control">
+                        <option value="">Select a category</option>
+                        {% for category in inventory_categories %}
+                        <option value="{{ category.id }}" {% if selected_category_id == category.id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+            <div id="ingredient-list">
+                <h3>Ingredients in Selected Category</h3>
+                <ul class="list-group">
+                    {% for ingredient in ingredients %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ ingredient.name }} ({{ ingredient.quantity }} {{ ingredient.unit_type }})
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="ingredient_id" value="{{ ingredient.id }}">
+                            <input type="hidden" name="action" value="add_ingredient">
+                            <button type="submit" class="btn btn-success btn-sm">Add Ingredient</button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Recipe Ingredients Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h2 class="mb-0">Recipe Ingredients</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" id="save-ingredient-cost-form">
                 {% csrf_token %}
                 <table class="table table-bordered">
                     <thead>
@@ -43,23 +81,40 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for recipe_ingredient in variation.recipe_ingredients.all %}
+                        {% for recipe_ingredient in recipe_ingredients %}
                         <tr>
                             <td>{{ recipe_ingredient.ingredient.name }}</td>
+                            <td>
+                                <select name="unit-{{ recipe_ingredient.id }}" class="form-control">
+                                    {% for unit in recipe_ingredient.ingredient.units.all %}
+                                    <option value="{{ unit.id }}" {% if unit.id == recipe_ingredient.unit_id %}selected{% endif %}>
+                                        {{ unit.name }} ({{ unit.multiplier }} {{ recipe_ingredient.ingredient.unit_type }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
                             <td>
                                 <input type="number" name="quantity-{{ recipe_ingredient.id }}" value="{{ recipe_ingredient.quantity }}" step="0.01" class="form-control">
                             </td>
                             <td>{{ settings.get_currency_type_display }}{{ recipe_ingredient.ingredient.unit_cost|floatformat:2 }}</td>
                             <td>{{ settings.get_currency_type_display }}{{ recipe_ingredient.calculated_price|floatformat:2 }}</td>
+                            <td>
+                                <form method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="ingredient_id" value="{{ recipe_ingredient.id }}">
+                                    <input type="hidden" name="action" value="remove_ingredient">
+                                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                </form>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
-                    
                 </table>
                 <button type="submit" name="action" value="save_quantities" class="btn btn-primary">Save Changes</button>
             </form>
         </div>
     </div>
+    
     
 
     <!-- Update Variation Price -->
@@ -81,4 +136,12 @@
         </div>
     </div>
 </div>
+
+
+<script>
+    document.getElementById('category-select').addEventListener('change', function () {
+        document.getElementById('category-filter-form').submit();
+    });
+</script>
+
 {% endblock %}
