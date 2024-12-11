@@ -460,11 +460,60 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
     variation = get_object_or_404(MenuItemVariation, slug=variation_slug, menu_item=menu_item)
     settings_instance = Settings.objects.first()
 
+
+    variation_ingredients = variation.variation_recipe_ingredients.select_related('ingredient', 'category', 'unit')
+    menu_item_ingredients = menu_item.menu_item_recipe_ingredients.select_related('ingredient', 'category', 'unit')
+
+    # Compute price difference
+    price_difference = variation.price - menu_item.cost
+
+    # Compute ingredient differences
+    variation_ingredient_map = {
+        (ri.ingredient.id, ri.unit.id): ri for ri in variation_ingredients
+    }
+    menu_item_ingredient_map = {
+        (ri.ingredient.id, ri.unit.id): ri for ri in menu_item_ingredients
+    }
+
+    differences = []
+    for key, menu_item_ri in menu_item_ingredient_map.items():
+        variation_ri = variation_ingredient_map.get(key)
+        unit_name = menu_item_ri.unit.name if menu_item_ri.unit else "unit"
+        if variation_ri:
+            if variation_ri.quantity != menu_item_ri.quantity:
+                quantity_difference = variation_ri.quantity - menu_item_ri.quantity
+                differences.append({
+                    'ingredient': f"{menu_item_ri.ingredient.name} ({unit_name})",
+                    'menu_item_quantity': f"{menu_item_ri.quantity} {unit_name}(s)",
+                    'variation_quantity': f"{variation_ri.quantity} {unit_name}(s)",
+                    'quantity_difference': f"{quantity_difference} {unit_name}(s)",
+                })
+        else:
+            differences.append({
+                'ingredient': f"{menu_item_ri.ingredient.name} ({unit_name})",
+                'menu_item_quantity': f"{menu_item_ri.quantity} {unit_name}(s)",
+                'variation_quantity': f"0 {unit_name}s",
+                'quantity_difference': f"{-menu_item_ri.quantity} {unit_name}(s)",
+            })
+
+    for key, variation_ri in variation_ingredient_map.items():
+        if key not in menu_item_ingredient_map:
+            unit_name = variation_ri.unit.name if variation_ri.unit else "unit"
+            differences.append({
+                'ingredient': f"{variation_ri.ingredient.name} ({unit_name})",
+                'menu_item_quantity': f"0 {unit_name}s",
+                'variation_quantity': f"{variation_ri.quantity} {unit_name}(s)",
+                'quantity_difference': f"{variation_ri.quantity} {unit_name}(s)",
+            })
+
+
     # Fetch recipe ingredients for the variation
     recipe_ingredients = variation.variation_recipe_ingredients.select_related('ingredient', 'category', 'unit')
 
     # Compute total ingredient cost using the property
     total_ingredient_cost = sum(ri.calculated_price for ri in recipe_ingredients)
+
+
 
     # Calculate margin
     variation_cost = Decimal(variation.price or 0)
@@ -552,6 +601,8 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
         'inventory_categories': inventory_categories,
         'ingredients': ingredients,
         'settings': settings_instance,
+        'ingredient_differences': differences,
+        'price_difference': price_difference,
         'selected_category_id': int(selected_category_id) if selected_category_id else None,
     }
     return render(request, 'menu/variation_detail.html', context)

@@ -12,16 +12,7 @@
         </a>
     </div>
 
-    <!-- Variation Information -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white">
-            <h2 class="mb-0">Variation Details</h2>
-        </div>
-        <div class="card-body">
-            <p><strong>Price:</strong> {{ settings.get_currency_type_display }}{{ variation.price }}</p>
-            <p><strong>Margin:</strong> {{ margin }}%</p>
-        </div>
-    </div>
+
 
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white">
@@ -112,6 +103,47 @@
                 </table>
                 <button type="submit" name="action" value="save_quantities" class="btn btn-primary">Save Changes</button>
             </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Variation vs Menu Item Differences</h2>
+        </div>
+        <div class="card-body">
+            <h3>Price Difference</h3>
+            <p>
+                <strong>Base Menu Item Price:</strong> {{ settings.get_currency_type_display }}{{ menu_item.cost }}<br>
+                <strong>Variation Price:</strong> {{ settings.get_currency_type_display }}{{ variation.price }}<br>
+                <strong>Difference:</strong>
+                {{ settings.get_currency_type_display }}{{ price_difference|floatformat:2 }}
+            </p>
+    
+            <h3>Ingredient Differences</h3>
+            {% if ingredient_differences %}
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Ingredient</th>
+                        <th>Base Menu Item Quantity</th>
+                        <th>Variation Quantity</th>
+                        <th>Difference</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for diff in ingredient_differences %}
+                    <tr>
+                        <td>{{ diff.ingredient }}</td>
+                        <td>{{ diff.menu_item_quantity }}</td>
+                        <td>{{ diff.variation_quantity }}</td>
+                        <td>{{ diff.quantity_difference }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No differences in ingredients.</p>
+            {% endif %}
         </div>
     </div>
     
