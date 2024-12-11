@@ -117,15 +117,22 @@ class MenuItem(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    menu_item = models.ForeignKey(MenuItem, related_name="recipe_ingredients", on_delete=models.CASCADE)
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    menu_item = models.ForeignKey(
+        MenuItem, 
+        related_name="menu_item_recipe_ingredients", 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True
+    )
     variation = models.ForeignKey(
-            'MenuItemVariation',
-            related_name="recipe_ingredients",
-            on_delete=models.CASCADE,
-            null=True,
-            blank=True
-    )    
+        'MenuItemVariation',
+        related_name="variation_recipe_ingredients",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+
     order = models.PositiveIntegerField(default=1)
     quantity = models.FloatField(validators=[MinValueValidator(0.0)])
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True, help_text="Category to deplete from")
@@ -135,6 +142,13 @@ class RecipeIngredient(models.Model):
 
     class Meta:
         ordering = ['order'] 
+        constraints = [
+            models.CheckConstraint(
+                check=~models.Q(menu_item__isnull=False) | ~models.Q(variation__isnull=False),
+                name="either_menu_item_or_variation"
+            )
+        ]
+
 
     def __str__(self):
         if self.menu_item:

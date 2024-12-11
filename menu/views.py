@@ -207,7 +207,7 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
     menu = get_object_or_404(Menu, slug=menu_slug)
     category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
-    recipe_ingredients = menu_item.recipe_ingredients.select_related('ingredient', 'category')
+    recipe_ingredients = menu_item.menu_item_recipe_ingredients.select_related('ingredient', 'category')
     settings_instance = Settings.objects.first()
     secondary_menus = Menu.objects.filter(is_secondary=True)
     associated_form = MenuItemAssociationForm(instance=menu_item)
@@ -459,8 +459,8 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
     variation = get_object_or_404(MenuItemVariation, slug=variation_slug, menu_item=menu_item)
 
-    # Fetch recipe ingredients for the parent menu item
-    recipe_ingredients = menu_item.recipe_ingredients.select_related('ingredient', 'category')
+    # Fetch recipe ingredients for the variation
+    recipe_ingredients = variation.variation_recipe_ingredients.select_related('ingredient', 'category')
 
     # Compute total ingredient cost using the property
     total_ingredient_cost = sum(ri.calculated_price for ri in recipe_ingredients)
@@ -477,7 +477,6 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
     inventory_categories = Category.objects.all()
     ingredients = Ingredient.objects.filter(category_id=selected_category_id) if selected_category_id else []
 
-
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "update_variation":
@@ -487,7 +486,7 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
                 variation.save()
                 messages.success(request, f"Variation '{variation.name}' price updated successfully.")
             return redirect(request.path)
-        
+
         elif action == "add_ingredient":
             ingredient_id = request.POST.get("ingredient_id")
             ingredient = get_object_or_404(Ingredient, id=ingredient_id)
@@ -514,24 +513,13 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
             return redirect(request.path)
 
         elif action == "save_quantities":
-            errors = []
-            for recipe_ingredient in recipe_ingredients:
-                quantity_key = f"quantity-{recipe_ingredient.id}"
-                unit_key = f"unit-{recipe_ingredient.id}"
+            for ingredient in recipe_ingredients:
+                quantity_key = f"quantity-{ingredient.id}"
                 new_quantity = request.POST.get(quantity_key)
-                selected_unit_id = request.POST.get(unit_key)
-                try:
-                    if new_quantity:
-                        recipe_ingredient.quantity = Decimal(new_quantity)
-                    if selected_unit_id:
-                        recipe_ingredient.unit = recipe_ingredient.ingredient.units.get(id=selected_unit_id)
-                    recipe_ingredient.save()
-                except Exception as e:
-                    errors.append(f"Error updating {recipe_ingredient.ingredient.name}: {e}")
-            if errors:
-                messages.error(request, "Errors updating ingredients: " + ", ".join(errors))
-            else:
-                messages.success(request, "Ingredient quantities and units updated.")
+                if new_quantity:
+                    ingredient.quantity = Decimal(new_quantity)
+                    ingredient.save()
+            messages.success(request, "Updated variation ingredients.")
             return redirect(request.path)
 
     context = {
@@ -547,6 +535,7 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
         'selected_category_id': int(selected_category_id) if selected_category_id else None,
     }
     return render(request, 'menu/variation_detail.html', context)
+
 
 
 

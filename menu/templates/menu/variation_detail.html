@@ -43,34 +43,18 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for recipe_ingredient in recipe_ingredients %}
+                        {% for recipe_ingredient in variation.recipe_ingredients.all %}
                         <tr>
                             <td>{{ recipe_ingredient.ingredient.name }}</td>
                             <td>
-                                <select name="unit-{{ recipe_ingredient.id }}" class="form-control">
-                                    {% for unit in recipe_ingredient.ingredient.units.all %}
-                                    <option value="{{ unit.id }}" {% if unit.id == recipe_ingredient.unit_id %}selected{% endif %}>
-                                        {{ unit.name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            <td>
                                 <input type="number" name="quantity-{{ recipe_ingredient.id }}" value="{{ recipe_ingredient.quantity }}" step="0.01" class="form-control">
                             </td>
-                            <td>{{ recipe_ingredient.ingredient.unit_cost|floatformat:2 }}</td>
-                            <td>{{ recipe_ingredient.calculated_price|floatformat:2 }}</td>
-                            <td>
-                                <form method="post" style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="ingredient_id" value="{{ recipe_ingredient.id }}">
-                                    <input type="hidden" name="action" value="remove_ingredient">
-                                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                                </form>
-                            </td>
+                            <td>{{ settings.get_currency_type_display }}{{ recipe_ingredient.ingredient.unit_cost|floatformat:2 }}</td>
+                            <td>{{ settings.get_currency_type_display }}{{ recipe_ingredient.calculated_price|floatformat:2 }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
+                    
                 </table>
                 <button type="submit" name="action" value="save_quantities" class="btn btn-primary">Save Changes</button>
             </form>
