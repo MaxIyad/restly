@@ -651,12 +651,22 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
     if not category.is_active:
         messages.error(request, f"Cannot simulate order. The category '{category.name}' is inactive.")
         return redirect('menu_detail', menu_slug=menu_slug)
-    
+
     if not menu_item.is_active:
         messages.error(request, f"Cannot simulate order. The menu item '{menu_item.name}' is inactive.")
         return redirect('menu_detail', menu_slug=menu_slug)
 
-    recipe_ingredients = menu_item.recipe_ingredients.all()
+    # Handle variation if provided
+    variation_slug = request.POST.get("variation_slug")
+    if variation_slug:
+        variation = get_object_or_404(MenuItemVariation, slug=variation_slug, menu_item=menu_item)
+        recipe_ingredients = variation.variation_recipe_ingredients.all()
+        price = variation.price
+    else:
+        # Default to menu item ingredients and price
+        recipe_ingredients = menu_item.menu_item_recipe_ingredients.all()
+        price = menu_item.cost
+
     warnings = []
 
     # Calculate total cost
@@ -664,7 +674,6 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
     for recipe_ingredient in recipe_ingredients:
         ingredient = recipe_ingredient.ingredient
         category_to_deplete = recipe_ingredient.category
-        
 
         if category_to_deplete is None:
             warnings.append(f"Category for {ingredient.name} is not specified!")
@@ -692,7 +701,6 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
             )
 
     # Calculate revenue and profit
-    price = menu_item.cost or Decimal(0)
     total_revenue = price
     total_profit = total_revenue - total_cost
 
@@ -711,6 +719,8 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
         messages.success(request, f"Order for '{menu_item.name}' simulated successfully!")
 
     return redirect('menu_detail', menu_slug=menu_slug)
+
+
 
 
 

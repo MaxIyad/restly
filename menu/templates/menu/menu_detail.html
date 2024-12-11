@@ -74,7 +74,18 @@
                             <input type="hidden" name="action" value="simulate_order">
                             <input type="hidden" name="menu_item_slug" value="{{ item.slug }}">
                             <input type="hidden" name="category_slug" value="{{ category.slug }}">
-                            <button type="submit" class="btn btn-primary btn-sm">
+                            
+                            <!-- Dropdown for Variations -->
+                            {% if item.variations.exists %}
+                            <select name="variation_slug" class="form-select form-select-sm d-inline w-auto">
+                                <option value="" selected>Order Without Variation</option>
+                                {% for variation in item.variations.all %}
+                                <option value="{{ variation.slug }}">{{ variation.name }} - {{ settings.get_currency_type_display }}{{ variation.price }}</option>
+                                {% endfor %}
+                            </select>
+                            {% endif %}
+                            
+                            <button type="submit" class="btn btn-primary btn-sm ms-2">
                                 <i class="bi bi-bag-check"></i> Simulate Order
                             </button>
                         </form>
@@ -83,6 +94,8 @@
                     <li>No menu items available</li>
                     {% endfor %}
                 </ul>
+                
+                
             </div>
         </div>
 
