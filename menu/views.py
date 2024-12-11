@@ -458,6 +458,7 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
     category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
     variation = get_object_or_404(MenuItemVariation, slug=variation_slug, menu_item=menu_item)
+    settings_instance = Settings.objects.first()
 
     # Fetch recipe ingredients for the variation
     recipe_ingredients = variation.variation_recipe_ingredients.select_related('ingredient', 'category', 'unit')
@@ -550,6 +551,7 @@ def variation_detail(request, menu_slug, category_slug, menu_item_slug, variatio
         'margin': margin,
         'inventory_categories': inventory_categories,
         'ingredients': ingredients,
+        'settings': settings_instance,
         'selected_category_id': int(selected_category_id) if selected_category_id else None,
     }
     return render(request, 'menu/variation_detail.html', context)

@@ -117,20 +117,24 @@
     
     
 
-    <!-- Update Variation Price -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light">
-            <h2 class="mb-0">Update Price</h2>
+            <h2 class="mb-0">Update Price and Margin</h2>
         </div>
         <div class="card-body">
-            <form method="post">
+            <form method="post" id="cost-margin-form">
                 {% csrf_token %}
                 <div class="mb-3">
-                    <label for="price" class="form-label">Price</label>
-                    <input type="number" id="price" name="price" class="form-control" step="0.01" min="0" value="{{ variation.price }}">
+                    <label for="cost" class="form-label">Price ({{ settings.get_currency_type_display }})</label>
+                    <input type="number" id="cost" name="price" class="form-control" step="0.01" min="0" value="{{ variation.price }}">
                 </div>
+                <div class="mb-3">
+                    <label for="margin" class="form-label">Margin (%)</label>
+                    <input type="number" id="margin" name="margin" class="form-control" step="0.001" value="{{ margin }}" placeholder="{{ margin|floatformat:2 }}">
+                </div>
+                <p>Total Ingredient Cost: {{ settings.get_currency_type_display }}{{ total_ingredient_cost|floatformat:2 }}</p>
                 <button type="submit" name="action" value="update_variation" class="btn btn-success">
-                    <i class="bi bi-save"></i> Update Price
+                    <i class="bi bi-save"></i> Apply Changes
                 </button>
             </form>
         </div>
@@ -142,6 +146,38 @@
     document.getElementById('category-select').addEventListener('change', function () {
         document.getElementById('category-filter-form').submit();
     });
+
+    document.addEventListener("DOMContentLoaded", function () {
+    const costInput = document.getElementById("cost");
+    const marginInput = document.getElementById("margin");
+    const totalIngredientCost = parseFloat({{ total_ingredient_cost|floatformat:2 }});
+
+    const roundToPrecision = (value, precision) => {
+        const factor = Math.pow(10, precision);
+        return Math.round(value * factor) / factor;
+    };
+
+    // Prepopulate margin on page load
+    if (!isNaN(totalIngredientCost) && totalIngredientCost > 0) {
+        const variationCost = parseFloat(costInput.value || 0);
+        marginInput.value = roundToPrecision(((variationCost - totalIngredientCost) / totalIngredientCost) * 100, 3);
+    }
+
+    // Handle input changes
+    costInput.addEventListener("input", function () {
+        const cost = parseFloat(costInput.value);
+        if (!isNaN(cost)) {
+            marginInput.value = roundToPrecision(((cost - totalIngredientCost) / totalIngredientCost) * 100, 3);
+        }
+    });
+
+    marginInput.addEventListener("input", function () {
+        const margin = parseFloat(marginInput.value);
+        if (!isNaN(margin)) {
+            costInput.value = roundToPrecision(totalIngredientCost * (1 + margin / 100), 2);
+        }
+    });
+});
 </script>
 
 {% endblock %}
