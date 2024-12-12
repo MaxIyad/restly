@@ -391,6 +391,14 @@ def menu_item_detail(request, menu_slug, category_slug, menu_item_slug):
             menu_item.save()
             messages.success(request, "Secondary menu and associated items updated.")
             return redirect(request.path)
+        
+
+        elif action == "remove_ingredient":
+            recipe_ingredient_id = request.POST.get("ingredient_id")
+            recipe_ingredient = get_object_or_404(RecipeIngredient, id=recipe_ingredient_id)
+            recipe_ingredient.delete()
+            messages.success(request, f"Ingredient '{recipe_ingredient.ingredient.name}' removed.")
+            return redirect(request.path)
 
 
 

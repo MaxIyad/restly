@@ -17,7 +17,6 @@ from .models import Order
 
 
 def estimate_view(request):
-
     active_menu_items = MenuItem.objects.filter(
         category__menu__is_active=True, is_active=True
     ).select_related('category', 'category__menu')
@@ -37,19 +36,22 @@ def estimate_view(request):
         "settings": settings_instance,
     }
 
+    # Fetch all recipe data with ingredients
     recipe_data = (
         RecipeIngredient.objects.filter(menu_item__in=active_menu_items)
+        .select_related("ingredient")
         .values("ingredient_id", "ingredient__name", "ingredient__unit_type")
         .annotate(
-            total_quantity=Sum(F("quantity")),
+            total_quantity=Sum("quantity"),
             avg_revenue_per_unit=ExpressionWrapper(
-                Sum(F("menu_item__cost") * F("quantity")) / Sum(F("quantity")),
+                Sum(F("menu_item__cost") * F("quantity")) / Sum("quantity"),
                 output_field=FloatField(),
-            )
+            ),
         )
     )
 
-    categories = Category.objects.prefetch_related('ingredient_set')
+    # Fetch all categories with ingredients
+    categories = Category.objects.prefetch_related("ingredient_set")
     grouped_ingredients = {category.name: [] for category in categories}
 
     if request.method == "POST":
@@ -57,7 +59,7 @@ def estimate_view(request):
 
         if mode == "revenue_to_ingredients":
             try:
-                # Parse input
+                # Parse revenue and profit goals
                 revenue_goal_input = request.POST.get("revenue_goal", "").strip()
                 profit_goal_input = request.POST.get("profit_goal", "").strip()
 
@@ -69,18 +71,15 @@ def estimate_view(request):
 
                 total_cost = Decimal(0)
                 max_iterations = 10
-                iteration = 0
 
-                while iteration < max_iterations:
-                    iteration += 1
-
-
-
+                # Iterate to calculate total cost based on the goals
+                for iteration in range(max_iterations):
                     if profit_goal is not None:
                         revenue_goal = profit_goal + total_cost
 
                     new_total_cost = Decimal(0)
 
+                    # Group ingredients by category
                     for category in categories:
                         grouped_ingredients[category.name] = []
 
@@ -120,7 +119,7 @@ def estimate_view(request):
                         break
                     total_cost = new_total_cost
 
-                # Goal explanation
+                # Calculate profitability and explain goals
                 currency_symbol = settings_instance.get_currency_type_display()
                 profit = revenue_goal - total_cost
 
@@ -137,40 +136,7 @@ def estimate_view(request):
                         f"leaving {currency_symbol}{profit:.2f} in profit."
                     )
 
-                # Calculate menu item data
-                menu_items_data = []
-                for item in active_menu_items:
-                    # Total ingredient cost for the menu item
-                    total_ingredient_cost = sum(
-                        Decimal(ri.quantity) * Decimal(ri.ingredient.unit_cost or 0)
-                        for ri in item.recipe_ingredients.select_related("ingredient")
-                    )
-                    price = item.cost or Decimal("0")
-                    margin_currency = price - total_ingredient_cost
-                    margin_percentage = (margin_currency / total_ingredient_cost * 100) if total_ingredient_cost > 0 else 0
-
-                    # If margin is zero or negative, skip calculation (otherwise, 404)
-                    if margin_currency <= 0:
-                        continue
-
-                    units_needed = (profit_goal / margin_currency) if profit_goal else (revenue_goal / price)
-
-                    revenue_acquired = price * round(units_needed, 2)
-                    profit_acquired = margin_currency * round(units_needed,2)
-
-                    menu_items_data.append({
-                        "name": item.name,
-                        "cost": total_ingredient_cost,
-                        "margin": margin_currency,
-                        "price": price,
-                        "units_needed": units_needed,
-                        "revenue_acquired": revenue_acquired,
-                        "profit_acquired": profit_acquired,
-                        "margin_display": f"{margin_currency:.2f} ({margin_percentage:.2f}%)",
-                    })
-
-
-                # Update context
+                # Populate context
                 context.update({
                     "revenue_goal": revenue_goal,
                     "profit_goal": profit_goal,
@@ -180,13 +146,13 @@ def estimate_view(request):
                         (profit / revenue_goal * 100) if revenue_goal and revenue_goal > 0 else Decimal(0)
                     ),
                     "ingredients_by_category": grouped_ingredients,
-                    "menu_items_data": menu_items_data,
                 })
 
             except (InvalidOperation, Exception) as e:
                 context["error"] = f"Error in calculation: {e}"
 
     return render(request, "reports/estimate.html", context)
+
 
 
 

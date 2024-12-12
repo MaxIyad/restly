@@ -70,42 +70,42 @@
         </div>
         <div class="card-body">
             {% for category, ingredients in ingredients_by_category.items %}
-            <div class="mb-4">
-                <h3>{{ category }}</h3>
-                <table class="table table-bordered table-striped mt-3">
-                    <thead>
-                        <tr>
-                            <th>Ingredient</th>
-                            <th>Quantity Needed</th>
-                            <th>Current Quantity</th>
-                            <th>Unit</th>
-                            <th>Unit Cost ({{ settings.get_currency_type_display }})</th>
-                            <th>Total Cost ({{ settings.get_currency_type_display }})</th>
-                            <th>Sufficient</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for ingredient in ingredients %}
-                        <tr>
-                            <td>{{ ingredient.name }}</td>
-                            <td>{{ ingredient.quantity_needed|floatformat:2 }}</td>
-                            <td>{{ ingredient.current_quantity|floatformat:2 }}</td>
-                            <td>{{ ingredient.unit_type }}</td>
-                            <td>{{ ingredient.unit_cost|floatformat:2 }}</td>
-                            <td>{{ ingredient.total_cost|floatformat:2 }}</td>
-                            <td>
-                                {% if ingredient.sufficient %}
-                                <span class="badge bg-success">Sufficient</span>
-                                {% else %}
-                                <span class="badge bg-danger">Insufficient</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+<div class="mb-4">
+    <h3>{{ category }}</h3>
+    <table class="table table-bordered table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Ingredient</th>
+                <th>Quantity Needed</th>
+                <th>Current Quantity</th>
+                <th>Unit (from Inventory)</th>
+                <th>Unit Cost ({{ settings.get_currency_type_display }})</th>
+                <th>Total Cost ({{ settings.get_currency_type_display }})</th>
+                <th>Sufficient</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ingredient in ingredients %}
+            <tr>
+                <td>{{ ingredient.name }}</td>
+                <td>{{ ingredient.quantity_needed|floatformat:2 }}</td>
+                <td>{{ ingredient.current_quantity|floatformat:2 }}</td>
+                <td>{{ ingredient.unit_type }}</td>
+                <td>{{ ingredient.unit_cost|floatformat:2 }}</td>
+                <td>{{ ingredient.total_cost|floatformat:2 }}</td>
+                <td>
+                    {% if ingredient.sufficient %}
+                    <span class="badge bg-success">Sufficient</span>
+                    {% else %}
+                    <span class="badge bg-danger">Insufficient</span>
+                    {% endif %}
+                </td>
+            </tr>
             {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endfor %}
         </div>
     </div>
     {% endif %}

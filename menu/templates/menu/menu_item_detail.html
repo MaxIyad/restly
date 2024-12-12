@@ -106,6 +106,7 @@
                             <th>Quantity</th>
                             <th>Cost per Unit</th>
                             <th>Ingredient Cost</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -135,6 +136,16 @@
                                 {{ settings.get_currency_type_display }}
                                 {{ recipe_ingredient.calculated_price|floatformat:2 }}
                             </td>
+                            <td>
+                                <!-- Remove Ingredient Button -->
+                                <form method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="ingredient_id" value="{{ recipe_ingredient.id }}">
+                                    <input type="hidden" name="action" value="remove_ingredient">
+                                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                </form>
+                            </td>
+                            
                             
                         </tr>
                         
@@ -266,6 +277,7 @@
                                     {{ settings.get_currency_type_display }}
                                     {{ association.secondary_item.cost|add_float:menu_item.cost|floatformat:2 }}
                                 </td>
+                                
                                 
                                 <td>
                                     {% if association.is_active %}

@@ -12,9 +12,9 @@ class Order(models.Model):
         default=None,
     )
     order_date = models.DateTimeField(auto_now_add=True)  # Auto timestamp
-    total_cost = models.DecimalField(max_digits=10, decimal_places=2)  # Total cost
-    total_revenue = models.DecimalField(max_digits=10, decimal_places=2)  # Total revenue
-    total_profit = models.DecimalField(max_digits=10, decimal_places=2)  # Total profit
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    total_revenue = models.DecimalField(max_digits=10, decimal_places=2)
+    total_profit = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
         return f"Order {self.id} by {self.customer_name}"
