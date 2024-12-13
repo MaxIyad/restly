@@ -1,6 +1,5 @@
 <!-- delivery_inventory.html -->
 
-
 {% extends 'base.html' %}
 {% load humanize %}
 {% load custom_filters %}
@@ -8,9 +7,11 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="text-primary">Delivery Inventory</h1>
-    <a href="{% url 'inventory' %}" class="btn btn-secondary">
-        <i class="bi bi-arrow-left-circle"></i> Back to Inventory
-    </a>
+    <div>
+        <a href="{% url 'inventory' %}" class="btn btn-secondary me-2">
+            <i class="bi bi-arrow-left-circle"></i> Back to Inventory
+        </a>
+    </div>
 </div>
 
 <form method="post">
@@ -21,35 +22,41 @@
             <h2 class="mb-0 text-primary">Category: {{ category.name }}</h2>
         </div>
         <div class="card-body">
-            <table class="table table-striped align-middle">
+            <table class="table table-bordered align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Name</th>
-                        <th>Additional Quantity</th>
-                        <th>Unit</th>
+                        <th>Ingredient</th>
                         <th>Current Quantity</th>
-                        <th>Unit Cost</th>
-                        <th>Total</th>
+                        <th>Unit 1</th>
+                        <th>Unit 2</th>
+                        <th>Unit 3</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for ingredient in category.ingredient_set.all %}
                     <tr>
                         <td>
-                            <a href="{% url 'ingredient_details' category.name ingredient.name %}">
+                            <a href="{% url 'ingredient_details' category.slug ingredient.slug %}">
                                 {{ ingredient.name }}
                             </a>
-                            
                         </td>
+                        <td>{{ ingredient.converted_total_quantity }}</td>
+                        {% for unit in ingredient.units.all %}
                         <td>
-                            {% with ingredient_forms|get_form:ingredient.id as form %}
-                                {{ form.quantity }}
-                            {% endwith %}
+                            <div>
+                                <strong>{{ unit.name }}</strong>
+                                <small>({{ unit.multiplier }} {{ ingredient.unit_type }})</small>
+                            </div>
+                            <input
+                                type="number"
+                                name="unit_quantity_{{ unit.id }}"
+                                class="form-control"
+                                step="0.01"
+                                placeholder="Currently: {{ unit.converted_quantity }} ({{ unit.quantity }} {{unit.name}}(s))">
                         </td>
-                        <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
-                        <td>{{ ingredient.converted_quantity }}</td>
-                        <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:6|intcomma }}</td>
-                        <td>{{ settings.get_currency_type_display }}{{ ingredient.total_cost|floatformat:6|intcomma }}</td>
+                        {% empty %}
+                        <td></td>
+                        {% endfor %}
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -58,7 +65,8 @@
     </div>
     {% endfor %}
     <button type="submit" class="btn btn-primary">
-        <i class="bi bi-save"></i> Save Changes
+        <i class="bi bi-save"></i> Add Quantities
     </button>
 </form>
+
 {% endblock %}

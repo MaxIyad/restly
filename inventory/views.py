@@ -26,7 +26,8 @@ from django.shortcuts import render
 from django.db.models import F, Sum, Prefetch
 
 
-
+#TODO: fix up messaging. Find a way seperate messges. 
+# i.e: inventory messages to ingredient_list, delivery to inventory_delivery, etc.
 def ingredient_list(request):
 
     categories = Category.objects.prefetch_related(
@@ -43,6 +44,12 @@ def ingredient_list(request):
             .order_by("order")
         )
     )
+
+    
+    for category in categories:
+        for ingredient in category.ingredient_set.all():
+            ingredient.empty_cells = range(3 - len(ingredient.units.all())) if len(ingredient.units.all()) < 3 else []
+
     #for category in categories:
     #    for ingredient in category.ingredient_set.all():
     #        print(ingredient.converted_threshold)
@@ -393,55 +400,35 @@ def print_inventory(request):
 
 
 def delivery_inventory(request):
-    categories = Category.objects.prefetch_related('ingredient_set').all()
-
-    # Create a form factory for updating the 'quantity' field
-    InventoryForm = modelform_factory(
-        Ingredient,
-        fields=['quantity'],
-        widgets={'quantity': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control'})},
-        field_classes={'quantity': forms.FloatField},
-    )
-
-    # Dictionary to store forms for each ingredient
-    ingredient_forms = {}
+    categories = Category.objects.prefetch_related('ingredient_set__units').all()
 
     if request.method == 'POST':
         updated_count = 0
-        for ingredient in Ingredient.objects.all():
-            # Make the field optional by overriding the 'required' attribute
-            InventoryForm.base_fields['quantity'].required = False
-
-            form = InventoryForm(request.POST, instance=ingredient, prefix=f"ingredient-{ingredient.id}")
-            ingredient_forms[ingredient.id] = form  # Save the form in the dictionary
-
-            if form.is_valid():
-                with transaction.atomic():
-                    ingredient.refresh_from_db()
-                    if form.cleaned_data['quantity'] is not None:
-                        additional_quantity = form.cleaned_data['quantity']
-                        ingredient.quantity = ingredient.quantity + additional_quantity
-                        ingredient.save()
-                        update_change_reason(ingredient, "Delivery") 
-                        updated_count += 1
+        with transaction.atomic():
+            for ingredient in Ingredient.objects.prefetch_related('units'):
+                for unit in ingredient.units.all():
+                    quantity_key = f"unit_quantity_{unit.id}"
+                    if quantity_key in request.POST and request.POST[quantity_key]:
+                        try:
+                            additional_quantity = float(request.POST[quantity_key])
+                            unit.quantity += additional_quantity  # Add to current quantity
+                            unit.save()
+                            updated_count += 1
+                        except ValueError:
+                            messages.error(request, f"Invalid quantity for {unit.name}.")
 
         if updated_count > 0:
-            messages.success(request, f"Inventory updated successfully! {updated_count} ingredient{'s' if updated_count > 1 else ''} updated.")
+            messages.success(request, f"Added quantities for {updated_count} units.")
         else:
-            messages.info(request, "No changes were made to the inventory.")
+            messages.info(request, "No quantities were added.")
 
         return redirect('inventory')
 
-    # Populate forms for GET requests
-    for ingredient in Ingredient.objects.all():
-        InventoryForm.base_fields['quantity'].required = False  # Ensure field is optional for GET requests
-        ingredient_forms[ingredient.id] = InventoryForm(instance=None, prefix=f"ingredient-{ingredient.id}")
-
     context = {
         'categories': categories,
-        'ingredient_forms': ingredient_forms,  # Pass the forms to the template
     }
     return render(request, 'inventory/delivery_inventory.html', context)
+
 
 
 
