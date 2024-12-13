@@ -41,22 +41,23 @@
                                 {{ ingredient.name }}
                             </a>
                         </td>
-                        <td>{{ ingredient.quantity|floatformat:2 }}</td>
+                        <td>{{  ingredient.converted_total_quantity }}</td>
                         {% for unit in ingredient.units.all %}
-                            <td>
-                                <div class="mb-2">
-                                    <strong>{{ unit.name }}</strong> 
-                                    <small>({{ unit.multiplier }} {{ ingredient.unit_type }})</small>
-                                </div>
-                                <input
-                                    type="number"
-                                    name="unit_quantity_{{ unit.id }}"
-                                    class="form-control"
-                                    step="0.01"
-                                    placeholder="{{ unit.quantity }}">
-                            </td>
+                        <td>
+                            <div>
+                                <strong>{{ unit.name }}</strong>
+                                <small>({{ unit.multiplier }} {{ ingredient.unit_type }})</small>
+                            </div>
+                            <input
+                                type="number"
+                                name="unit_quantity_{{ unit.id }}"
+                                class="form-control"
+                                step="0.01"
+                                placeholder="{{ unit.quantity }}">
+                        </td>
+                        {% empty %}
+                        <td></td>
                         {% endfor %}
-                            <td></td>
                     </tr>
                     {% endfor %}
                 </tbody>

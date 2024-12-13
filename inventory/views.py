@@ -23,16 +23,16 @@ from django.core.exceptions import ValidationError
 import pandas as pd
 from django.http import HttpResponse
 from django.shortcuts import render
-from django.db.models import F, Sum
+from django.db.models import F, Sum, Prefetch
 
 
 
 def ingredient_list(request):
 
     categories = Category.objects.prefetch_related(
-        models.Prefetch(
+        Prefetch(
             "ingredient_set",
-            queryset=Ingredient.objects.filter(visible=True)
+            queryset=Ingredient.objects.prefetch_related("units").filter(visible=True)
             .annotate(
                 total_quantity=F('quantity') + Sum(F('units__quantity') * F('units__multiplier')),
                 calculated_total_cost=(
@@ -43,10 +43,11 @@ def ingredient_list(request):
             .order_by("order")
         )
     )
-    for category in categories:
-        for ingredient in category.ingredient_set.all():
-            print(ingredient.converted_threshold)
-        settings_instance = Settings.objects.first()
+    #for category in categories:
+    #    for ingredient in category.ingredient_set.all():
+    #        print(ingredient.converted_threshold)
+    settings_instance = Settings.objects.first()
+    #units = [1, 2, 3]
 
     # Retrieve messages
     storage = get_messages(request)
@@ -69,6 +70,7 @@ def ingredient_list(request):
     context = {
         'categories': categories,
         'settings': settings_instance,
+        #'units': units,
     }
     return render(request, 'inventory/ingredient_list.html', context)
 

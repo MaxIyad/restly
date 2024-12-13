@@ -29,12 +29,12 @@
             <tr>
                 <th>Ingredient</th>
                 <th>Quantity</th>
-                <th>Unit</th>
-                <th>Unit Cost</th>
                 <th>Total Cost</th>
                 <th>Threshold</th>
-                <th>Allergens</th>
                 <th>Status</th>
+                <th>Unit 1</th>
+                <th>Unit 2</th>
+                <th>Unit 3</th>
             </tr>
         </thead>
         <tbody>
@@ -43,37 +43,36 @@
                 <td>
                     <a href="{% url 'ingredient_details' category.slug ingredient.slug %}">
                         {{ ingredient.name }}
-                    </a>                    
+                    </a>
                 </td>
-                <td>{{ ingredient.converted_total_quantity }}</td>
-
-                <td>{{ ingredient.unit_type }}</td>
-                <td>{{ settings.get_currency_type_display }}{{ ingredient.unit_cost|floatformat:2|intcomma }}</td>
-                <td>
-                    {{ settings.get_currency_type_display }}
-                    {{ ingredient.calculated_total_cost|floatformat:2|intcomma }}
-                </td>                
-                
+                <td>{{  ingredient.converted_total_quantity }}</td>
+                <td>{{ settings.get_currency_type_display }}{{ ingredient.calculated_total_cost|floatformat:2|intcomma }}</td>
                 <td>{{ ingredient.converted_threshold }}</td>
-
-                <td>
-                    {% if ingredient.allergens.exists %}
-                        {{ ingredient.allergens.all|join:", " }}
-                    {% else %}
-                        <span class="text-muted">None</span>
-                    {% endif %}
-                </td>
                 <td>
                     {% if ingredient.is_below_threshold %}
-                        <span class="badge bg-danger">Below Threshold</span>
+                    <span class="badge bg-danger">Below Threshold</span>
                     {% else %}
-                        <span class="badge bg-success">Sufficient</span>
+                    <span class="badge bg-success">Sufficient</span>
                     {% endif %}
                 </td>
-                
+                {% for unit in ingredient.units.all %}
+                        <td>
+                            <div>
+                                <b>{{ unit.quantity }} {{ unit.name }}</b>
+                                <small>
+                                    ({{ unit.multiplier }} {{ ingredient.unit_type }}) = 
+                                    <b>{{ unit.converted_quantity }} total</b>
+                                </small>
+                            </div>
+                            
+                        </td>
+                        {% empty %}
+                        <td></td>
+                        {% endfor %}
             </tr>
             {% endfor %}
         </tbody>
+        
     </table>
 {% endfor %}
 

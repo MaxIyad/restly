@@ -160,7 +160,9 @@ class Ingredient(models.Model):
             'cm': Decimal('100'),  # 100 cm = 1 m. Not gonna add km
         }
 
-        imperial_conversion_factors = { # This this exists: it's deprecated. Used to be able to change to imperial in settings. Not anymore.
+        imperial_conversion_factors = { # Why this exists: it's deprecated. 
+        # Used to be able to change to imperial in settings. Not anymore because worthless feature.
+        # Can now just set a unit to be imperial. #TODO: clean up this function
             'oz': Decimal('16'),  # 16 ounces = 1 pound
             'fl_oz': Decimal('128'),  # 128 fluid ounces = 1 gallon
             'in': Decimal('12'),  # 12 inches = 1 foot
@@ -191,8 +193,41 @@ class Unit(models.Model):
     multiplier = models.FloatField()  # Conversion multiplier to base unit (e.g., 25kg, 10L)
     quantity = models.FloatField(default=0)
 
+    def converted_quantity(self):
+        if not self.ingredient:
+            return f"{self.quantity} {self.name}"
+        return self.ingredient._convert_unit(self.quantity * self.multiplier)
+
     def __str__(self):
         return f"{self.name} ({self.multiplier} {self.ingredient.unit_type})"
+    
+
+def _convert_unit(self, value, is_threshold=False):
+    conversion_factors = {
+        'g': Decimal('1000'),  # 1000 grams = 1 kg
+        'ml': Decimal('1000'),  # 1000 milliliters = 1 liter
+        'cm': Decimal('100'),  # 100 cm = 1 m
+    }
+
+    higher_unit_map = {
+        'g': 'kg', 
+        'ml': 'L', 
+        'cm': 'm'
+    }
+
+    if self.unit_type in conversion_factors:
+        conversion_factor = conversion_factors[self.unit_type]
+        higher_unit = higher_unit_map.get(self.unit_type, self.unit_type)
+    else:
+        conversion_factor = Decimal('1')
+        higher_unit = self.unit_type
+
+    base_qty = Decimal(value)
+    if base_qty < conversion_factor:
+        return f"{base_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)} {self.unit_type}"
+
+    converted_qty = base_qty / conversion_factor
+    return f"{converted_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)} {higher_unit}"
 
 
 # Currently unused. ###############################################################################################
