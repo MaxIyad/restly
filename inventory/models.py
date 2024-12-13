@@ -143,7 +143,7 @@ class Ingredient(models.Model):
     @property
     def converted_threshold(self):
         """Converts threshold to a higher unit if it meets or exceeds the threshold for conversion."""
-        return self._convert_unit(self.threshold)
+        return self._convert_unit(self.threshold, is_threshold=True)
         
 
     @property
@@ -152,7 +152,7 @@ class Ingredient(models.Model):
         threshold_in_units = self.threshold * self.unit_multiplier  # Normalize threshold
         return self.total_quantity < threshold_in_units
 
-    def _convert_unit(self, value):
+    def _convert_unit(self, value, is_threshold=False):
     #Convert a value (quantity or threshold) based on the unit type.
         metric_conversion_factors = {
             'g': Decimal('1000'),  # 1000 grams = 1 kg
@@ -176,8 +176,8 @@ class Ingredient(models.Model):
             conversion_factor = Decimal('1')
             higher_unit = self.unit_type
 
-        # Convert value to the higher unit
-        base_qty = Decimal(value)# * self.unit_multiplier)
+        # Convert value to the higher unit. Apply multiplier only for threshold.
+        base_qty = Decimal(value * self.unit_multiplier) if is_threshold else Decimal(value)
         if base_qty < conversion_factor:
             return f"{base_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)} {self.unit_type}"
 
