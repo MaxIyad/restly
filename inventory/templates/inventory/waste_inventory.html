@@ -7,9 +7,11 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="text-danger">Waste Inventory</h1>
-    <a href="{% url 'inventory' %}" class="btn btn-secondary">
-        <i class="bi bi-arrow-left-circle"></i> Back to Inventory
-    </a>
+    <div>
+        <a href="{% url 'inventory' %}" class="btn btn-secondary me-2">
+            <i class="bi bi-arrow-left-circle"></i> Back to Inventory
+        </a>
+    </div>
 </div>
 
 <form method="post">
@@ -20,32 +22,52 @@
             <h2 class="mb-0 text-danger">Category: {{ category.name }}</h2>
         </div>
         <div class="card-body">
-            <table class="table table-striped align-middle">
+            <table class="table table-bordered align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Name</th>
-                        <th>Quantity Wasted</th>
-                        <th>Reason</th>
-                        <th>Unit</th>
+                        <th>Ingredient</th>
+                        <th>Reason for Waste</th>
                         <th>Current Quantity</th>
+
+                        <th>Unit 1</th>
+                        <th>Unit 2</th>
+                        <th>Unit 3</th>
+
                     </tr>
                 </thead>
                 <tbody>
                     {% for ingredient in category.ingredient_set.all %}
                     <tr>
-                        <td>{{ ingredient.name }}</td>
                         <td>
-                            {% with ingredient_forms|get_form:ingredient.id as form %}
-                                {{ form.quantity }}
-                            {% endwith %}
+                            <a href="{% url 'ingredient_details' category.slug ingredient.slug %}">
+                                {{ ingredient.name }}
+                            </a>
                         </td>
                         <td>
-                            {% with ingredient_forms|get_form:ingredient.id as form %}
-                                {{ form.waste_reason }}
-                            {% endwith %}
+                            <input
+                                type="text"
+                                name="waste_reason_{{ ingredient.id }}"
+                                class="form-control"
+                                placeholder="Reason for wastage">
                         </td>
-                        <td>{{ ingredient.unit_multiplier }}{{ ingredient.unit_type }}</td>
-                        <td>{{ ingredient.converted_quantity }}</td>
+                        <td>{{ ingredient.converted_total_quantity }}</td>
+                        {% for unit in ingredient.units.all %}
+                        <td>
+                            <div>
+                                <strong>{{ unit.name }}</strong>
+                                <small>({{ unit.multiplier }} {{ ingredient.unit_type }})</small>
+                            </div>
+                            <input
+                                type="number"
+                                name="unit_quantity_{{ unit.id }}"
+                                class="form-control"
+                                step="0.01"
+                                placeholder="Currently: {{ unit.converted_quantity }} ({{ unit.quantity }} {{unit.name}}(s))">
+                        </td>
+                        {% empty %}
+                        <td></td>
+                        {% endfor %}
+
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -54,7 +76,8 @@
     </div>
     {% endfor %}
     <button type="submit" class="btn btn-danger">
-        <i class="bi bi-save"></i> Record Waste
+        <i class="bi bi-trash"></i> Record Waste
     </button>
 </form>
+
 {% endblock %}

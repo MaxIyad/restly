@@ -680,56 +680,39 @@ def prepped_ingredient_list(request):
 
 
 
-
 def waste_inventory(request):
-    categories = Category.objects.prefetch_related('ingredient_set').all()
-
-    # Create a form factory for updating the 'quantity' and 'waste_reason' fields
-    InventoryForm = modelform_factory(
-        Ingredient,
-        fields=['quantity', 'waste_reason'],
-        widgets={
-            'quantity': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control'}),
-            'waste_reason': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Reason for wastage'}),
-        },
-    )
-
-    ingredient_forms = {}
+    categories = Category.objects.prefetch_related('ingredient_set__units').all()
 
     if request.method == 'POST':
         updated_count = 0
-        for ingredient in Ingredient.objects.all():
-            InventoryForm.base_fields['quantity'].required = False
-            InventoryForm.base_fields['waste_reason'].required = False
-
-            form = InventoryForm(request.POST, instance=ingredient, prefix=f"ingredient-{ingredient.id}")
-            ingredient_forms[ingredient.id] = form
-
-            if form.is_valid():
-                with transaction.atomic():
-                    ingredient.refresh_from_db()
-                    if form.cleaned_data['quantity'] is not None:
-                        wasted_quantity = form.cleaned_data['quantity']
-                        ingredient.quantity = ingredient.quantity - wasted_quantity
-                        ingredient.waste_reason = form.cleaned_data['waste_reason']
-                        ingredient.save()
-                        update_change_reason(ingredient, "Waste")
-                        updated_count += 1
+        with transaction.atomic():
+            for ingredient in Ingredient.objects.prefetch_related('units'):
+                waste_reason_key = f"waste_reason_{ingredient.id}"
+                reason = request.POST.get(waste_reason_key, "").strip()
+                for unit in ingredient.units.all():
+                    quantity_key = f"unit_quantity_{unit.id}"
+                    if quantity_key in request.POST and request.POST[quantity_key]:
+                        try:
+                            waste_quantity = float(request.POST[quantity_key])
+                            if waste_quantity > 0 and waste_quantity <= unit.quantity:
+                                unit.quantity -= waste_quantity  # Decrement the quantity
+                                unit.save()
+                                updated_count += 1
+                                ingredient.waste_reason = reason  # Save the waste reason
+                                ingredient.save()
+                            elif waste_quantity > unit.quantity:
+                                messages.error(request, f"Cannot waste more than available quantity for {unit.name}.")
+                        except ValueError:
+                            messages.error(request, f"Invalid quantity for {unit.name}.")
 
         if updated_count > 0:
-            messages.success(request, f"Waste recorded successfully! {updated_count} ingredient{'s' if updated_count > 1 else ''} updated.")
+            messages.success(request, f"Recorded waste for {updated_count} unit(s).")
         else:
-            messages.info(request, "No changes were made to the inventory.")
+            messages.info(request, "No waste recorded.")
 
         return redirect('inventory')
 
-    for ingredient in Ingredient.objects.all():
-        InventoryForm.base_fields['quantity'].required = False
-        InventoryForm.base_fields['waste_reason'].required = False
-        ingredient_forms[ingredient.id] = InventoryForm(instance=None, prefix=f"ingredient-{ingredient.id}")
-
     context = {
         'categories': categories,
-        'ingredient_forms': ingredient_forms,
     }
     return render(request, 'inventory/waste_inventory.html', context)
