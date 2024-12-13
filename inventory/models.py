@@ -106,15 +106,31 @@ class Ingredient(models.Model):
     # Check for duplicate names in the same category
         if Ingredient.objects.filter(name__iexact=self.name, category=self.category).exclude(id=self.id).exists():
             raise ValidationError(f"The name '{self.name}' is already in use in the category '{self.category.name}'.")
+    '''
+    def converted_total_quantity(self):
+    #sum base quantity and quantities from associated units.
+        #unit_total = sum(unit.quantity * unit.multiplier for unit in self.units.all())
+        #total = self.quantity + unit_total
+        #return self._convert_unit(total)
+    
+        unit_total = sum(unit.quantity * unit.multiplier for unit in self.units.all())
+        total = self.quantity + unit_total
+        converted_total = self._convert_unit(total)
+        return converted_total
+    '''
 
-    def total_quantity(self):
-        """
-        Calculate the total inventory quantity by summing base quantity
-        and quantities from associated units.
-        """
+    @property
+    def converted_total_quantity(self):
+
         unit_total = sum(unit.quantity * unit.multiplier for unit in self.units.all())
         total = self.quantity + unit_total
         return self._convert_unit(total)
+
+    def total_quantity(self):
+
+        unit_total = sum(unit.quantity * unit.multiplier for unit in self.units.all())
+        total = self.quantity + unit_total
+        return total
 
     def __str__(self):
         return f"{self.name.title()} - Total: {self.total_quantity()} {self.unit_type}"
@@ -133,19 +149,18 @@ class Ingredient(models.Model):
     @property
     def is_below_threshold(self):
         """Checks if the quantity is below the threshold."""
-        return self.quantity < self.threshold
+        threshold_in_units = self.threshold * self.unit_multiplier  # Normalize threshold
+        return self.total_quantity < threshold_in_units
 
     def _convert_unit(self, value):
-        """
-        Convert a value (quantity or threshold) based on the unit type.
-        """
+    #Convert a value (quantity or threshold) based on the unit type.
         metric_conversion_factors = {
             'g': Decimal('1000'),  # 1000 grams = 1 kg
             'ml': Decimal('1000'),  # 1000 milliliters = 1 liter
-            'cm': Decimal('100'),  # 100 cm = 1 m
+            'cm': Decimal('100'),  # 100 cm = 1 m. Not gonna add km
         }
 
-        imperial_conversion_factors = {
+        imperial_conversion_factors = { # This this exists: it's deprecated. Used to be able to change to imperial in settings. Not anymore.
             'oz': Decimal('16'),  # 16 ounces = 1 pound
             'fl_oz': Decimal('128'),  # 128 fluid ounces = 1 gallon
             'in': Decimal('12'),  # 12 inches = 1 foot
@@ -162,7 +177,7 @@ class Ingredient(models.Model):
             higher_unit = self.unit_type
 
         # Convert value to the higher unit
-        base_qty = Decimal(value)
+        base_qty = Decimal(value)# * self.unit_multiplier)
         if base_qty < conversion_factor:
             return f"{base_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)} {self.unit_type}"
 

@@ -29,3 +29,11 @@ def add_float(value, arg):
         return float(value) + float(arg)
     except (ValueError, TypeError):
         return value
+    
+
+@register.filter
+def multi(value, arg):
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0

@@ -23,17 +23,30 @@ from django.core.exceptions import ValidationError
 import pandas as pd
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.db.models import F, Sum
+
 
 
 def ingredient_list(request):
-    # Get all categories and associated ingredients ordered by their `order` field
+
     categories = Category.objects.prefetch_related(
         models.Prefetch(
             "ingredient_set",
-            queryset=Ingredient.objects.filter(visible=True).order_by("order")
+            queryset=Ingredient.objects.filter(visible=True)
+            .annotate(
+                total_quantity=F('quantity') + Sum(F('units__quantity') * F('units__multiplier')),
+                calculated_total_cost=(
+                    (F('unit_cost') / F('unit_multiplier'))  # Delivery unit cost
+                    * (F('quantity') + Sum(F('units__quantity') * F('units__multiplier')))  # Total quantity
+                ),
+            )
+            .order_by("order")
         )
     )
-    settings_instance = Settings.objects.first()
+    for category in categories:
+        for ingredient in category.ingredient_set.all():
+            print(ingredient.converted_threshold)
+        settings_instance = Settings.objects.first()
 
     # Retrieve messages
     storage = get_messages(request)
@@ -43,7 +56,9 @@ def ingredient_list(request):
     success_messages = [message for message in messages_list if 'success' in message.tags]
     error_messages = [message for message in messages_list if 'error' in message.tags]
 
-    # Determine the single message to display
+    # Determine the single message to display. 
+    # NOTE: Depreted as cannot find a way to serperate inventory messages to inventory, menu to menu, etc..
+    # Still producting messages, just not displaying them anywhere otherwise they stack on one another (doubling the page's length)
     if success_messages:
         display_message = success_messages[0]  # Show the first success message if it exists
     elif error_messages:

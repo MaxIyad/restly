@@ -681,32 +681,87 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
     total_cost = Decimal(0)
     for recipe_ingredient in recipe_ingredients:
         ingredient = recipe_ingredient.ingredient
-        category_to_deplete = recipe_ingredient.category
+        required_quantity = recipe_ingredient.quantity
+        required_unit = recipe_ingredient.unit
 
-        if category_to_deplete is None:
-            warnings.append(f"Category for {ingredient.name} is not specified!")
+        if required_quantity is None:
+            warnings.append(f"Quantity for {ingredient.name} is not .")
             continue
 
-        try:
-            ingredient_in_category = Ingredient.objects.get(
-                name=ingredient.name,
-                category=category_to_deplete
-            )
-        except Ingredient.DoesNotExist:
-            warnings.append(f"{ingredient.name} does not exist in the {category_to_deplete.name} category!")
+        if not required_unit:
+            warnings.append(f"No unit specified for {ingredient.name}. Skipping deduction.")
             continue
 
-        # Deduct quantity
-        ingredient_in_category.quantity -= recipe_ingredient.quantity
-        ingredient_in_category.save()
+        inventory_unit = ingredient.units.filter(name__iexact=required_unit.name).first()
+        if not inventory_unit:
+            warnings.append(f"Unit '{required_unit.name}' for ingredient '{ingredient.name}' not found in inventory.")
+            continue
+
+        
+
+
+        # Deduct the required quantity
+        inventory_unit.quantity -= required_quantity
+        inventory_unit.save()
 
         # Calculate cost
-        total_cost += Decimal(recipe_ingredient.quantity) * Decimal(ingredient_in_category.unit_cost)
+        unit_cost = ingredient.unit_cost / ingredient.unit_multiplier
+        total_cost += Decimal(required_quantity) * Decimal(unit_cost)
 
-        if ingredient_in_category.quantity < 0:
+
+        #unit_quantity_needed = Decimal(recipe_ingredient.quantity) * Decimal(unit.multiplier)
+        '''
+        try:
+            ingredient_in_stock = Ingredient.objects.get(id=ingredient.id)
+        except Ingredient.DoesNotExist:
+            warnings.append(f"{ingredient.name} does not exist in inventory!")
+            continue
+
+        if ingredient_in_stock.quantity < unit_quantity_needed:
             warnings.append(
-                f"{ingredient.name} in category {category_to_deplete.name} is now in deficit ({ingredient_in_category.quantity})."
+                f"Insufficient {ingredient.name} in stock. Needed: {unit_quantity_needed}, Available: {ingredient_in_stock.quantity}."
             )
+
+        try:
+            ingredient_in_stock.quantity = max(Decimal(0), Decimal(ingredient_in_stock.quantity) - unit_quantity_needed)
+            
+            # Recalculate total_cost for this operation
+            ingredient_in_stock.total_cost = Decimal(ingredient_in_stock.quantity) * Decimal(ingredient_in_stock.unit_cost)
+
+            ingredient_in_stock.save()
+        except Exception as e:
+            print(f"Error saving ingredient '{ingredient.name}': {e}")
+            continue
+        '''
+
+        
+        """
+        ingredient_in_stock.quantity = max(Decimal(0), Decimal(ingredient_in_stock.quantity) - unit_quantity_needed)
+
+        # Convert quantity and unit_cost to Decimal. Otherwise, error. 
+        # NOTE: could fix it by allowing the model to handle Decimal, but that's last resort.
+        # Because it'd likely break other stuff (I've yet to try though).
+        ingredient_in_stock.total_cost = Decimal(ingredient_in_stock.quantity) * Decimal(ingredient_in_stock.unit_cost)
+
+        ingredient_in_stock.save()
+        """
+
+        # Deduct quantity (deprecated.. I think #TODO)
+        #ingredient_in_category.quantity -= recipe_ingredient.quantity
+        #ingredient_in_category.save()
+
+
+        #if ingredient_in_category.quantity < 0:
+        #    warnings.append(
+        #        f"{ingredient.name} in category {category_to_deplete.name} is now in deficit ({ingredient_in_category.quantity})."
+        #    )
+
+
+        # Calculate cost
+        #cost_per_unit = Decimal(ingredient_in_stock.unit_cost) / Decimal(ingredient_in_stock.unit_multiplier) # For later use
+        #total_cost += unit_quantity_needed * cost_per_unit
+
+
 
     # Calculate revenue and profit
     total_revenue = price
