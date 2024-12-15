@@ -192,6 +192,7 @@ class Unit(models.Model):
     name = models.CharField(max_length=255)  # e.g., Bag, Bucket, Bowl, Patty, ur mum
     multiplier = models.FloatField()  # Conversion multiplier to base unit (e.g., 25kg, 10L)
     quantity = models.FloatField(default=0)
+    history = HistoricalRecords()
 
     def converted_quantity(self):
         if not self.ingredient:

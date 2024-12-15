@@ -17,6 +17,7 @@ from django.utils.dateparse import parse_date
 from datetime import datetime, time
 from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 
 
@@ -434,41 +435,41 @@ def delivery_inventory(request):
 
 
 
-
-
-
-
 def inventory_history(request):
-    # Get filter parameters from request
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
+    # Fetch historical records for units
+    historical_records = Unit.history.select_related('ingredient').order_by('-history_date')
 
-    # Fetch the historical records
-    historical_records = Ingredient.history.filter(history_change_reason__isnull=False)
+    # Include previous state for each record
+    history_with_changes = []
+    for record in historical_records:
+        if record.prev_record:
+            previous_quantity = record.prev_record.quantity
+        else:
+            previous_quantity = None  # No previous record (newly created)
 
-    # Apply date filters if provided
-    if start_date:
-        start_datetime = datetime.combine(datetime.strptime(start_date, "%Y-%m-%d").date(), time.min)
-        historical_records = historical_records.filter(history_date__gte=start_datetime)
-    if end_date:
-        end_datetime = datetime.combine(datetime.strptime(end_date, "%Y-%m-%d").date(), time.max)
-        historical_records = historical_records.filter(history_date__lte=end_datetime)
+        history_with_changes.append({
+            'current_record': record,
+            'previous_quantity': previous_quantity,
+        })
 
-    # Group records by change reason only if there are filtered results
-    grouped_changes = {}
-    if start_date or end_date:
-        for record in historical_records.order_by('-history_date'):
-            group_key = record.history_change_reason
-            if group_key not in grouped_changes:
-                grouped_changes[group_key] = []
-            grouped_changes[group_key].append(record)
+    paginator = Paginator(history_with_changes, 10)  # Paginate to 10 records per page
+    page = request.GET.get('page')
+    try:
+        records = paginator.page(page)
+    except PageNotAnInteger:
+        records = paginator.page(1)
+    except EmptyPage:
+        records = paginator.page(paginator.num_pages)
 
     context = {
-        'grouped_changes': grouped_changes,
-        'start_date': start_date,
-        'end_date': end_date,
+        'records': records,
     }
     return render(request, 'inventory/inventory_history.html', context)
+
+
+
+
+
 
 
 def export_data(data, file_format, filename_prefix):
@@ -574,7 +575,7 @@ def ingredient_details(request, category_slug, slug):
             remaining_units = [
                 form for form in unit_formset if form.cleaned_data.get('DELETE') is not True
             ]
-            if len(remaining_units) == 0:
+            if len(remaining_units) == 0: # idk a better way to do this.. This feels super ineffective but fuck it #TODO
                 messages.error(request, "You must have at least one unit for this ingredient.")
             else:
                 with transaction.atomic():
@@ -585,9 +586,14 @@ def ingredient_details(request, category_slug, slug):
                     units = unit_formset.save(commit=False)
                     for unit in units:
                         unit.ingredient = ingredient
+                        if unit.pk:
+                            update_change_reason(unit, "Updated unit details")
+                        else:
+                            update_change_reason(unit, "Created new unit")
                         unit.save()
                     # Handle deleted units
                     for unit in unit_formset.deleted_objects:
+                        update_change_reason(unit, "Deleted unit")
                         unit.delete()
 
                     messages.success(request, f"{ingredient.name.title()} updated successfully!")
@@ -600,7 +606,7 @@ def ingredient_details(request, category_slug, slug):
         unit_formset.forms[0].fields['DELETE'].widget = forms.HiddenInput()
 
     # Fetch ingredient's history
-    history = ingredient.history.all().order_by('-history_date')
+    history = ingredient.units.model.history.filter(ingredient=ingredient).order_by('-history_date')
 
     context = {
         'ingredient': ingredient,
