@@ -53,6 +53,7 @@
             <th>Change Type</th>
             <th>Date</th>
             <th>Reason</th>
+            <th>Changed By</th>
         </tr>
     </thead>
     <tbody>
@@ -82,10 +83,19 @@
                 </td>
                 <td>{{ record.current_record.history_date|date:"Y-m-d H:i:s" }}</td>
                 <td>{{ record.current_record.history_change_reason }}</td>
+                <td>
+                    {% if record.current_record.history_user %}
+                        {{ record.current_record.history_user.username }}
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </td>
+                
             </tr>
         {% endfor %}
     </tbody>
 </table>
+
 
 <div class="pagination">
     <span class="step-links">

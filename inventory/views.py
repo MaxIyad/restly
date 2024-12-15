@@ -603,6 +603,7 @@ def ingredient_details(request, category_slug, slug):
     ingredient_form = IngredientForm(instance=ingredient)
     if request.method == "POST":
         ingredient_form = IngredientForm(request.POST, instance=ingredient)
+        
         unit_formset = UnitFormSet(request.POST, queryset=ingredient.units.all(), prefix="units")
 
         if ingredient_form.is_valid() and unit_formset.is_valid():
@@ -621,8 +622,10 @@ def ingredient_details(request, category_slug, slug):
                     units = unit_formset.save(commit=False)
                     for unit in units:
                         unit.ingredient = ingredient
+                        unit.save(user=request.user)
+                        unit.save()
                         if unit.pk:
-                            update_change_reason(unit, "Updated unit details")
+                            update_change_reason(unit, "Updated unit Multiplier or Name")
                         else:
                             update_change_reason(unit, "Created new unit")
                         unit.save()

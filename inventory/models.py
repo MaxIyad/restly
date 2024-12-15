@@ -5,6 +5,7 @@ from simple_history.models import HistoricalRecords
 from decimal import Decimal, ROUND_HALF_UP
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
+from django.contrib.auth import get_user_model
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True, default="global")
@@ -194,7 +195,15 @@ class Unit(models.Model):
     quantity = models.FloatField(default=0)
     history = HistoricalRecords()
 
+    def save(self, *args, **kwargs):
+        # Get the user from the current context if available
+        user = kwargs.pop('user', None)
+        if user:
+            update_change_reason(self, f"Changed by {user.username}")
+        super().save(*args, **kwargs)
+
     def converted_quantity(self):
+        
         if not self.ingredient:
             return f"{self.quantity} {self.name}"
         return self.ingredient._convert_unit(self.quantity * self.multiplier)
