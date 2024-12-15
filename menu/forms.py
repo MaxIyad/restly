@@ -65,6 +65,11 @@ class MenuItemVariationForm(forms.ModelForm):
             'price': 'Price',
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set the default value for the 'price' field
+        self.fields['price'].initial = Decimal('0.0')
+
 ###################################################################################################
 
 class MenuForm(forms.ModelForm):
