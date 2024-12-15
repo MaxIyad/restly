@@ -599,7 +599,6 @@ def ingredient_details(request, category_slug, slug):
     UnitFormSet = modelformset_factory(Unit, form=UnitForm, extra=0 if existing_unit_count >= 3 else 1, can_delete=True)
     unit_formset = UnitFormSet(queryset=ingredient.units.all(), prefix="units")
 
-    # Process POST request
     ingredient_form = IngredientForm(instance=ingredient)
     if request.method == "POST":
         ingredient_form = IngredientForm(request.POST, instance=ingredient)
@@ -643,14 +642,36 @@ def ingredient_details(request, category_slug, slug):
     if unit_formset.forms:
         unit_formset.forms[0].fields['DELETE'].widget = forms.HiddenInput()
 
-    # Fetch ingredient's history
-    history = ingredient.units.model.history.filter(ingredient=ingredient).order_by('-history_date')
+ 
+    # Fetch and paginate ingredient's history
+        historical_records = (
+        Unit.history.filter(ingredient=ingredient)
+        .order_by("-history_date")
+        .select_related("history_user", "ingredient")
+    )
+    history_with_changes = [
+        {
+            "current_record": record,
+            "previous_quantity": record.prev_record.quantity if record.prev_record else None,
+        }
+        for record in historical_records
+    ]
+
+    paginator = Paginator(history_with_changes, 10)  # Paginate with 10 records per page
+    page = request.GET.get("page", 1)
+    try:
+        paginated_history = paginator.page(page)
+    except PageNotAnInteger:
+        paginated_history = paginator.page(1)
+    except EmptyPage:
+        paginated_history = paginator.page(paginator.num_pages)
+
 
     context = {
         'ingredient': ingredient,
         'ingredient_form': ingredient_form,
         'unit_formset': unit_formset,
-        'history': history,
+        'history': paginated_history,
     }
     return render(request, 'inventory/ingredient_details.html', context)
 
