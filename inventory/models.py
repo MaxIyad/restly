@@ -196,7 +196,18 @@ class Unit(models.Model):
     quantity = models.FloatField(default=0)
     history = HistoricalRecords()
 
+
+    #TODO: the reason of every change is fucked, idk why. It changes the previous entries, enters multiple changes..
+    # I'll comment out the changes to the _change_reason for now
     def save(self, *args, **kwargs):
+        '''
+        reason = getattr(self, '_change_reason', None)
+        if reason:
+            update_change_reason(self, reason)
+        super().save(*args, **kwargs)
+        '''
+
+
         user = kwargs.pop('user', None)
         try:
             if user:

@@ -82,7 +82,7 @@
                     {% endif %}
                 </td>
                 <td>{{ record.current_record.history_date|date:"Y-m-d H:i:s" }}</td>
-                <td>{{ record.current_record.history_change_reason }}</td>
+                <td>{{ record.current_record.history_change_reason|default:"No reason provided" }}</td>
                 <td>
                     {% if record.current_record.history_user %}
                         {{ record.current_record.history_user.username }}

@@ -170,6 +170,8 @@ def take_inventory(request):
                     if quantity_key in request.POST and request.POST[quantity_key]:
                         try:
                             unit_quantity = float(request.POST[quantity_key])
+                            #if unit.quantity != unit_quantity:
+                            #    update_change_reason(unit, "Take Inventory")
                             unit.quantity = unit_quantity  # Update unit's quantity
                             unit.save()
                             updated_count += 1
@@ -413,6 +415,8 @@ def delivery_inventory(request):
                     if quantity_key in request.POST and request.POST[quantity_key]:
                         try:
                             additional_quantity = float(request.POST[quantity_key])
+                            #if additional_quantity > 0:
+                                #update_change_reason(unit, "Stock Delivery")
                             unit.quantity += additional_quantity  # Add to current quantity
                             unit.save()
                             updated_count += 1
@@ -761,6 +765,7 @@ def waste_inventory(request):
                         try:
                             waste_quantity = float(request.POST[quantity_key])
                             if waste_quantity > 0 and waste_quantity <= unit.quantity:
+                               # update_change_reason(unit, f"Recorded Waste: {reason}")
                                 unit.quantity -= waste_quantity  # Decrement the quantity
                                 unit.save()
                                 updated_count += 1
