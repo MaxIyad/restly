@@ -34,7 +34,8 @@ INSTALLED_APPS = [
     'inventory.apps.InventoryConfig',  
     'menu.apps.MenuConfig',
     'reports.apps.ReportsConfig',
-    'accounts.apps.AccountsConfig'
+    'accounts.apps.AccountsConfig',
+    'pos.apps.PosConfig',
     
 ]
 
