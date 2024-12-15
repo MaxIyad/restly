@@ -6,17 +6,40 @@
 
 <!-- Search Form -->
 <form method="get" action="{% url 'inventory_history' %}" class="mb-3">
-    <div class="input-group">
-        <input
-            type="text"
-            name="q"
-            class="form-control"
-            placeholder="Search for ingredient changes..."
-            value="{{ search_query }}"
-        />
-        <button class="btn btn-primary" type="submit">Search</button>
+    <div class="row">
+        <div class="col-md-3">
+            <input
+                type="text"
+                name="q"
+                class="form-control"
+                placeholder="Search for ingredient changes..."
+                value="{{ search_query }}"
+            />
+        </div>
+        <div class="col-md-3">
+            <input
+                type="date"
+                name="start_date"
+                class="form-control"
+                value="{{ start_date }}"
+                placeholder="Start Date"
+            />
+        </div>
+        <div class="col-md-3">
+            <input
+                type="date"
+                name="end_date"
+                class="form-control"
+                value="{{ end_date }}"
+                placeholder="End Date"
+            />
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-primary w-100" type="submit">Search</button>
+        </div>
     </div>
 </form>
+
 
 
 <table class="table">

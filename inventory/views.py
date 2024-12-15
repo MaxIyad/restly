@@ -433,17 +433,34 @@ def delivery_inventory(request):
 
 
 
-
+from django.utils.timezone import make_aware
 
 def inventory_history(request):
     # Fetch historical records for units
     historical_records = Unit.history.select_related('ingredient').order_by('-history_date')
 
     search_query = request.GET.get('q', '').strip()
+    start_date = request.GET.get('start_date', '')
+    end_date = request.GET.get('end_date', '')
 
 
     if search_query:
         historical_records = historical_records.filter(ingredient__name__icontains=search_query)
+
+    # Apply date filters
+    if start_date:
+        try:
+            start_datetime = make_aware(datetime.combine(datetime.strptime(start_date, "%Y-%m-%d").date(), time.min))
+            historical_records = historical_records.filter(history_date__gte=start_datetime)
+        except ValueError:
+            messages.error(request, "Invalid start date format. Please use YYYY-MM-DD.")
+
+    if end_date:
+        try:
+            end_datetime = make_aware(datetime.combine(datetime.strptime(end_date, "%Y-%m-%d").date(), time.max))
+            historical_records = historical_records.filter(history_date__lte=end_datetime)
+        except ValueError:
+            messages.error(request, "Invalid end date format. Please use YYYY-MM-DD.")
 
     # Include previous state for each record
     history_with_changes = []
@@ -479,6 +496,8 @@ def inventory_history(request):
     context = {
         'records': records,
         'search_query': search_query,
+        'start_date': start_date,
+        'end_date': end_date,
     }
     return render(request, 'inventory/inventory_history.html', context)
 
