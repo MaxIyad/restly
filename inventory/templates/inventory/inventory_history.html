@@ -3,6 +3,22 @@
 {% block content %}
 <h1>Unit Change History</h1>
 
+
+<!-- Search Form -->
+<form method="get" action="{% url 'inventory_history' %}" class="mb-3">
+    <div class="input-group">
+        <input
+            type="text"
+            name="q"
+            class="form-control"
+            placeholder="Search for ingredient changes..."
+            value="{{ search_query }}"
+        />
+        <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+</form>
+
+
 <table class="table">
     <thead>
         <tr>

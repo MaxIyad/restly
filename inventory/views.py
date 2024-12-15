@@ -439,6 +439,21 @@ def inventory_history(request):
     # Fetch historical records for units
     historical_records = Unit.history.select_related('ingredient').order_by('-history_date')
 
+    search_query = request.GET.get('q', '').strip()
+
+
+    if search_query:
+        historical_records = historical_records.filter(ingredient__name__icontains=search_query)
+
+    # Include previous state for each record
+    history_with_changes = []
+    for record in historical_records:
+        previous_quantity = record.prev_record.quantity if record.prev_record else None
+        history_with_changes.append({
+            'current_record': record,
+            'previous_quantity': previous_quantity,
+        })
+
     # Include previous state for each record
     history_with_changes = []
     for record in historical_records:
@@ -463,6 +478,7 @@ def inventory_history(request):
 
     context = {
         'records': records,
+        'search_query': search_query,
     }
     return render(request, 'inventory/inventory_history.html', context)
 
