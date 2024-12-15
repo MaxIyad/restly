@@ -187,6 +187,7 @@ class Ingredient(models.Model):
         converted_qty = base_qty / conversion_factor
         return f"{converted_qty.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)} {higher_unit}"
 
+from simple_history.utils import update_change_reason
 
 class Unit(models.Model):
     ingredient = models.ForeignKey('Ingredient', related_name='units', on_delete=models.CASCADE)
@@ -196,10 +197,13 @@ class Unit(models.Model):
     history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
-        # Get the user from the current context if available
         user = kwargs.pop('user', None)
-        if user:
-            update_change_reason(self, f"Changed by {user.username}")
+        try:
+            if user:
+                update_change_reason(self, f"Changed by {user.username}")
+        except AttributeError:
+            # Log the issue or handle it gracefully
+            print("Historical tracking not available for this instance.")
         super().save(*args, **kwargs)
 
     def converted_quantity(self):
