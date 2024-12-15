@@ -26,7 +26,8 @@ from django.shortcuts import render
 from django.db.models import F, Sum, Prefetch
 
 
-#TODO: fix up messaging. Find a way seperate messges. 
+#TODO: pretty sure most (if not, all) export to csv buttons are broken now due to the unit changes.
+#TODO: fix up messaging. Find a way seperate messges. Meaning you can ignore update_count (until fixed)
 # i.e: inventory messages to ingredient_list, delivery to inventory_delivery, etc.
 def ingredient_list(request):
 
