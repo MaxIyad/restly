@@ -1,26 +1,64 @@
 {% extends 'base.html' %}
 {% block content %}
 <h1>Point of Sale</h1>
-<div class="row">
-    <div class="col-md-8">
-        <h2>Ingredients</h2>
-        <form method="post">
-            {% csrf_token %}
-            <select name="ingredient_id">
-                {% for ingredient in ingredients %}
-                <option value="{{ ingredient.id }}">{{ ingredient.name }}</option>
-                {% endfor %}
-            </select>
-            <input type="number" step="0.01" name="quantity" placeholder="Quantity">
-            <button type="submit">Add to Cart</button>
-        </form>
-    </div>
-    <div class="col-md-4">
-        <h2>Cart</h2>
-        {% for id, quantity in cart.items %}
-        <p>{{ id }} - {{ quantity }}</p>
+
+<form method="post" id="add-to-cart-form">
+    {% csrf_token %}
+    <label for="menu-item-dropdown">Select Menu Item:</label>
+    <select name="menu_item_id" id="menu-item-dropdown" required>
+        <option value="">Select a Menu Item</option>
+        {% for item in menu_items %}
+        <option value="{{ item.id }}">{{ item.name }}</option>
         {% endfor %}
-        <a href="{% url 'checkout' %}" class="btn btn-success">Checkout</a>
-    </div>
-</div>
+    </select>
+
+    <label for="variation-dropdown">Select Variation:</label>
+    <select name="variation_id" id="variation-dropdown">
+        <option value="">Default (No Variation)</option>
+    </select>
+
+    <label for="quantity">Quantity:</label>
+    <input type="number" name="quantity" id="quantity" min="1" step="1" placeholder="Quantity" required>
+
+    <button type="submit" class="btn btn-primary">Add to Cart</button>
+</form>
+
+<hr>
+
+<h2>Cart</h2>
+<ul>
+    {% for item in cart %}
+    <li>
+        Menu Item: {{ item.menu_item_id }} |
+        {% if item.variation_id %}
+        Variation ID: {{ item.variation_id }} |
+        {% endif %}
+        Quantity: {{ item.quantity }} | Price: ${{ item.price }}
+    </li>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'checkout' %}" class="btn btn-success">Checkout</a>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const menuItemDropdown = document.getElementById('menu-item-dropdown');
+        const variationDropdown = document.getElementById('variation-dropdown');
+        const menuItemVariations = {{ menu_item_data|json_script:"menu-item-data" }};
+
+        menuItemDropdown.addEventListener('change', (event) => {
+            const selectedMenuItemId = event.target.value;
+            variationDropdown.innerHTML = '<option value="">Default (No Variation)</option>'; // Reset variations
+
+            if (menuItemVariations[selectedMenuItemId]) {
+                menuItemVariations[selectedMenuItemId].forEach(variation => {
+                    const option = document.createElement('option');
+                    option.value = variation.id;
+                    option.textContent = `${variation.name} - $${variation.price.toFixed(2)}`;
+                    variationDropdown.appendChild(option);
+                });
+            }
+        });
+    });
+</script>
 {% endblock %}

@@ -1,9 +1,9 @@
 from django import forms
-from .models import Sale, Cart
-
+from .models import Sale
 class AddToCartForm(forms.Form):
-    ingredient_id = forms.IntegerField(widget=forms.HiddenInput())
-    quantity = forms.FloatField(min_value=0.01, widget=forms.NumberInput(attrs={'step': 0.01}))
+    menu_item_id = forms.IntegerField(widget=forms.HiddenInput())
+    variation_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    quantity = forms.IntegerField(min_value=1, widget=forms.NumberInput(attrs={'step': 1}))
 
 class PaymentForm(forms.ModelForm):
     class Meta:
