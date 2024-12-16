@@ -43,9 +43,14 @@
         </table>
 
         <h2>Payment</h2>
-        <div class="form-group">
-            {{ payment_form.as_p }}
-        </div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                {{ payment_form.as_p }}
+            </div>
+            <button type="submit" class="btn btn-primary">Complete Sale</button>
+        </form>
+        
 
         <button type="submit" class="btn btn-primary">Complete Sale</button>
     </form>

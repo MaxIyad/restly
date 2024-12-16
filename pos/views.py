@@ -4,6 +4,8 @@ from .forms import AddToCartForm, PaymentForm
 from menu.models import MenuItem, MenuItemVariation
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
+import requests
+from django.conf import settings
 
 def pos_view(request):
     cart = get_cart(request)
@@ -52,6 +54,9 @@ def get_cart(request):
     return cart
 
 
+SUMUP_API_URL = "https://api.sumup.com/v0.1/pos"
+
+
 def checkout_view(request):
     cart = request.session.get('cart', [])
     if not cart:
@@ -60,7 +65,24 @@ def checkout_view(request):
     if request.method == 'POST':
         payment_form = PaymentForm(request.POST)
         if payment_form.is_valid():
-            sale = payment_form.save()
+            payment_method = payment_form.cleaned_data['payment_method']
+            sale = payment_form.save(commit=False)
+            total_amount = sum(item['price'] * item['quantity'] for item in cart)
+
+            # Handle SumUp Payment
+            if payment_method == 'sumup':
+                sumup_response = send_to_sumup_terminal(total_amount)
+                if sumup_response['success']:
+                    sale.sumup_transaction_id = sumup_response['transaction_id']
+                else:
+                    # Handle SumUp error
+                    print(request, "Failed to process payment on SumUp terminal.")
+                    return redirect('checkout')
+
+            # Finalize sale
+            sale.total_amount = total_amount
+            sale.save()
+
             for item in cart:
                 menu_item = MenuItem.objects.get(id=item['menu_item_id'])
                 variation = MenuItemVariation.objects.filter(id=item['variation_id']).first()
@@ -72,14 +94,16 @@ def checkout_view(request):
                     price=item['price']
                 )
 
-                # Deduct ingredients from inventory
+                # Deduct inventory
                 recipe_ingredients = variation.variation_recipe_ingredients.all() if variation else menu_item.menu_item_recipe_ingredients.all()
                 for recipe_ingredient in recipe_ingredients:
                     ingredient = recipe_ingredient.ingredient
                     ingredient.quantity -= recipe_ingredient.quantity * item['quantity']
                     ingredient.save()
 
-            request.session['cart'] = []  # Clear cart
+            # Clear cart and redirect to POS
+            request.session['cart'] = []
+            print(request, "Sale completed successfully!")
             return redirect('pos')
 
     total_amount = sum(item['price'] * item['quantity'] for item in cart)
@@ -89,6 +113,31 @@ def checkout_view(request):
         'payment_form': PaymentForm(initial={'total_amount': total_amount}),
     }
     return render(request, 'pos/checkout.html', context)
+
+def send_to_sumup_terminal(amount):
+    """Send payment request to SumUp terminal."""
+    try:
+        # Example authentication (replace with actual token management)
+        headers = {
+            "Authorization": f"Bearer {settings.SUMUP_ACCESS_TOKEN}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "amount": str(amount),
+            "currency": "EUR",
+            "checkout_reference": "Order12345",  # Replace with dynamic order reference later
+        }
+        response = requests.post(SUMUP_API_URL, json=payload, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "success": True,
+                "transaction_id": data.get("transaction_id"),
+            }
+        else:
+            return {"success": False, "error": response.text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 def clear_cart_view(request):

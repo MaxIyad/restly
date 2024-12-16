@@ -9,9 +9,10 @@ class Sale(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(
         max_length=50, 
-        choices=[('cash', 'Cash'), ('card', 'Card'), ('digital', 'Digital')]
+        choices=[('cash', 'Cash'), ('card', 'Card'), ('digital', 'Digital'), ('sumup', 'SumUp Terminal')]
     )
     change_given = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    sumup_transaction_id = models.CharField(max_length=100, null=True, blank=True)
 
 
 class CartItem(models.Model):
