@@ -1,64 +1,182 @@
-{% extends 'base.html' %}
-{% block content %}
-<h1>Point of Sale</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Point of Sale</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .menu-card {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            transition: transform 0.2s;
+        }
+        .menu-card:hover {
+            transform: scale(1.05);
+        }
+        .cart-summary {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 350px;
+            background: white;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+        .cart-item {
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 0;
+        }
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+        .checkout-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+        }
+        .category-section {
+            margin-bottom: 30px;
+        }
+        .secondary-options {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-light bg-white shadow-sm mb-4">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">POS System</span>
+            <form class="d-flex" role="search">
+                <input class="form-control me-2" type="search" placeholder="Search Menu Items" aria-label="Search">
+                <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
+        </div>
+    </nav>
 
-<form method="post" id="add-to-cart-form">
-    {% csrf_token %}
-    <label for="menu-item-dropdown">Select Menu Item:</label>
-    <select name="menu_item_id" id="menu-item-dropdown" required>
-        <option value="">Select a Menu Item</option>
-        {% for item in menu_items %}
-        <option value="{{ item.id }}">{{ item.name }}</option>
-        {% endfor %}
-    </select>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Menu Items Section -->
+            <div class="col-lg-9 col-md-8">
+                {% for category in categories %}
+                <div class="category-section">
+                    <h4>{{ category.name }}</h4>
+                    <div class="row g-3">
+                        {% for menu_item in category.items.all %}
+                        {% if not menu_item.is_secondary %}
+                        <div class="col-md-4">
+                            <div class="menu-card p-3">
+                                <h5>{{ menu_item.name }}</h5>
+                                <p class="text-muted">{{ menu_item.description }}</p>
+                                <p><strong>Price:</strong> €{{ menu_item.cost }}</p>
 
-    <label for="variation-dropdown">Select Variation:</label>
-    <select name="variation_id" id="variation-dropdown">
-        <option value="">Default (No Variation)</option>
-    </select>
+                                <!-- Add to Cart with Secondary Items -->
+                                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addToCartModal{{ menu_item.id }}">
+                                    Add to Cart
+                                </button>
+                            </div>
+                        </div>
 
-    <label for="quantity">Quantity:</label>
-    <input type="number" name="quantity" id="quantity" min="1" step="1" placeholder="Quantity" required>
+                       <!-- Modal for Adding to Cart -->
+<div class="modal fade" id="addToCartModal{{ menu_item.id }}" tabindex="-1" aria-labelledby="addToCartModalLabel{{ menu_item.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addToCartModalLabel{{ menu_item.id }}">Add {{ menu_item.name }} to Cart</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Base Price:</strong> €{{ menu_item.cost }}</p>
+                {% if menu_item.associated_secondary_items.exists %}
+                <div class="mb-3">
+                    <h6>Select Sides:</h6>
+                    <div class="secondary-options">
+                        {% for side_item in menu_item.associated_secondary_items.all %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="{{ side_item.id }}" id="side{{ side_item.id }}" name="sides">
+                            <label class="form-check-label" for="side{{ side_item.id }}">
+                                {{ side_item.name }} (€{{ side_item.cost }})
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted">No sides available for this item.</p>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <form method="POST" action="{% url 'pos' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="menu_item_id" value="{{ menu_item.id }}">
+                    <input type="hidden" id="selectedSides{{ menu_item.id }}" name="selected_sides">
+                    <button type="submit" class="btn btn-success">Add to Cart</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <button type="submit" class="btn btn-primary">Add to Cart</button>
-</form>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
 
-<hr>
+            <!-- Cart Sidebar -->
+            <div class="col-lg-3 col-md-4">
+                <div class="cart-summary p-3">
+                    <h5>Your Cart</h5>
+                    {% if cart %}
+                        {% for item in cart %}
+                        <div class="cart-item">
+                            <p>{{ item.menu_item_id }} x {{ item.quantity }}</p>
+                            {% if item.sides %}
+                            <p class="text-muted">Sides: {{ item.sides|join:", " }}</p>
+                            {% endif %}
+                            <p class="text-muted">Subtotal: €{{ item.price|floatformat:2 }}</p>
+                            <form method="POST" action="{% url 'clear_cart' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="cart_item_id" value="{{ item.menu_item_id }}">
+                                <button class="btn btn-sm btn-danger">Remove</button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                        <hr>
+                        <h6>Total: €{{ total_amount|floatformat:2 }}</h6>
+                        <a href="{% url 'checkout' %}" class="btn btn-success w-100 mt-3">Proceed to Checkout</a>
+                    {% else %}
+                        <p class="text-muted">Your cart is empty.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 
-<h2>Cart</h2>
-<ul>
-    {% for item in cart %}
-    <li>
-        Menu Item: {{ item.menu_item_id }} |
-        {% if item.variation_id %}
-        Variation ID: {{ item.variation_id }} |
-        {% endif %}
-        Quantity: {{ item.quantity }} | Price: ${{ item.price }}
-    </li>
-    {% endfor %}
-</ul>
+    <!-- Checkout Button -->
+    <a href="{% url 'checkout' %}" class="btn btn-success checkout-btn">Checkout</a>
 
-<a href="{% url 'checkout' %}" class="btn btn-success">Checkout</a>
-
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const menuItemDropdown = document.getElementById('menu-item-dropdown');
-        const variationDropdown = document.getElementById('variation-dropdown');
-        const menuItemVariations = {{ menu_item_data|json_script:"menu-item-data" }};
-
-        menuItemDropdown.addEventListener('change', (event) => {
-            const selectedMenuItemId = event.target.value;
-            variationDropdown.innerHTML = '<option value="">Default (No Variation)</option>'; // Reset variations
-
-            if (menuItemVariations[selectedMenuItemId]) {
-                menuItemVariations[selectedMenuItemId].forEach(variation => {
-                    const option = document.createElement('option');
-                    option.value = variation.id;
-                    option.textContent = `${variation.name} - $${variation.price.toFixed(2)}`;
-                    variationDropdown.appendChild(option);
-                });
-            }
+    <!-- JS (Bootstrap) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('hidden.bs.modal', function () {
+                const checkboxInputs = modal.querySelectorAll('input[name="sides"]:checked');
+                const sideIds = Array.from(checkboxInputs).map(input => input.value).join(',');
+                const hiddenInput = modal.querySelector('input#selectedSides' + modal.id.replace('addToCartModal', ''));
+                if (hiddenInput) {
+                    hiddenInput.value = sideIds;
+                }
+            });
         });
-    });
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>

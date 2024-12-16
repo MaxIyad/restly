@@ -1,15 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Ingredient, CartItem
 from .forms import AddToCartForm, PaymentForm
-from menu.models import MenuItem, MenuItemVariation
+from menu.models import MenuItem, MenuItemVariation, MenuCategory
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 import requests
 from django.conf import settings
 
+
 def pos_view(request):
     cart = get_cart(request)
-    menu_items = MenuItem.objects.filter(is_active=True).prefetch_related('variations')
+    menu_items = MenuItem.objects.filter(is_active=True).prefetch_related('variations', 'associated_secondary_items')   
+    categories = MenuCategory.objects.filter(is_active=True).prefetch_related('items')
 
     if request.method == 'POST':
         form = AddToCartForm(request.POST)
@@ -41,6 +43,7 @@ def pos_view(request):
         'menu_items': menu_items,
         'cart': cart,
         'form': AddToCartForm(),
+        'categories': categories,
         'menu_item_data': menu_item_data,  # Add serialized data for JS usage
     }
     return render(request, 'pos/pos.html', context)
