@@ -6,12 +6,15 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 import requests
 from django.conf import settings
+from django.db.models import Prefetch
 
 
 def pos_view(request):
     cart = get_cart(request)
     menu_items = MenuItem.objects.filter(is_active=True).prefetch_related('variations', 'associated_secondary_items')   
-    categories = MenuCategory.objects.filter(is_active=True).prefetch_related('items')
+    categories = MenuCategory.objects.filter(is_active=True).prefetch_related(
+        Prefetch('items', queryset=MenuItem.objects.filter(is_active=True))
+    )
 
     if request.method == 'POST':
         form = AddToCartForm(request.POST)
