@@ -22,7 +22,10 @@ def pos_view(request):
         'variations'
     )
     
-    categories = MenuCategory.objects.filter(is_active=True).prefetch_related(
+    categories = MenuCategory.objects.filter(
+        is_active=True, 
+        menu__is_secondary=False  # Exclude secondary menus
+    ).prefetch_related(
         Prefetch('items', queryset=menu_items)
     )
 

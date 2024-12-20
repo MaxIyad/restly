@@ -75,35 +75,57 @@
                             <div class="menu-card p-3">
                                 <!-- Menu Item Details -->
                                 <h5>{{ item.name }}</h5>
-                                <p>Debug Secondary Associations: {{ item.active_secondary_associations }}</p>
                                 <p class="text-muted">{{ item.description }}</p>
                                 <p><strong>Price:</strong> €{{ item.cost|floatformat:2 }}</p>
-                        
-                                <!-- Secondary Items -->
-                                {% if item.active_secondary_associations %}
-                                    <div class="mt-3">
-                                        <h6>Available Sides:</h6>
-                                        <ul class="list-unstyled">
-                                            {% for association in item.active_secondary_associations %}
-                                                <li>
-                                                    {{ association.secondary_item.name }} (€{{ association.secondary_item.cost|floatformat:2 }})
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                {% else %}
-                                    <p class="text-muted">No sides available for this item.</p>
-                                {% endif %}
-                        
+                                
                                 <!-- Add to Cart Button -->
-                                <form method="POST" action="{% url 'pos' %}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="item_id" value="{{ item.id }}">
-                                    <button type="submit" class="btn btn-primary w-100">Add to Cart</button>
-                                </form>
+                                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addToCartModal{{ item.id }}">
+                                    Add to Cart
+                                </button>
                             </div>
                         </div>
-                        
+
+                        <!-- Modal for Adding to Cart -->
+                        <div class="modal fade" id="addToCartModal{{ item.id }}" tabindex="-1" aria-labelledby="addToCartModalLabel{{ item.id }}" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="addToCartModalLabel{{ item.id }}">Add {{ item.name }} to Cart</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p><strong>Base Price:</strong> €{{ item.cost|floatformat:2 }}</p>
+
+                                        <!-- Secondary Items -->
+                                        {% if item.active_secondary_associations %}
+                                        <div class="mb-3">
+                                            <h6>Select Sides:</h6>
+                                            <div class="secondary-options">
+                                                {% for association in item.active_secondary_associations %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="{{ association.secondary_item.id }}" id="side{{ association.secondary_item.id }}" name="sides">
+                                                    <label class="form-check-label" for="side{{ association.secondary_item.id }}">
+                                                        {{ association.secondary_item.name }} (€{{ association.secondary_item.cost|floatformat:2 }})
+                                                    </label>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <p class="text-muted">No sides available for this item.</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <form method="POST" action="{% url 'pos' %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="menu_item_id" value="{{ item.id }}">
+                                            <input type="hidden" id="selectedSides{{ item.id }}" name="selected_sides">
+                                            <button type="submit" class="btn btn-success">Add to Cart</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         {% endfor %}
                     </div>
                 </div>
