@@ -8,10 +8,11 @@ import requests
 from django.conf import settings
 from django.db.models import Prefetch
 
-
+                                                   
 def pos_view(request):
     cart = get_cart(request)
-    #menu_items = MenuItem.objects.filter(is_active=True).prefetch_related('variations', 'associated_secondary_items')   
+    
+    # Prefetch secondary associations for each menu item
     menu_items = MenuItem.objects.filter(is_active=True).prefetch_related(
         Prefetch(
             'secondary_associations',
@@ -20,18 +21,10 @@ def pos_view(request):
         ),
         'variations'
     )
+    
     categories = MenuCategory.objects.filter(is_active=True).prefetch_related(
-        Prefetch('items', queryset=MenuItem.objects.filter(is_active=True))
+        Prefetch('items', queryset=menu_items)
     )
-
-
-    #for item in menu_items:
-    #    print(f"Menu Item: {item.name}, Associated Secondary Items: {item.associated_secondary_items.all()}")
-
-    for item in menu_items:
-        print(f"Menu Item: {item.name}, Associated Secondary Items: {[assoc.secondary_item.name for assoc in item.active_secondary_associations]}")
-
-
 
     if request.method == 'POST':
         form = AddToCartForm(request.POST)
@@ -57,14 +50,12 @@ def pos_view(request):
 
     # Serialize menu items and their variations
     menu_item_data = serialize_menu_items(menu_items)
-
     # Pass data to the template
     context = {
-        'menu_items': menu_items,
         'cart': cart,
         'form': AddToCartForm(),
         'categories': categories,
-        'menu_item_data': menu_item_data,  # Add serialized data for JS usage
+        #'menu_item_data': menu_item_data,  # Add serialized data for JS usage
     }
     return render(request, 'pos/pos.html', context)
 
