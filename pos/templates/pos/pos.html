@@ -92,22 +92,22 @@
                                     </div>
                                     <div class="modal-body">
                                         <p><strong>Base Price:</strong> €{{ menu_item.cost|floatformat:2 }}</p>
-                                        {% if menu_item.associated_secondary_items.exists %}
-                                        <div class="mb-3">
-                                            <h6>Select Sides:</h6>
-                                            <div class="secondary-options">
-                                                {% for side_item in menu_item.associated_secondary_items.all %}
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" value="{{ side_item.id }}" id="side{{ side_item.id }}" name="sides">
-                                                    <label class="form-check-label" for="side{{ side_item.id }}">
-                                                        {{ side_item.name }} (€{{ side_item.cost|floatformat:2 }})
-                                                    </label>
+                                        {% if menu_item.active_secondary_associations %}
+                                            <div class="mb-3">
+                                                <h6>Select Sides:</h6>
+                                                <div class="secondary-options">
+                                                    {% for association in menu_item.active_secondary_associations %}
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" value="{{ association.secondary_item.id }}" id="side{{ association.secondary_item.id }}" name="sides">
+                                                            <label class="form-check-label" for="side{{ association.secondary_item.id }}">
+                                                                {{ association.secondary_item.name }} (€{{ association.secondary_item.cost|floatformat:2 }})
+                                                            </label>
+                                                        </div>
+                                                    {% endfor %}
                                                 </div>
-                                                {% endfor %}
                                             </div>
-                                        </div>
                                         {% else %}
-                                        <p class="text-muted">No sides available for this item.</p>
+                                            <p class="text-muted">No sides available for this item.</p>
                                         {% endif %}
                                     </div>
                                     <div class="modal-footer">

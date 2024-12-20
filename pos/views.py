@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Ingredient, CartItem
 from .forms import AddToCartForm, PaymentForm
-from menu.models import MenuItem, MenuItemVariation, MenuCategory
+from menu.models import MenuItem, MenuItemVariation, MenuCategory, MenuItemSecondaryAssociation
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 import requests
@@ -11,10 +11,27 @@ from django.db.models import Prefetch
 
 def pos_view(request):
     cart = get_cart(request)
-    menu_items = MenuItem.objects.filter(is_active=True).prefetch_related('variations', 'associated_secondary_items')   
+    #menu_items = MenuItem.objects.filter(is_active=True).prefetch_related('variations', 'associated_secondary_items')   
+    menu_items = MenuItem.objects.filter(is_active=True).prefetch_related(
+        Prefetch(
+            'secondary_associations',
+            queryset=MenuItemSecondaryAssociation.objects.filter(is_active=True).select_related('secondary_item'),
+            to_attr='active_secondary_associations'
+        ),
+        'variations'
+    )
     categories = MenuCategory.objects.filter(is_active=True).prefetch_related(
         Prefetch('items', queryset=MenuItem.objects.filter(is_active=True))
     )
+
+
+    #for item in menu_items:
+    #    print(f"Menu Item: {item.name}, Associated Secondary Items: {item.associated_secondary_items.all()}")
+
+    for item in menu_items:
+        print(f"Menu Item: {item.name}, Associated Secondary Items: {[assoc.secondary_item.name for assoc in item.active_secondary_associations]}")
+
+
 
     if request.method == 'POST':
         form = AddToCartForm(request.POST)
