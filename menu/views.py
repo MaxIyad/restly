@@ -651,7 +651,7 @@ def get_categories_for_ingredient(request):
 
 
 
-def simulate_order(request, menu_slug, category_slug, menu_item_slug):
+def simulate_order(request=None, menu_slug=None, category_slug=None, menu_item_slug=None, variation_slug=None):
     menu = get_object_or_404(Menu, slug=menu_slug)
     category = get_object_or_404(MenuCategory, slug=category_slug, menu=menu)
     menu_item = get_object_or_404(MenuItem, slug=menu_item_slug, category=category)
@@ -665,15 +665,22 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
         return redirect('menu_detail', menu_slug=menu_slug)
 
     # Handle variation if provided
-    variation_slug = request.POST.get("variation_slug")
+
+    variation = None
     if variation_slug:
-        variation = get_object_or_404(MenuItemVariation, slug=variation_slug, menu_item=menu_item)
-        recipe_ingredients = variation.variation_recipe_ingredients.all()
-        price = variation.price
-    else:
-        # Default to menu item ingredients and price
-        recipe_ingredients = menu_item.menu_item_recipe_ingredients.all()
-        price = menu_item.cost
+        variation = MenuItemVariation.objects.filter(slug=variation_slug, menu_item=menu_item).first()
+        if not variation:
+            if request:
+                messages.error(request, f"Variation '{variation_slug}' not found for '{menu_item.name}'.")
+            return redirect('menu_detail', menu_slug=menu_slug)
+
+    recipe_ingredients = (
+        variation.variation_recipe_ingredients.all()
+        if variation else
+        menu_item.menu_item_recipe_ingredients.all()
+    )
+    price = variation.price if variation else menu_item.cost
+
 
     warnings = []
 
@@ -779,8 +786,9 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
     if warnings:
         messages.warning(request, " ".join(warnings))
     else:
-        messages.success(request, f"Order for '{menu_item.name}' simulated successfully!")
-        print(f"Order for '{menu_item.name}' simulated successfully!")
+        messages.success(request, f"Order for '{menu_item.name}'{' with variation ' + variation.name if variation else ''} simulated successfully!")    
+
+
 
     return redirect('menu_detail', menu_slug=menu_slug)
 

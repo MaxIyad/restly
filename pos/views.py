@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import Ingredient, CartItem
 from .forms import AddToCartForm, PaymentForm, CustomerForm
 from menu.models import MenuItem, MenuItemVariation, MenuCategory, MenuItemSecondaryAssociation
+from menu.views import simulate_order
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 import requests
@@ -68,6 +69,7 @@ def pos_view(request):
                 return redirect('pos')
 
     menu_item_data = serialize_menu_items(menu_items)
+
     context = {
         'cart': cart,
         'form': AddToCartForm(),
@@ -86,7 +88,6 @@ def save_customer_info(request):
     return redirect('pos')
 
 def serialize_cart(cart):
-    """Serialize the cart to store in the session."""
     serialized_cart = []
     for item in cart:
         serialized_cart.append({
@@ -106,7 +107,7 @@ def get_cart(request):
     return cart
 
 
-SUMUP_API_URL = "https://api.sumup.com/v0.1/pos"
+SUMUP_API_URL = "https://api.sumup.com/v0.1/pos" # Ignore for now
 
 
 def checkout_view(request):
@@ -123,7 +124,7 @@ def checkout_view(request):
 
             # Handle SumUp Payment
             if (payment_method == 'sumup'):
-                sumup_response = send_to_sumup_terminal(total_amount)
+                sumup_response = send_to_sumup_terminal(total_amount) # This is temp code; it doesn't do anything
                 if sumup_response['success']:
                     sale.sumup_transaction_id = sumup_response['transaction_id']
                 else:
@@ -153,6 +154,14 @@ def checkout_view(request):
                     ingredient.quantity -= recipe_ingredient.quantity * item['quantity']
                     ingredient.save()
 
+                simulate_order(
+                    request,
+                    menu_slug=menu_item.category.menu.slug,
+                    category_slug=menu_item.category.slug,
+                    menu_item_slug=menu_item.slug,
+                    variation_slug=variation.slug if variation else None,
+                )
+
             # Clear cart and redirect to POS
             request.session['cart'] = []
             print(request, "Sale completed successfully!")
@@ -167,7 +176,8 @@ def checkout_view(request):
     return render(request, 'pos/checkout.html', context)
 
 def send_to_sumup_terminal(amount):
-    """Send payment request to SumUp terminal."""
+    '''
+    # Send payment request with total_amount to SumUp terminal
     try:
         # Example authentication (replace with actual token management)
         headers = {
@@ -190,7 +200,7 @@ def send_to_sumup_terminal(amount):
             return {"success": False, "error": response.text}
     except Exception as e:
         return {"success": False, "error": str(e)}
-
+'''
 
 def clear_cart_view(request):
     """Clears the cart stored in the session."""
