@@ -158,6 +158,9 @@
                             {% if item.variation_id %}
                             <p class="text-muted">Variation: {{ item.variation_id|lookup_variation }}</p>
                             {% endif %}
+                            {% if item.sides %}
+                            <p class="text-muted">Sides: {{ item.sides|join:", " }}</p>
+                            {% endif %}
                             <p class="text-muted">Subtotal: €{{ item.price|floatformat:2 }}</p>
                         </div>
                         {% endfor %}
@@ -183,7 +186,16 @@
                 variationInput.value = this.value;
             });
         });
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('show.bs.modal', function () {
+                const form = modal.querySelector('form');
+                form.addEventListener('submit', function () {
+                    const selectedSides = Array.from(modal.querySelectorAll('input[name="sides"]:checked')).map(input => input.value);
+                    form.querySelector('input[name="selected_sides"]').value = selectedSides.join(',');
+                });
+            });
+        });
     </script>
-    
 </body>
 </html>

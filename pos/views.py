@@ -34,18 +34,29 @@ def pos_view(request):
             menu_item_id = form.cleaned_data['menu_item_id']
             variation_id = form.cleaned_data.get('variation_id') or None
             quantity = form.cleaned_data['quantity']
+            selected_sides = request.POST.get('selected_sides', '').split(',')
 
             # Fetch menu item and optionally the variation
             menu_item = MenuItem.objects.get(id=menu_item_id)
             variation = MenuItemVariation.objects.filter(id=variation_id).first() if variation_id else None
             price = variation.price if variation else menu_item.cost
 
+            # Calculate the total price including sides
+            total_price = price
+            sides = []
+            for side_id in selected_sides:
+                if side_id:
+                    side_item = MenuItem.objects.get(id=side_id)
+                    sides.append(side_item.name)
+                    total_price += side_item.cost
+
             # Add to cart
             cart.append({
                 'menu_item_id': menu_item.id,
                 'variation_id': variation.id if variation else None,
                 'quantity': quantity,
-                'price': float(price),
+                'price': float(total_price),
+                'sides': sides,
             })
             request.session['cart'] = serialize_cart(cart)  # Save back to session
             return redirect('pos')
@@ -69,6 +80,7 @@ def serialize_cart(cart):
             'variation_id': item['variation_id'],
             'quantity': item['quantity'],
             'price': item['price'],
+            'sides': item.get('sides', []),
         })
     return serialized_cart
 
