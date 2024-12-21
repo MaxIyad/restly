@@ -8,6 +8,7 @@ from django.http import JsonResponse
 import requests
 from django.conf import settings
 from django.db.models import Prefetch
+from django.urls import reverse
 
 def pos_view(request):
     cart = get_cart(request)
@@ -61,7 +62,7 @@ def pos_view(request):
                     'sides': sides,
                 })
                 request.session['cart'] = serialize_cart(cart)  # Save back to session
-                return redirect('pos')
+                return redirect(reverse('pos') + '#pos')
         else:
             customer_form = CustomerForm(request.POST)
             if customer_form.is_valid():
