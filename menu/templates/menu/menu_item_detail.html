@@ -137,7 +137,7 @@
                                 {{ recipe_ingredient.calculated_price|floatformat:2 }}
                             </td>
                             <td>
-                                <!-- Remove Ingredient Button -->
+                                <!-- Remove Ingredient Button From forms.py -->
                                 <form method="post" style="display:inline;">
                                     {% csrf_token %}
                                     <input type="hidden" name="ingredient_id" value="{{ recipe_ingredient.id }}">

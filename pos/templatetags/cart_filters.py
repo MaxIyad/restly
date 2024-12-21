@@ -16,3 +16,8 @@ def lookup_variation(variation_id):
         return MenuItemVariation.objects.get(id=variation_id).name
     except MenuItemVariation.DoesNotExist:
         return "Unknown Variation"
+    
+
+@register.filter
+def sum_cart_prices(cart):
+    return sum(item['price'] * item['quantity'] for item in cart)

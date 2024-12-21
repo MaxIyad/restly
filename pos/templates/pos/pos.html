@@ -96,6 +96,19 @@
                                     <div class="modal-body">
                                         <p><strong>Base Price:</strong> €{{ item.cost|floatformat:2 }}</p>
 
+                                        <!-- Variations -->
+                                        {% if item.variations.all %}
+                                        <div class="mb-3">
+                                            <h6>Select Variation:</h6>
+                                            <select class="form-select" id="variationSelect{{ item.id }}" name="variation_id">
+                                                <option value="">Default (€{{ item.cost|floatformat:2 }})</option>
+                                                {% for variation in item.variations.all %}
+                                                <option value="{{ variation.id }}">{{ variation.name }} (€{{ variation.price|floatformat:2 }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        {% endif %}
+
                                         <!-- Secondary Items -->
                                         {% if item.active_secondary_associations %}
                                         <div class="mb-3">
@@ -119,8 +132,10 @@
                                         <form method="POST" action="{% url 'pos' %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="menu_item_id" value="{{ item.id }}">
+                                            <input type="hidden" id="selectedVariation{{ item.id }}" name="variation_id">
                                             <input type="hidden" id="selectedSides{{ item.id }}" name="selected_sides">
-                                            <button type="submit" class="btn btn-success">Add to Cart</button>
+                                            <input type="number" name="quantity" value="1" min="1">
+                                            <button type="submit" class="btn btn-primary w-100">Add to Cart</button>
                                         </form>
                                     </div>
                                 </div>
@@ -140,24 +155,35 @@
                         {% for item in cart %}
                         <div class="cart-item">
                             <p>{{ item.menu_item_id|lookup_menu_item }} x {{ item.quantity }}</p>
-                            {% if item.sides %}
-                            <p class="text-muted">Sides: {{ item.sides|join:", " }}</p>
+                            {% if item.variation_id %}
+                            <p class="text-muted">Variation: {{ item.variation_id|lookup_variation }}</p>
                             {% endif %}
                             <p class="text-muted">Subtotal: €{{ item.price|floatformat:2 }}</p>
                         </div>
                         {% endfor %}
                         <hr>
-                        <h6>Total: €{{ total_amount|floatformat:2 }}</h6>
+                        <h6>Total: €{{ cart|sum_cart_prices }}</h6>
                         <a href="{% url 'checkout' %}" class="btn btn-success w-100 mt-3">Proceed to Checkout</a>
                     {% else %}
                         <p class="text-muted">Your cart is empty.</p>
                     {% endif %}
                 </div>
+                
             </div>
         </div>
     </div>
 
     <!-- JS (Bootstrap) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('.form-select').forEach(select => {
+            select.addEventListener('change', function () {
+                const modal = this.closest('.modal');
+                const variationInput = modal.querySelector('input[name="variation_id"]');
+                variationInput.value = this.value;
+            });
+        });
+    </script>
+    
 </body>
 </html>

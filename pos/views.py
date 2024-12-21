@@ -8,7 +8,6 @@ import requests
 from django.conf import settings
 from django.db.models import Prefetch
 
-                                                   
 def pos_view(request):
     cart = get_cart(request)
     
@@ -33,7 +32,7 @@ def pos_view(request):
         form = AddToCartForm(request.POST)
         if form.is_valid():
             menu_item_id = form.cleaned_data['menu_item_id']
-            variation_id = form.cleaned_data.get('variation_id')
+            variation_id = form.cleaned_data.get('variation_id') or None
             quantity = form.cleaned_data['quantity']
 
             # Fetch menu item and optionally the variation
@@ -48,20 +47,30 @@ def pos_view(request):
                 'quantity': quantity,
                 'price': float(price),
             })
-            request.session['cart'] = cart  # Save back to session
+            request.session['cart'] = serialize_cart(cart)  # Save back to session
             return redirect('pos')
 
-    # Serialize menu items and their variations
     menu_item_data = serialize_menu_items(menu_items)
     # Pass data to the template
     context = {
         'cart': cart,
         'form': AddToCartForm(),
         'categories': categories,
-        #'menu_item_data': menu_item_data,  # Add serialized data for JS usage
+        'menu_item_data': menu_item_data,  # Add serialized data for JS usage
     }
     return render(request, 'pos/pos.html', context)
 
+def serialize_cart(cart):
+    """Serialize the cart to store in the session."""
+    serialized_cart = []
+    for item in cart:
+        serialized_cart.append({
+            'menu_item_id': item['menu_item_id'],
+            'variation_id': item['variation_id'],
+            'quantity': item['quantity'],
+            'price': item['price'],
+        })
+    return serialized_cart
 
 def get_cart(request):
     cart = request.session.get('cart', [])
@@ -87,7 +96,7 @@ def checkout_view(request):
             total_amount = sum(item['price'] * item['quantity'] for item in cart)
 
             # Handle SumUp Payment
-            if payment_method == 'sumup':
+            if (payment_method == 'sumup'):
                 sumup_response = send_to_sumup_terminal(total_amount)
                 if sumup_response['success']:
                     sale.sumup_transaction_id = sumup_response['transaction_id']
