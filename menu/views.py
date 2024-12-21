@@ -825,9 +825,8 @@ def simulate_order(request=None, menu_slug=None, category_slug=None, menu_item_s
         messages.warning(request, " ".join(warnings))
     else:
         messages.success(request, f"Order for '{menu_item.name}'{' with variation ' + variation.name if variation else ''} simulated successfully!")    
-        print(f"Order for '{menu_item.name}'{' with variation ' + variation.name if variation else ''} simulated successfully!")
-        print(total_profit)
-        print(total_cost + total_profit)
+        #print(f"Order for '{menu_item.name}'{' with variation ' + variation.name if variation else ''} simulated successfully!")
+
         
 
 

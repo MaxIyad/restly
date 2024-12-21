@@ -1,8 +1,7 @@
 from django import forms
 from .models import Sale
 from accounts.models import Customer
-
-
+import uuid
 
 class AddToCartForm(forms.Form):
     menu_item_id = forms.IntegerField(widget=forms.HiddenInput())

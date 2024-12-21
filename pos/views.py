@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Ingredient, CartItem
-from .forms import AddToCartForm, PaymentForm, CustomerForm
+from .models import Ingredient, CartItem, Sale 
+from .forms import AddToCartForm, CustomerForm, PaymentForm
 from menu.models import MenuItem, MenuItemVariation, MenuCategory, MenuItemSecondaryAssociation
 from menu.views import simulate_order
 from django.core.serializers.json import DjangoJSONEncoder
@@ -9,6 +9,7 @@ import requests
 from django.conf import settings
 from django.db.models import Prefetch
 from django.urls import reverse
+import uuid
 
 def pos_view(request):
     cart = get_cart(request)
@@ -175,6 +176,12 @@ def checkout_view(request):
         'payment_form': PaymentForm(initial={'total_amount': total_amount}),
     }
     return render(request, 'pos/checkout.html', context)
+
+def delete_cart_item(request, unique_id):
+    #cart = get_cart(request)
+    #cart = [item for item in cart if item['unique_id'] != unique_id];
+    #request.session['cart'] = serialize_cart(cart)
+    return redirect('checkout')
 
 def send_to_sumup_terminal(amount):
     '''

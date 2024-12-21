@@ -1,6 +1,8 @@
 from django.db import models
 from menu.models import MenuItem, MenuItemVariation
 from inventory.models import Ingredient
+import uuid
+
 
 
     
