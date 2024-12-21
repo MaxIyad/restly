@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Ingredient, CartItem
-from .forms import AddToCartForm, PaymentForm
+from .forms import AddToCartForm, PaymentForm, CustomerForm
 from menu.models import MenuItem, MenuItemVariation, MenuCategory, MenuItemSecondaryAssociation
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
@@ -29,47 +29,61 @@ def pos_view(request):
     )
 
     if request.method == 'POST':
-        form = AddToCartForm(request.POST)
-        if form.is_valid():
-            menu_item_id = form.cleaned_data['menu_item_id']
-            variation_id = form.cleaned_data.get('variation_id') or None
-            quantity = form.cleaned_data['quantity']
-            selected_sides = request.POST.get('selected_sides', '').split(',')
+        if 'menu_item_id' in request.POST:
+            form = AddToCartForm(request.POST)
+            if form.is_valid():
+                menu_item_id = form.cleaned_data['menu_item_id']
+                variation_id = form.cleaned_data.get('variation_id') or None
+                quantity = form.cleaned_data['quantity']
+                selected_sides = request.POST.get('selected_sides', '').split(',')
 
-            # Fetch menu item and optionally the variation
-            menu_item = MenuItem.objects.get(id=menu_item_id)
-            variation = MenuItemVariation.objects.filter(id=variation_id).first() if variation_id else None
-            price = variation.price if variation else menu_item.cost
+                # Fetch menu item and optionally the variation
+                menu_item = MenuItem.objects.get(id=menu_item_id)
+                variation = MenuItemVariation.objects.filter(id=variation_id).first() if variation_id else None
+                price = variation.price if variation else menu_item.cost
 
-            # Calculate the total price including sides
-            total_price = price
-            sides = []
-            for side_id in selected_sides:
-                if side_id:
-                    side_item = MenuItem.objects.get(id=side_id)
-                    sides.append(side_item.name)
-                    total_price += side_item.cost
+                # Calculate the total price including sides
+                total_price = price
+                sides = []
+                for side_id in selected_sides:
+                    if side_id:
+                        side_item = MenuItem.objects.get(id=side_id)
+                        sides.append(side_item.name)
+                        total_price += side_item.cost
 
-            # Add to cart
-            cart.append({
-                'menu_item_id': menu_item.id,
-                'variation_id': variation.id if variation else None,
-                'quantity': quantity,
-                'price': float(total_price),
-                'sides': sides,
-            })
-            request.session['cart'] = serialize_cart(cart)  # Save back to session
-            return redirect('pos')
+                # Add to cart
+                cart.append({
+                    'menu_item_id': menu_item.id,
+                    'variation_id': variation.id if variation else None,
+                    'quantity': quantity,
+                    'price': float(total_price),
+                    'sides': sides,
+                })
+                request.session['cart'] = serialize_cart(cart)  # Save back to session
+                return redirect('pos')
+        else:
+            customer_form = CustomerForm(request.POST)
+            if customer_form.is_valid():
+                customer_form.save()
+                return redirect('pos')
 
     menu_item_data = serialize_menu_items(menu_items)
-    # Pass data to the template
     context = {
         'cart': cart,
         'form': AddToCartForm(),
+        'customer_form': CustomerForm(),
         'categories': categories,
         'menu_item_data': menu_item_data,  # Add serialized data for JS usage
     }
     return render(request, 'pos/pos.html', context)
+
+def save_customer_info(request):
+    if request.method == 'POST':
+        customer_form = CustomerForm(request.POST)
+        if customer_form.is_valid():
+            customer_form.save()
+            return redirect('pos')
+    return redirect('pos')
 
 def serialize_cart(cart):
     """Serialize the cart to store in the session."""

@@ -1,5 +1,7 @@
 from django import forms
 from .models import Sale
+from accounts.models import Customer
+
 
 
 class AddToCartForm(forms.Form):
@@ -15,4 +17,17 @@ class PaymentForm(forms.ModelForm):
             'payment_method': forms.Select(attrs={'class': 'form-control'}),
             'total_amount': forms.NumberInput(attrs={'readonly': 'readonly'}),
             'change_given': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+class CustomerForm(forms.ModelForm):
+    class Meta:
+        model = Customer
+        fields = ['name', 'phone', 'email', 'address', 'allergens', 'notes']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control'}),
+            'allergens': forms.Textarea(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control'}),
         }

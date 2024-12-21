@@ -780,6 +780,7 @@ def simulate_order(request, menu_slug, category_slug, menu_item_slug):
         messages.warning(request, " ".join(warnings))
     else:
         messages.success(request, f"Order for '{menu_item.name}' simulated successfully!")
+        print(f"Order for '{menu_item.name}' simulated successfully!")
 
     return redirect('menu_detail', menu_slug=menu_slug)
 
