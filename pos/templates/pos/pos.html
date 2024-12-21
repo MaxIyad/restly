@@ -86,19 +86,21 @@
     <div class="sidebar">
         <a href="#customer-info">Customer</a>
         <a href="#pos">POS</a>
-        <!-- Add more sections here -->
+        <a href="#pos">POS</a>
+        <a href="#pos">POS</a>
+        <a href="#pos">POS</a>
     </div>
 
     <!-- Content -->
     <div class="content">
         <!-- Customer Information Section -->
         <div id="customer-info">
-            <h2>Customer Information</h2>
+            <h2>Customer Informatio n</h2>
             <form method="POST" action="{% url 'save_customer_info' %}">
                 {% csrf_token %}
                 <div class="mb-3">
                     <label for="customerName" class="form-label">Customer Name</label>
-                    <input type="text" class="form-control" id="customerName" name="name" required>
+                    <input type="text" class="form-control" id="customerName" name="name" required, value="N/A">
                 </div>
                 <div class="mb-3">
                     <label for="customerPhone" class="form-label">Phone Number</label>

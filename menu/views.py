@@ -679,6 +679,9 @@ def simulate_order(request=None, menu_slug=None, category_slug=None, menu_item_s
         if variation else
         menu_item.menu_item_recipe_ingredients.all()
     )
+    secondary_items = menu_item.secondary_associations.filter(is_active=True).select_related('secondary_item')
+    total_cost = Decimal(0)
+
     price = variation.price if variation else menu_item.cost
 
 
@@ -768,6 +771,41 @@ def simulate_order(request=None, menu_slug=None, category_slug=None, menu_item_s
         #cost_per_unit = Decimal(ingredient_in_stock.unit_cost) / Decimal(ingredient_in_stock.unit_multiplier) # For later use
         #total_cost += unit_quantity_needed * cost_per_unit
 
+    # Process secondary items
+    for association in secondary_items:
+        secondary_item = association.secondary_item
+        if not secondary_item.is_active:
+            print(f"Secondary item '{secondary_item.name}' is inactive. Skipping.")
+            continue
+
+        price += secondary_item.cost
+        secondary_ingredients = secondary_item.menu_item_recipe_ingredients.all()
+        for recipe_ingredient in secondary_ingredients:
+            ingredient = recipe_ingredient.ingredient
+            required_quantity = recipe_ingredient.quantity
+            required_unit = recipe_ingredient.unit
+            print(f"Ordered sides: {secondary_item}")
+
+            if not required_quantity:
+                print(f"Quantity for {ingredient.name} in secondary item '{secondary_item.name}' is not specified.")
+                continue
+
+            if not required_unit:
+                print(f"No unit specified for {ingredient.name} in secondary item '{secondary_item.name}'. Skipping deduction.")
+                continue
+
+            inventory_unit = ingredient.units.filter(name__iexact=required_unit.name).first()
+            if not inventory_unit:
+                print(f"Unit '{required_unit.name}' for ingredient '{ingredient.name}' in secondary item '{secondary_item.name}' not found in inventory.")
+                continue
+
+            
+
+            inventory_unit.quantity -= required_quantity
+            inventory_unit.save()
+
+            unit_cost = ingredient.unit_cost / ingredient.unit_multiplier
+            total_cost += Decimal(required_quantity) * Decimal(unit_cost)
 
 
     # Calculate revenue and profit
@@ -787,6 +825,10 @@ def simulate_order(request=None, menu_slug=None, category_slug=None, menu_item_s
         messages.warning(request, " ".join(warnings))
     else:
         messages.success(request, f"Order for '{menu_item.name}'{' with variation ' + variation.name if variation else ''} simulated successfully!")    
+        print(f"Order for '{menu_item.name}'{' with variation ' + variation.name if variation else ''} simulated successfully!")
+        print(total_profit)
+        print(total_cost + total_profit)
+        
 
 
 
